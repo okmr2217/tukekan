@@ -7,7 +7,7 @@ export const CONFIG = {
   DEVICE_SCALE_FACTOR: 2,
   OUTPUT_DIR: 'output/screenshots',
   AUTH: {
-    userText: 'user1',
+    userText: '太郎',
     password: process.env.SCREENSHOT_PASSWORD || 'password123',
   },
 };

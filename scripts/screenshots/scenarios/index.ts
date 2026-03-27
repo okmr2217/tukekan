@@ -18,7 +18,7 @@ export async function runPcScenarios(page: Page): Promise<void> {
   try {
     await page.goto(`${BASE_URL}/`);
     await page.waitForLoadState('networkidle');
-    const fabBtn = page.locator('button:has-text("+"), button[aria-label*="追加"], button[aria-label*="add"], button.fab').first();
+    const fabBtn = page.locator('button:has-text("新しい取引を追加"), button[title*="追加"], button.rounded-full').first();
     await fabBtn.click({ timeout: 5000 });
     await page.waitForTimeout(300);
     await capture(page, 'transaction-modal-pc', 'pc');
@@ -64,7 +64,7 @@ export async function runPcScenarios(page: Page): Promise<void> {
   try {
     await page.goto(`${BASE_URL}/group/members`);
     await page.waitForLoadState('networkidle');
-    const deleteBtn = page.locator('button:has-text("削除"), button[aria-label*="削除"]').first();
+    const deleteBtn = page.locator('button[title="メンバーを削除"]').first();
     await deleteBtn.click({ timeout: 5000 });
     await page.waitForTimeout(300);
     await capture(page, 'member-delete-dialog-pc', 'pc');
@@ -107,7 +107,7 @@ export async function runMobileScenarios(page: Page): Promise<void> {
   try {
     await page.goto(`${BASE_URL}/`);
     await page.waitForLoadState('networkidle');
-    const fabBtn = page.locator('button:has-text("+"), button[aria-label*="追加"], button[aria-label*="add"], button.fab').first();
+    const fabBtn = page.locator('button:has-text("新しい取引を追加"), button[title*="追加"], button.rounded-full').first();
     await fabBtn.click({ timeout: 5000 });
     await page.waitForTimeout(400);
     await capture(page, 'transaction-modal-mobile', 'mobile');
@@ -139,7 +139,7 @@ export async function runMobileScenarios(page: Page): Promise<void> {
   try {
     await page.goto(`${BASE_URL}/group/members`);
     await page.waitForLoadState('networkidle');
-    const deleteBtn = page.locator('button:has-text("削除"), button[aria-label*="削除"]').first();
+    const deleteBtn = page.locator('button[title="メンバーを削除"]').first();
     await deleteBtn.click({ timeout: 5000 });
     await page.waitForTimeout(400);
     await capture(page, 'member-delete-dialog-mobile', 'mobile');
