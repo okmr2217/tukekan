@@ -36,6 +36,26 @@ export function TransactionModal({
     }
   }, [open]);
 
+  // Keyboard shortcut: N to open modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (open) return;
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable
+      )
+        return;
+      if (e.key === "n" || e.key === "N") {
+        setOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
   return (
     <>
       <FAB onClick={() => setOpen(true)} />

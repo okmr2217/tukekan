@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/actions/auth";
-import { getPartners, getPartnersWithBalance } from "@/actions/partner";
+import { getPartnersWithBalance } from "@/actions/partner";
 import { getDescriptionSuggestions, getTransactions } from "@/actions/transaction";
 import { TotalBalanceCard } from "@/components/features/balance/total-balance-card";
-import { TransactionModal } from "@/components/features/transaction/transaction-modal";
 import { TransactionFilters } from "@/components/features/transaction/transaction-filters";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
 
@@ -35,9 +34,8 @@ export default async function HomePage({
   const showArchived = parseBool(params.showArchived);
   const showArchivedPartners = parseBool(params.showArchivedPartners);
 
-  const [partners, partnersWithBalance, suggestions, transactions] =
+  const [partnersWithBalance, suggestions, transactions] =
     await Promise.all([
-      getPartners(),
       getPartnersWithBalance(),
       getDescriptionSuggestions(),
       getTransactions({ partnerIds, showArchived, showArchivedPartners }),
@@ -49,8 +47,6 @@ export default async function HomePage({
 
   return (
     <div className="flex flex-col">
-      <TransactionModal partners={partners} suggestions={suggestions} />
-
       <TotalBalanceCard balance={totalBalance} />
 
       <div className="px-4 pt-3 pb-4 space-y-3">
