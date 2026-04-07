@@ -2,14 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet } from "lucide-react";
+import { Wallet, BarChart2, Users, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   {
     href: "/",
-    label: "ホーム",
+    label: "取引",
     icon: Wallet,
+  },
+  {
+    href: "/stats",
+    label: "統計",
+    icon: BarChart2,
+  },
+  {
+    href: "/partners",
+    label: "相手",
+    icon: Users,
+  },
+  {
+    href: "/settings",
+    label: "設定",
+    icon: Settings,
   },
 ];
 
