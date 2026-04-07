@@ -37,7 +37,7 @@ export function PartnersPageClient({ partners }: Props) {
             : "相手がまだ登録されていません"}
         </div>
       ) : (
-        <div className="divide-y">
+        <div className="px-4 space-y-3">
           {displayedPartners.map((partner) => (
             <PartnerCard key={partner.id} partner={partner} />
           ))}

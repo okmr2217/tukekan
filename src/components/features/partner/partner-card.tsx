@@ -68,39 +68,44 @@ export function PartnerCard({ partner }: Props) {
     <>
       <div
         className={cn(
-          "flex items-center justify-between px-4 py-3",
+          "rounded-lg border bg-card p-4 shadow-sm",
           partner.isArchived && "opacity-60",
         )}
       >
-        <div className="flex items-center gap-3">
-          <div className="size-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium shrink-0">
-            {partner.name[0]}
-          </div>
-          <div>
-            <span className="font-medium">{partner.name}</span>
-            {partner.isArchived && (
-              <span className="ml-2 text-xs text-muted-foreground">
-                アーカイブ済み
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: avatar + name */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold shrink-0">
+              {partner.name[0]}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-sm">{partner.name}</span>
+                {partner.isArchived && (
+                  <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                    アーカイブ済み
+                  </span>
+                )}
+              </div>
+              <span
+                className={cn(
+                  "font-bold text-base tabular-nums",
+                  partner.balance < 0 ? "text-destructive" : "text-foreground",
+                )}
+              >
+                {partner.balance < 0 ? "-" : ""}¥
+                {Math.abs(partner.balance).toLocaleString()}
               </span>
-            )}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <span
-            className={cn(
-              "font-semibold tabular-nums text-sm mr-1",
-              partner.balance < 0 ? "text-destructive" : "text-foreground",
-            )}
-          >
-            {partner.balance < 0 ? "-" : ""}¥
-            {Math.abs(partner.balance).toLocaleString()}
-          </span>
+
+          {/* Right: action menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-8"
+                className="size-8 shrink-0"
                 disabled={isPending}
               >
                 <MoreVertical className="size-4" />
