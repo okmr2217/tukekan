@@ -17,7 +17,7 @@ export async function getPartners(): Promise<Partner[]> {
   }
 
   const partners = await prisma.partner.findMany({
-    where: { ownerId: session.userId },
+    where: { ownerId: session.userId, isArchived: false },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
@@ -30,7 +30,6 @@ const createPartnerSchema = z.object({
     .string()
     .min(1, "名前を入力してください")
     .max(50, "名前は50文字以内で入力してください"),
-  linkedAccountId: z.string().optional(),
 });
 
 export type CreatePartnerState = {
@@ -53,21 +52,19 @@ export async function createPartner(
 
   const result = createPartnerSchema.safeParse({
     name: formData.get("name"),
-    linkedAccountId: formData.get("linkedAccountId") || undefined,
   });
 
   if (!result.success) {
     return { error: result.error.issues[0].message };
   }
 
-  const { name, linkedAccountId } = result.data;
+  const { name } = result.data;
 
-  // 同じ名前のPartnerが既に存在するかチェック
   const existingPartner = await prisma.partner.findUnique({
     where: {
       ownerId_name: {
         ownerId: session.userId,
-        name: name,
+        name,
       },
     },
   });
@@ -76,21 +73,10 @@ export async function createPartner(
     return { error: "同じ名前の相手が既に登録されています" };
   }
 
-  // linkedAccountIdが指定されている場合、存在確認
-  if (linkedAccountId) {
-    const linkedAccount = await prisma.account.findUnique({
-      where: { id: linkedAccountId },
-    });
-    if (!linkedAccount) {
-      return { error: "指定されたアカウントが見つかりません" };
-    }
-  }
-
   const partner = await prisma.partner.create({
     data: {
       name,
       ownerId: session.userId,
-      linkedAccountId: linkedAccountId || null,
     },
   });
 

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient, Role } from "../src/app/generated/prisma/client";
+import { PrismaClient } from "../src/app/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createId } from "@paralleldrive/cuid2";
 import bcrypt from "bcryptjs";
@@ -75,53 +75,23 @@ async function main() {
   await prisma.transaction.deleteMany();
   await prisma.partner.deleteMany();
   await prisma.account.deleteMany();
-  await prisma.group.deleteMany();
   console.log("完了\n");
 
   // パスワードハッシュを生成
   const passwordHash = await bcrypt.hash("password", 10);
 
-  // グループを作成
-  const group = await prisma.group.create({
-    data: {
-      id: createId(),
-      name: "原チャ",
-      inviteCode: createId(),
-    },
-  });
-  console.log(`グループ「${group.name}」を作成しました`);
-  console.log(`招待コード: ${group.inviteCode}\n`);
-
-  // だいちアカウントを作成（ADMIN）
+  // メインアカウントを作成
   const daichi = await prisma.account.create({
     data: {
       id: createId(),
+      email: "daichi@example.com",
       name: "だいち",
       passwordHash,
-      groupId: group.id,
-      role: Role.ADMIN,
     },
   });
-  console.log(`アカウント「${daichi.name}」を作成しました（ADMIN）`);
+  console.log(`アカウント「${daichi.name}」を作成しました`);
 
-  // 他のメンバーアカウントを作成（MEMBER）
-  const memberAccounts: Record<string, string> = {};
-  for (const name of partnerNames) {
-    const account = await prisma.account.create({
-      data: {
-        id: createId(),
-        name,
-        passwordHash,
-        groupId: group.id,
-        role: Role.MEMBER,
-      },
-    });
-    memberAccounts[name] = account.id;
-    console.log(`アカウント「${name}」を作成しました（MEMBER）`);
-  }
-  console.log("");
-
-  // だいち用のパートナーを作成（各メンバーへのリンク付き）
+  // だいち用のパートナーを作成
   const daichiPartners: Record<string, string> = {};
   for (const name of partnerNames) {
     const partner = await prisma.partner.create({
@@ -129,25 +99,11 @@ async function main() {
         id: createId(),
         name,
         ownerId: daichi.id,
-        linkedAccountId: memberAccounts[name],
       },
     });
     daichiPartners[name] = partner.id;
   }
-  console.log(`だいちのパートナーを ${partnerNames.length} 名作成しました`);
-
-  // 各メンバー用のパートナー（だいちへのリンク）を作成
-  for (const name of partnerNames) {
-    await prisma.partner.create({
-      data: {
-        id: createId(),
-        name: "だいち",
-        ownerId: memberAccounts[name],
-        linkedAccountId: daichi.id,
-      },
-    });
-  }
-  console.log(`各メンバーのパートナー（だいち）を作成しました\n`);
+  console.log(`パートナーを ${partnerNames.length} 名作成しました\n`);
 
   // トランザクションを作成
   let transactionCount = 0;
@@ -174,7 +130,7 @@ async function main() {
       await prisma.transaction.create({
         data: {
           id: createId(),
-          amount: -row.amount, // 逆の金額で相殺
+          amount: -row.amount,
           description: "返済",
           date: row.repaymentDate,
           ownerId: daichi.id,

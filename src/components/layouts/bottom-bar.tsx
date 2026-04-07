@@ -2,24 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet, ArrowDownToLine, Building2 } from "lucide-react";
+import { Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   {
     href: "/",
-    label: "自分",
+    label: "ホーム",
     icon: Wallet,
-  },
-  {
-    href: "/from-members",
-    label: "相手から",
-    icon: ArrowDownToLine,
-  },
-  {
-    href: "/group",
-    label: "グループ",
-    icon: Building2,
   },
 ];
 

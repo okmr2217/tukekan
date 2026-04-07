@@ -10,64 +10,44 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  ADMIN
-  MEMBER
-}
-
-model Group {
-  id         String   @id @default(cuid())
-  name       String
-  inviteCode String   @unique
-  createdAt  DateTime @default(now())
-
-  accounts Account[]
-}
-
 model Account {
   id           String   @id @default(cuid())
+  email        String   @unique
   name         String
   passwordHash String
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  // Group relation
-  groupId String
-  group   Group  @relation(fields: [groupId], references: [id])
-  role    Role   @default(MEMBER)
-
-  // Relations
+  partners     Partner[]
   transactions Transaction[]
-  partners     Partner[]     @relation("OwnerPartners")
-  linkedFrom   Partner[]     @relation("LinkedAccount")
-
-  @@unique([groupId, name]) // グループ内で名前の重複を防ぐ
 }
 
 model Partner {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
+  id                  String    @id @default(cuid())
+  name                String
+  isArchived          Boolean   @default(false)
+  shareToken          String?   @unique
+  shareTokenExpiresAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  // Relations
   ownerId String
-  owner   Account @relation("OwnerPartners", fields: [ownerId], references: [id])
-
-  linkedAccountId String?
-  linkedAccount   Account? @relation("LinkedAccount", fields: [linkedAccountId], references: [id])
+  owner   Account @relation(fields: [ownerId], references: [id])
 
   transactions Transaction[]
 
-  @@unique([ownerId, name]) // 同一オーナー内で名前の重複を防ぐ
+  @@unique([ownerId, name])
 }
 
 model Transaction {
   id          String   @id @default(cuid())
-  amount      Int // +は貸し、-は借り/返済
-  description String?
-  date        DateTime @default(now())
+  amount      Int // +は貸し、-は借り
+  description String? // 100文字以内
+  date        DateTime // UTCで保存、クライアント側でJST変換
+  isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Relations
   ownerId String
   owner   Account @relation(fields: [ownerId], references: [id])
 

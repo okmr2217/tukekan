@@ -10,6 +10,7 @@ const TOKEN_MAX_AGE = 60 * 60 * 24 * 90; // 90日
 
 export interface Session {
   userId: string;
+  email: string;
   name: string;
 }
 
@@ -26,6 +27,7 @@ export async function verifyJWT(token: string): Promise<Session | null> {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return {
       userId: payload.userId as string,
+      email: payload.email as string,
       name: payload.name as string,
     };
   } catch {
