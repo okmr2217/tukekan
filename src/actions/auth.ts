@@ -12,11 +12,24 @@ import {
 } from "@/lib/auth";
 
 const loginSchema = z.object({
-  userId: z.string().min(1, "ユーザーを選択してください"),
+  email: z.string().email("メールアドレスの形式が正しくありません"),
   password: z.string().min(1, "パスワードを入力してください"),
 });
 
 export type LoginState = {
+  error?: string;
+};
+
+const registerSchema = z.object({
+  name: z
+    .string()
+    .min(1, "表示名を入力してください")
+    .max(20, "表示名は20文字以内で入力してください"),
+  email: z.string().email("メールアドレスの形式が正しくありません"),
+  password: z.string().min(8, "パスワードは8文字以上で入力してください"),
+});
+
+export type RegisterState = {
   error?: string;
 };
 
@@ -25,7 +38,7 @@ export async function login(
   formData: FormData,
 ): Promise<LoginState> {
   const result = loginSchema.safeParse({
-    userId: formData.get("userId"),
+    email: formData.get("email"),
     password: formData.get("password"),
   });
 
@@ -33,23 +46,60 @@ export async function login(
     return { error: result.error.issues[0].message };
   }
 
-  const { userId, password } = result.data;
+  const { email, password } = result.data;
 
   const account = await prisma.account.findUnique({
-    where: { id: userId },
+    where: { email },
   });
 
   if (!account) {
-    return { error: "ユーザー名またはパスワードが正しくありません" };
+    return { error: "メールアドレスまたはパスワードが正しくありません" };
   }
 
   const isValid = await verifyPassword(password, account.passwordHash);
   if (!isValid) {
-    return { error: "ユーザー名またはパスワードが正しくありません" };
+    return { error: "メールアドレスまたはパスワードが正しくありません" };
   }
 
   const token = await generateJWT({
     userId: account.id,
+    email: account.email,
+    name: account.name,
+  });
+
+  await setSessionCookie(token);
+  redirect("/");
+}
+
+export async function register(
+  _prevState: RegisterState,
+  formData: FormData,
+): Promise<RegisterState> {
+  const result = registerSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  if (!result.success) {
+    return { error: result.error.issues[0].message };
+  }
+
+  const { name, email, password } = result.data;
+
+  const existing = await prisma.account.findUnique({ where: { email } });
+  if (existing) {
+    return { error: "このメールアドレスはすでに登録されています" };
+  }
+
+  const passwordHash = await hashPassword(password);
+  const account = await prisma.account.create({
+    data: { name, email, passwordHash },
+  });
+
+  const token = await generateJWT({
+    userId: account.id,
+    email: account.email,
     name: account.name,
   });
 
@@ -71,16 +121,9 @@ export async function getCurrentUser() {
     where: { id: session.userId },
     select: {
       id: true,
+      email: true,
       name: true,
-      role: true,
       createdAt: true,
-      group: {
-        select: {
-          id: true,
-          name: true,
-          inviteCode: true,
-        },
-      },
     },
   });
 
@@ -123,7 +166,6 @@ export async function updateProfile(
 
   const { name, currentPassword, newPassword } = result.data;
 
-  // 現在のアカウント情報を取得
   const currentAccount = await prisma.account.findUnique({
     where: { id: session.userId },
   });
@@ -132,20 +174,6 @@ export async function updateProfile(
     return { error: "アカウントが見つかりません" };
   }
 
-  // グループ内の名前の重複チェック（自分以外）
-  const existingAccount = await prisma.account.findFirst({
-    where: {
-      groupId: currentAccount.groupId,
-      name,
-      id: { not: session.userId },
-    },
-  });
-
-  if (existingAccount) {
-    return { error: "このユーザー名は既に使用されています" };
-  }
-
-  // パスワード変更がある場合
   if (newPassword) {
     if (!currentPassword) {
       return { error: "現在のパスワードを入力してください" };
@@ -175,9 +203,9 @@ export async function updateProfile(
     });
   }
 
-  // セッションを更新（名前が変わった場合）
   const token = await generateJWT({
     userId: session.userId,
+    email: currentAccount.email,
     name,
   });
   await setSessionCookie(token);

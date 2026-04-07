@@ -2,21 +2,27 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { login, type LoginState } from "@/actions/auth";
+import { register, type RegisterState } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
-const initialState: LoginState = {};
+const initialState: RegisterState = {};
 
-export function LoginForm() {
-  const [state, formAction, isPending] = useActionState(login, initialState);
+export function RegisterForm() {
+  const [state, formAction, isPending] = useActionState(register, initialState);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-center">ログイン</CardTitle>
+        <CardTitle className="text-center">アカウント作成</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-6">
@@ -25,6 +31,18 @@ export function LoginForm() {
               {state.error}
             </div>
           )}
+          <div className="space-y-2">
+            <Label htmlFor="name">表示名</Label>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="山田 太郎"
+              autoComplete="name"
+              required
+              maxLength={20}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">メールアドレス</Label>
             <Input
@@ -42,21 +60,25 @@ export function LoginForm() {
               id="password"
               name="password"
               type="password"
-              placeholder="パスワードを入力"
-              autoComplete="current-password"
+              placeholder="8文字以上"
+              autoComplete="new-password"
               required
+              minLength={8}
             />
           </div>
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "ログイン中..." : "ログイン"}
+            {isPending ? "登録中..." : "アカウントを作成"}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="justify-center">
         <p className="text-sm text-muted-foreground">
-          アカウントをお持ちでない方は{" "}
-          <Link href="/register" className="text-primary underline-offset-4 hover:underline">
-            アカウントを作成
+          すでにアカウントをお持ちの方は{" "}
+          <Link
+            href="/login"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            ログイン
           </Link>
         </p>
       </CardFooter>

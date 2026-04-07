@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/actions/auth";
-import { LoginForm } from "./login-form";
+import { RegisterForm } from "./register-form";
 import Image from "next/image";
 
-export default async function LoginPage() {
+export default async function RegisterPage() {
   const session = await getSession();
   if (session) {
     redirect("/");
@@ -18,7 +18,7 @@ export default async function LoginPage() {
             <span className="text-[#e07326]">ツケ</span>カン
           </h1>
         </div>
-        <LoginForm />
+        <RegisterForm />
       </div>
     </div>
   );
