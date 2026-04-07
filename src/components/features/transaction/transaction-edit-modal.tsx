@@ -184,7 +184,7 @@ export function TransactionEditModal({
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="edit-description">説明（任意）</Label>
+              <Label htmlFor="edit-description">メモ（任意）</Label>
               <Input
                 id="edit-description"
                 value={description}

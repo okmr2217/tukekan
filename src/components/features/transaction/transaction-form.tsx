@@ -225,7 +225,7 @@ export function TransactionForm({
 
       {/* Description */}
       <div className="space-y-2">
-        <Label htmlFor="description">説明（任意）</Label>
+        <Label htmlFor="description">メモ（任意）</Label>
         <Input
           id="description"
           value={description}

@@ -38,7 +38,7 @@ export function TransactionCardList({ transactions, suggestions }: Props) {
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-1.5">
         {transactions.map((t) => (
           <TransactionCard key={t.id} transaction={t} onEdit={handleEdit} />
         ))}

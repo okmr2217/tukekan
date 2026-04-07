@@ -63,6 +63,7 @@ export type PartnerWithBalance = {
   name: string;
   balance: number;
   isArchived: boolean;
+  transactionCount: number;
 };
 
 export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
@@ -89,6 +90,7 @@ export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
     id: p.id,
     name: p.name,
     isArchived: p.isArchived,
+    transactionCount: p.transactions.length,
     balance: p.transactions.reduce((sum, t) => sum + t.amount, 0),
   }));
 }

@@ -19,7 +19,7 @@ export function TransactionCard({ transaction, onEdit }: Props) {
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-4 shadow-sm",
+        "rounded-lg border bg-card px-4 py-2.5 shadow-sm",
         isGrayedOut && "opacity-50",
       )}
     >
