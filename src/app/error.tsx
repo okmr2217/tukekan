@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { AlertCircle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,10 +36,10 @@ export default function Error({ error, reset }: Props) {
                 再試行
               </Button>
               <Button className="flex-1" asChild>
-                <a href="/">
+                <Link href="/">
                   <Home className="h-4 w-4 mr-2" />
                   ホーム
-                </a>
+                </Link>
               </Button>
             </div>
           </div>

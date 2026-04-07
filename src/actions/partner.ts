@@ -11,22 +11,6 @@ export type Partner = {
   name: string;
 };
 
-export type PartnerOption = {
-  id: string;
-  name: string;
-  isArchived: boolean;
-};
-
-export async function getAllPartners(): Promise<PartnerOption[]> {
-  const session = await getSession();
-  if (!session) return [];
-
-  return prisma.partner.findMany({
-    where: { ownerId: session.userId },
-    select: { id: true, name: true, isArchived: true },
-    orderBy: { name: "asc" },
-  });
-}
 
 export async function getPartners(): Promise<Partner[]> {
   const session = await getSession();

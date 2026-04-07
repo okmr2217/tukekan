@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FileQuestion, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,10 +19,10 @@ export default function NotFound() {
               </p>
             </div>
             <Button className="w-full" asChild>
-              <a href="/">
+              <Link href="/">
                 <Home className="h-4 w-4 mr-2" />
                 ホームに戻る
-              </a>
+              </Link>
             </Button>
           </div>
         </CardContent>
