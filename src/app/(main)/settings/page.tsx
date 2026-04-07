@@ -9,7 +9,7 @@ export default async function SettingsPage() {
   if (!user) redirect("/login");
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 space-y-8">
+    <div className="mx-auto px-4 py-6 space-y-8">
       <section className="space-y-4">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           アカウント
@@ -29,8 +29,8 @@ export default async function SettingsPage() {
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           表示設定
         </h2>
-        <div className="flex items-center justify-between">
-          <span className="text-sm">ダーク / ライトモード</span>
+        <div className="flex flex-col gap-2">
+          <span className="text-sm">カラーモード</span>
           <ThemeToggle />
         </div>
       </section>
