@@ -1,17 +1,13 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useTransition,
-  useActionState,
-  startTransition as reactStartTransition,
-} from "react";
+import { useState, useEffect, useTransition } from "react";
 import {
   updateTransaction,
   deleteTransaction,
-  type UpdateTransactionState,
+  archiveTransaction,
+  unarchiveTransaction,
 } from "@/actions/transaction";
+import type { TransactionWithPartner } from "@/actions/transaction";
 import {
   Dialog,
   DialogContent,
@@ -21,21 +17,50 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "sonner";
-import type { Transaction } from "./transaction-list";
+import { TransactionFormFields } from "./transaction-form-fields";
+import {
+  floorToNearest30,
+  buildDateTime,
+  type DateMode,
+} from "@/lib/date-picker-utils";
 import { formatDateToJST } from "@/lib/dateUtils";
 
 type Props = {
-  transaction: Transaction | null;
+  transaction: TransactionWithPartner | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   suggestions?: string[];
 };
 
-const initialState: UpdateTransactionState = {};
+function initDateMode(date: Date): DateMode {
+  const jst = new Date(
+    date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
+  );
+  const nowJst = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
+  );
+  const today = new Date(
+    nowJst.getFullYear(),
+    nowJst.getMonth(),
+    nowJst.getDate(),
+  );
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const d = new Date(jst.getFullYear(), jst.getMonth(), jst.getDate());
+  if (d.getTime() === today.getTime()) return "today";
+  if (d.getTime() === yesterday.getTime()) return "yesterday";
+  return "other";
+}
+
+function getDateString(date: Date): string {
+  const jst = new Date(
+    date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
+  );
+  return `${jst.getFullYear()}-${String(jst.getMonth() + 1).padStart(2, "0")}-${String(jst.getDate()).padStart(2, "0")}`;
+}
 
 export function TransactionEditModal({
   transaction,
@@ -43,54 +68,60 @@ export function TransactionEditModal({
   onOpenChange,
   suggestions = [],
 }: Props) {
-  const [state, formAction, isUpdatePending] = useActionState(
-    updateTransaction,
-    initialState,
-  );
+  const [isUpdatePending, startUpdateTransition] = useTransition();
   const [isDeletePending, startDeleteTransition] = useTransition();
+  const [isArchivePending, startArchiveTransition] = useTransition();
 
-  const [isLending, setIsLending] = useState<boolean>(true);
-  const [amount, setAmount] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
-  const [date, setDate] = useState<string>("");
+  const [isLending, setIsLending] = useState(true);
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [dateMode, setDateMode] = useState<DateMode>("today");
+  const [otherDate, setOtherDate] = useState(formatDateToJST());
+  const [selectedTime, setSelectedTime] = useState(
+    floorToNearest30(new Date()),
+  );
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize form when transaction changes
   useEffect(() => {
     if (transaction) {
-      const absAmount = Math.abs(transaction.amount);
-      const d = new Date(transaction.date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
       setIsLending(transaction.amount >= 0);
-      setAmount(absAmount.toString());
-      setDescription(transaction.description || "");
-      setDate(`${year}-${month}-${day}`);
+      setAmount(Math.abs(transaction.amount).toString());
+      setDescription(transaction.description ?? "");
+      setDateMode(initDateMode(transaction.date));
+      setOtherDate(getDateString(transaction.date));
+      setSelectedTime(floorToNearest30(transaction.date));
       setShowDeleteConfirm(false);
-      setDeleteError(null);
+      setError(null);
     }
   }, [transaction]);
 
-  // Handle successful update
-  useEffect(() => {
-    if (state.success) {
-      toast.success("取引を更新しました");
-      onOpenChange(false);
-    }
-  }, [state.success, onOpenChange]);
-
-  const handleSubmit = (formData: FormData) => {
+  const handleUpdate = () => {
     if (!transaction) return;
     const rawAmount = parseInt(amount, 10);
-    if (isNaN(rawAmount)) return;
+    if (isNaN(rawAmount) || rawAmount <= 0) {
+      setError("金額を正しく入力してください");
+      return;
+    }
     const signedAmount = isLending ? rawAmount : -rawAmount;
-    formData.set("transactionId", transaction.id);
-    formData.set("amount", signedAmount.toString());
-    formData.set("description", description);
-    formData.set("date", date);
-    reactStartTransition(() => formAction(formData));
+    const date = buildDateTime(dateMode, otherDate, selectedTime);
+
+    setError(null);
+    startUpdateTransition(async () => {
+      const formData = new FormData();
+      formData.set("transactionId", transaction.id);
+      formData.set("amount", signedAmount.toString());
+      formData.set("description", description);
+      formData.set("date", date.toISOString());
+
+      const result = await updateTransaction({}, formData);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      toast.success("取引を更新しました");
+      onOpenChange(false);
+    });
   };
 
   const handleDelete = () => {
@@ -98,153 +129,118 @@ export function TransactionEditModal({
     startDeleteTransition(async () => {
       const result = await deleteTransaction(transaction.id);
       if (result.error) {
-        setDeleteError(result.error);
-      } else {
-        toast.success("取引を削除しました");
-        onOpenChange(false);
+        setError(result.error);
+        return;
       }
+      toast.success("取引を削除しました");
+      onOpenChange(false);
     });
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setDescription(suggestion);
+  const handleArchiveToggle = () => {
+    if (!transaction) return;
+    const action = transaction.isArchived
+      ? unarchiveTransaction
+      : archiveTransaction;
+    startArchiveTransition(async () => {
+      const result = await action(transaction.id);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      toast.success(
+        transaction.isArchived ? "アーカイブを解除しました" : "アーカイブしました",
+      );
+      onOpenChange(false);
+    });
   };
-
-  const isPending = isUpdatePending || isDeletePending;
 
   if (!transaction) return null;
 
+  const isPending = isUpdatePending || isDeletePending || isArchivePending;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => !isPending && onOpenChange(v)}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>取引を編集</DialogTitle>
         </DialogHeader>
 
         {!showDeleteConfirm ? (
-          <form action={handleSubmit} className="space-y-6">
-            {state.error && (
+          <div className="space-y-5">
+            {error && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                {state.error}
+                {error}
               </div>
             )}
 
             {/* Partner (read-only) */}
-            {transaction.partnerName && (
-              <div className="space-y-2">
-                <Label>相手</Label>
-                <p className="text-sm py-2 px-3 bg-muted rounded-md">
-                  {transaction.partnerName}
-                </p>
-              </div>
-            )}
-
-            {/* Amount */}
             <div className="space-y-2">
-              <Label htmlFor="edit-amount">金額</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  ¥
-                </span>
-                <Input
-                  id="edit-amount"
-                  type="number"
-                  inputMode="numeric"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="pl-7"
-                  placeholder="0"
-                  min={1}
-                  max={10000000}
-                  required
-                  disabled={isPending}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={isLending ? "default" : "outline"}
-                  onClick={() => setIsLending(true)}
-                  className="flex-1"
-                  disabled={isPending}
-                >
-                  貸した (+)
-                </Button>
-                <Button
-                  type="button"
-                  variant={!isLending ? "default" : "outline"}
-                  onClick={() => setIsLending(false)}
-                  className="flex-1"
-                  disabled={isPending}
-                >
-                  借りた・返済 (-)
-                </Button>
-              </div>
+              <Label>相手</Label>
+              <p className="text-sm py-2 px-3 bg-muted rounded-md">
+                {transaction.partnerName}
+              </p>
             </div>
 
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">メモ（任意）</Label>
-              <Input
-                id="edit-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="例: 麻雀、ランチ、返済"
-                maxLength={100}
-                disabled={isPending}
-              />
-              {suggestions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {suggestions.map((suggestion) => (
-                    <Button
-                      key={suggestion}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSuggestionClick(suggestion)}
-                      className="h-7 text-xs"
-                      disabled={isPending}
-                    >
-                      {suggestion}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Date */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-date">日付</Label>
-              <Input
-                id="edit-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                max={formatDateToJST()}
-                required
-                disabled={isPending}
-              />
-            </div>
+            <TransactionFormFields
+              amount={amount}
+              setAmount={setAmount}
+              isLending={isLending}
+              setIsLending={setIsLending}
+              description={description}
+              setDescription={setDescription}
+              dateMode={dateMode}
+              setDateMode={setDateMode}
+              otherDate={otherDate}
+              setOtherDate={setOtherDate}
+              selectedTime={selectedTime}
+              setSelectedTime={setSelectedTime}
+              suggestions={suggestions}
+              isPending={isPending}
+              maxDate={formatDateToJST()}
+            />
 
             {/* Actions */}
             <div className="flex gap-2">
               <Button
                 type="button"
                 variant="outline"
+                size="icon"
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={isPending}
-                className="text-destructive hover:text-destructive"
+                className="text-destructive hover:text-destructive shrink-0"
+                aria-label="削除"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
               <Button
-                type="submit"
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleArchiveToggle}
+                disabled={isPending}
+                className="shrink-0"
+                aria-label={
+                  transaction.isArchived ? "アーカイブ解除" : "アーカイブ"
+                }
+              >
+                {isArchivePending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : transaction.isArchived ? (
+                  <ArchiveRestore className="h-4 w-4" />
+                ) : (
+                  <Archive className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleUpdate}
                 className="flex-1"
                 disabled={isPending || !amount}
               >
                 {isUpdatePending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
                     更新中...
                   </>
                 ) : (
@@ -252,16 +248,16 @@ export function TransactionEditModal({
                 )}
               </Button>
             </div>
-          </form>
+          </div>
         ) : (
           <>
             <DialogDescription>
               この取引を削除しますか？この操作は取り消せません。
             </DialogDescription>
 
-            {deleteError && (
+            {error && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                {deleteError}
+                {error}
               </div>
             )}
 

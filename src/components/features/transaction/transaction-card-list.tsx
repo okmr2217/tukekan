@@ -4,7 +4,6 @@ import { useState } from "react";
 import { TransactionCard } from "./transaction-card";
 import { TransactionEditModal } from "./transaction-edit-modal";
 import type { TransactionWithPartner } from "@/actions/transaction";
-import type { Transaction } from "./transaction-list";
 
 type Props = {
   transactions: TransactionWithPartner[];
@@ -13,18 +12,11 @@ type Props = {
 
 export function TransactionCardList({ transactions, suggestions }: Props) {
   const [selectedTransaction, setSelectedTransaction] =
-    useState<Transaction | null>(null);
+    useState<TransactionWithPartner | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const handleEdit = (transaction: TransactionWithPartner) => {
-    setSelectedTransaction({
-      id: transaction.id,
-      amount: transaction.amount,
-      description: transaction.description,
-      date: transaction.date,
-      partnerName: transaction.partnerName,
-      partnerId: transaction.partnerId,
-    });
+    setSelectedTransaction(transaction);
     setEditModalOpen(true);
   };
 

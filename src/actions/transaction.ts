@@ -247,6 +247,58 @@ export async function updateTransaction(
   return { success: true };
 }
 
+// 取引アーカイブ
+export async function archiveTransaction(
+  transactionId: string,
+): Promise<{ error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: "ログインが必要です" };
+
+  const transaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+  });
+
+  if (!transaction) return { error: "取引が見つかりません" };
+  if (transaction.ownerId !== session.userId) {
+    return { error: "この取引を操作する権限がありません" };
+  }
+
+  await prisma.transaction.update({
+    where: { id: transactionId },
+    data: { isArchived: true },
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/partners/${transaction.partnerId}`);
+  return {};
+}
+
+// 取引アーカイブ解除
+export async function unarchiveTransaction(
+  transactionId: string,
+): Promise<{ error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: "ログインが必要です" };
+
+  const transaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+  });
+
+  if (!transaction) return { error: "取引が見つかりません" };
+  if (transaction.ownerId !== session.userId) {
+    return { error: "この取引を操作する権限がありません" };
+  }
+
+  await prisma.transaction.update({
+    where: { id: transactionId },
+    data: { isArchived: false },
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/partners/${transaction.partnerId}`);
+  return {};
+}
+
 // 取引削除
 export type DeleteTransactionState = {
   error?: string;
