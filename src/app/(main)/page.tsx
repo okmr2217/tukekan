@@ -2,16 +2,20 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/actions/auth";
 import prisma from "@/lib/prisma";
 import { getPartners } from "@/actions/partner";
-import { getDescriptionSuggestions } from "@/actions/transaction";
+import { getAllPartners } from "@/actions/partner";
+import { getDescriptionSuggestions, getTransactions } from "@/actions/transaction";
 import { TotalBalanceCard } from "@/components/features/balance/total-balance-card";
 import {
   PartnerBalanceList,
   type PartnerBalance,
 } from "@/components/features/partner/partner-balance-list";
 import { TransactionModal } from "@/components/features/transaction/transaction-modal";
-import { TransactionListWithEdit } from "@/components/features/transaction/transaction-list-with-edit";
+import { TransactionFilters } from "@/components/features/transaction/transaction-filters";
+import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wallet, History } from "lucide-react";
+
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 async function getPartnerBalances(userId: string): Promise<PartnerBalance[]> {
   const balances = await prisma.transaction.groupBy({
@@ -33,42 +37,46 @@ async function getPartnerBalances(userId: string): Promise<PartnerBalance[]> {
     }),
   );
 
-  // 残高の絶対値が大きい順にソート
   return partnersWithBalance.sort(
     (a, b) => Math.abs(b.balance) - Math.abs(a.balance),
   );
 }
 
-async function getAllTransactions(userId: string) {
-  const transactions = await prisma.transaction.findMany({
-    where: { ownerId: userId },
-    orderBy: { date: "desc" },
-    include: { partner: true },
-  });
-
-  return transactions.map((t) => ({
-    id: t.id,
-    amount: t.amount,
-    description: t.description,
-    date: t.date,
-    partnerName: t.partner.name,
-    partnerId: t.partnerId,
-  }));
+function parsePartnerIds(raw: string | string[] | undefined): string[] {
+  if (!raw) return [];
+  const str = Array.isArray(raw) ? raw[0] : raw;
+  return str.split(",").filter(Boolean);
 }
 
-export default async function HomePage() {
+function parseBool(raw: string | string[] | undefined): boolean {
+  const str = Array.isArray(raw) ? raw[0] : raw;
+  return str === "true";
+}
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const session = await getSession();
   if (!session) {
     redirect("/login");
   }
 
-  const [partnerBalances, partners, suggestions, allTransactions] =
+  const params = await searchParams;
+  const partnerIds = parsePartnerIds(params.partnerIds);
+  const showArchived = parseBool(params.showArchived);
+  const showArchivedPartners = parseBool(params.showArchivedPartners);
+
+  const [partnerBalances, partners, allPartners, suggestions, transactions] =
     await Promise.all([
       getPartnerBalances(session.userId),
       getPartners(),
+      getAllPartners(),
       getDescriptionSuggestions(),
-      getAllTransactions(session.userId),
+      getTransactions({ partnerIds, showArchived, showArchivedPartners }),
     ]);
+
   const totalBalance = partnerBalances.reduce(
     (sum, item) => sum + item.balance,
     0,
@@ -105,13 +113,12 @@ export default async function HomePage() {
         <TabsContent value="history">
           <div className="px-4">
             <h4 className="font-semibold">全取引履歴</h4>
-            <p className="text-sm text-muted-foreground mt-1">
-              取引をクリックすると編集できます。
-            </p>
+            <div className="mt-3">
+              <TransactionFilters partners={allPartners} />
+            </div>
             <div className="mt-4">
-              <TransactionListWithEdit
-                transactions={allTransactions}
-                showPartnerName={true}
+              <TransactionCardList
+                transactions={transactions}
                 suggestions={suggestions}
               />
             </div>

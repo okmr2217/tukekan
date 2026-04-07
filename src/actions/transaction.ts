@@ -5,6 +5,56 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
+export type TransactionWithPartner = {
+  id: string;
+  amount: number;
+  description: string | null;
+  date: Date;
+  isArchived: boolean;
+  partnerId: string;
+  partnerName: string;
+  partnerIsArchived: boolean;
+};
+
+type GetTransactionsParams = {
+  partnerIds?: string[];
+  showArchived?: boolean;
+  showArchivedPartners?: boolean;
+};
+
+export async function getTransactions(
+  params: GetTransactionsParams = {},
+): Promise<TransactionWithPartner[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const { partnerIds, showArchived = false, showArchivedPartners = false } = params;
+
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      ownerId: session.userId,
+      ...(showArchived ? {} : { isArchived: false }),
+      partner: {
+        ...(showArchivedPartners ? {} : { isArchived: false }),
+        ...(partnerIds && partnerIds.length > 0 ? { id: { in: partnerIds } } : {}),
+      },
+    },
+    orderBy: { date: "desc" },
+    include: { partner: { select: { name: true, isArchived: true } } },
+  });
+
+  return transactions.map((t) => ({
+    id: t.id,
+    amount: t.amount,
+    description: t.description,
+    date: t.date,
+    isArchived: t.isArchived,
+    partnerId: t.partnerId,
+    partnerName: t.partner.name,
+    partnerIsArchived: t.partner.isArchived,
+  }));
+}
+
 export async function getDescriptionSuggestions(): Promise<string[]> {
   const session = await getSession();
   if (!session) {

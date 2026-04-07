@@ -3,6 +3,7 @@ import { Noto_Sans_JP, Zen_Maru_Gothic } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layouts/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 const notoSansJp = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
@@ -31,7 +32,9 @@ export default function RootLayout({
         className={`${notoSansJp.variable} ${zenMaruGothic.variable} font-sans antialiased`}
       >
         <ThemeProvider>
-          {children}
+          <NuqsAdapter>
+            {children}
+          </NuqsAdapter>
           <Toaster />
         </ThemeProvider>
       </body>
