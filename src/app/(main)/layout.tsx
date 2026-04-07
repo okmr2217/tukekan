@@ -1,4 +1,3 @@
-import { Header } from "@/components/layouts/header";
 import { BottomBar } from "@/components/layouts/bottom-bar";
 
 export default function MainLayout({
@@ -8,7 +7,6 @@ export default function MainLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
       <main className="mx-auto w-full max-w-lg flex-1 pb-16">{children}</main>
       <BottomBar />
     </div>

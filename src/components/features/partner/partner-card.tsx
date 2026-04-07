@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MoreVertical, Pencil, Archive, RefreshCw, ArrowLeftRight } from "lucide-react";
+import { MoreVertical, Pencil, Archive, RefreshCw, ArrowLeftRight, Link, Link2Off } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,6 +15,8 @@ import {
   archivePartner,
   unarchivePartner,
   settlePartner,
+  generateShareToken,
+  revokeShareToken,
   type PartnerWithBalance,
 } from "@/actions/partner";
 import { toast } from "sonner";
@@ -28,6 +30,12 @@ export function PartnerCard({ partner }: Props) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isArchivePending, startArchiveTransition] = useTransition();
   const [isSettlePending, startSettleTransition] = useTransition();
+  const [isSharePending, startShareTransition] = useTransition();
+
+  const hasActiveToken =
+    partner.shareToken !== null &&
+    partner.shareTokenExpiresAt !== null &&
+    new Date(partner.shareTokenExpiresAt) > new Date();
 
   const handleArchive = () => {
     startArchiveTransition(async () => {
@@ -62,7 +70,40 @@ export function PartnerCard({ partner }: Props) {
     });
   };
 
-  const isPending = isArchivePending || isSettlePending;
+  const handleGenerateShareLink = () => {
+    startShareTransition(async () => {
+      const result = await generateShareToken(partner.id);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      if (result.token) {
+        const url = `${window.location.origin}/share/${result.token}`;
+        await navigator.clipboard.writeText(url);
+        toast.success("共有リンクをクリップボードにコピーしました");
+      }
+    });
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!partner.shareToken) return;
+    const url = `${window.location.origin}/share/${partner.shareToken}`;
+    await navigator.clipboard.writeText(url);
+    toast.success("共有リンクをクリップボードにコピーしました");
+  };
+
+  const handleRevokeShareLink = () => {
+    startShareTransition(async () => {
+      const result = await revokeShareToken(partner.id);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("共有リンクを無効にしました");
+      }
+    });
+  };
+
+  const isPending = isArchivePending || isSettlePending || isSharePending;
 
   return (
     <>
@@ -84,6 +125,11 @@ export function PartnerCard({ partner }: Props) {
                 {partner.isArchived && (
                   <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                     アーカイブ済み
+                  </span>
+                )}
+                {hasActiveToken && (
+                  <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-1.5 py-0.5 rounded">
+                    共有中
                   </span>
                 )}
               </div>
@@ -123,6 +169,31 @@ export function PartnerCard({ partner }: Props) {
                 <ArrowLeftRight className="size-4 mr-2" />
                 精算
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {hasActiveToken ? (
+                <>
+                  <DropdownMenuItem onClick={handleCopyShareLink}>
+                    <Link className="size-4 mr-2" />
+                    リンクをコピー
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleGenerateShareLink}>
+                    <RefreshCw className="size-4 mr-2" />
+                    リンクを再生成
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleRevokeShareLink}
+                    className="text-muted-foreground"
+                  >
+                    <Link2Off className="size-4 mr-2" />
+                    共有を停止
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onClick={handleGenerateShareLink}>
+                  <Link className="size-4 mr-2" />
+                  共有リンクを発行
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               {partner.isArchived ? (
                 <DropdownMenuItem onClick={handleUnarchive}>
