@@ -1,168 +1,205 @@
-import { Page } from 'playwright';
-import { capture } from '../utils/capture';
-import { CONFIG } from '../config';
+import { Page } from "playwright";
+import { capture } from "../utils/capture";
+import { CONFIG } from "../config";
 
 const BASE_URL = CONFIG.BASE_URL;
 
+/**
+ * スクリーンショットシナリオ一覧
+ *
+ * PC (runPcScenarios)
+ *   home-transactions-pc       / ホーム（取引一覧）
+ *   transaction-modal-pc       / FAB → 取引追加モーダル
+ *   partners-pc                /partners 相手一覧
+ *   partner-menu-pc            /partners 相手カードのドロップダウンメニュー
+ *   add-partner-dialog-pc      /partners 相手追加ダイアログ
+ *   stats-partners-pc          /stats 統計（相手タブ・デフォルト）
+ *   stats-overall-pc           /stats 統計（全体タブ）
+ *   settings-pc                /settings 設定
+ *   share-page-pc              /share/demo-token 共有ページ
+ *
+ * Mobile (runMobileScenarios)
+ *   home-transactions-mobile   / ホーム（取引一覧）
+ *   transaction-modal-mobile   / FAB → 取引追加モーダル
+ *   partners-mobile            /partners 相手一覧
+ *   stats-mobile               /stats 統計（相手タブ・デフォルト）
+ *   settings-mobile            /settings 設定
+ *   share-page-mobile          /share/demo-token 共有ページ
+ *
+ * Login (runLoginScenarios)
+ *   login-pc                   /login ログイン（未認証・PC）
+ *   login-mobile               /login ログイン（未認証・モバイル）
+ */
+
 export async function runPcScenarios(page: Page): Promise<void> {
-  // home-expenses-pc
+  // home-transactions-pc
   try {
     await page.goto(`${BASE_URL}/`);
-    await page.waitForLoadState('networkidle');
-    await capture(page, 'home-expenses-pc', 'pc');
+    await page.waitForLoadState("networkidle");
+    await capture(page, "home-transactions-pc", "pc");
   } catch (e) {
-    console.error('❌ home-expenses-pc failed:', e);
+    console.error("❌ home-transactions-pc failed:", e);
   }
 
   // transaction-modal-pc
   try {
     await page.goto(`${BASE_URL}/`);
-    await page.waitForLoadState('networkidle');
-    const fabBtn = page.locator('button:has-text("新しい取引を追加"), button[title*="追加"], button.rounded-full').first();
+    await page.waitForLoadState("networkidle");
+    const fabBtn = page.locator("button.rounded-full").first();
     await fabBtn.click({ timeout: 5000 });
     await page.waitForTimeout(300);
-    await capture(page, 'transaction-modal-pc', 'pc');
-    await page.keyboard.press('Escape');
+    await capture(page, "transaction-modal-pc", "pc");
+    await page.keyboard.press("Escape");
     await page.waitForTimeout(200);
   } catch (e) {
-    console.error('❌ transaction-modal-pc failed:', e);
+    console.error("❌ transaction-modal-pc failed:", e);
   }
 
-  // from-members-detail (PC)
+  // partners-pc
   try {
-    await page.goto(`${BASE_URL}/from-members`);
-    await page.waitForLoadState('networkidle');
-    const firstMember = page.locator('a, li button, [data-member]').first();
-    await firstMember.click({ timeout: 5000 });
+    await page.goto(`${BASE_URL}/partners`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "partners-pc", "pc");
+  } catch (e) {
+    console.error("❌ partners-pc failed:", e);
+  }
+
+  // partner-menu-pc (ドロップダウンメニューを開いた状態)
+  try {
+    await page.goto(`${BASE_URL}/partners`);
+    await page.waitForLoadState("networkidle");
+    const menuBtn = page.locator('button[class*="size-8"]').first();
+    await menuBtn.click({ timeout: 5000 });
     await page.waitForTimeout(300);
-    await capture(page, 'from-members-detail', 'pc');
-    await page.keyboard.press('Escape');
+    await capture(page, "partner-menu-pc", "pc");
+    await page.keyboard.press("Escape");
     await page.waitForTimeout(200);
   } catch (e) {
-    console.error('❌ from-members-detail failed:', e);
+    console.error("❌ partner-menu-pc failed:", e);
   }
 
-  // group-settings (PC)
+  // add-partner-dialog-pc
   try {
-    await page.goto(`${BASE_URL}/group`);
-    await page.waitForLoadState('networkidle');
-    await capture(page, 'group-settings', 'pc');
-  } catch (e) {
-    console.error('❌ group-settings failed:', e);
-  }
-
-  // members-list (PC)
-  try {
-    await page.goto(`${BASE_URL}/group/members`);
-    await page.waitForLoadState('networkidle');
-    await capture(page, 'members-list-pc', 'pc');
-  } catch (e) {
-    console.error('❌ members-list-pc failed:', e);
-  }
-
-  // member-delete-dialog (PC)
-  try {
-    await page.goto(`${BASE_URL}/group/members`);
-    await page.waitForLoadState('networkidle');
-    const deleteBtn = page.locator('button[title="メンバーを削除"]').first();
-    await deleteBtn.click({ timeout: 5000 });
+    await page.goto(`${BASE_URL}/partners`);
+    await page.waitForLoadState("networkidle");
+    const addBtn = page.locator('button:has-text("追加")').first();
+    await addBtn.click({ timeout: 5000 });
     await page.waitForTimeout(300);
-    await capture(page, 'member-delete-dialog-pc', 'pc');
-    await page.keyboard.press('Escape');
+    await capture(page, "add-partner-dialog-pc", "pc");
+    await page.keyboard.press("Escape");
     await page.waitForTimeout(200);
   } catch (e) {
-    console.error('❌ member-delete-dialog-pc failed:', e);
+    console.error("❌ add-partner-dialog-pc failed:", e);
   }
 
-  // invite-link-page (PC)
+  // stats-partners-pc (相手タブ - デフォルト)
   try {
-    await page.goto(`${BASE_URL}/invite/demo-invite-code`);
-    await page.waitForLoadState('networkidle');
-    await capture(page, 'invite-link-page-pc', 'pc');
+    await page.goto(`${BASE_URL}/stats`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "stats-partners-pc", "pc");
   } catch (e) {
-    console.error('❌ invite-link-page-pc failed:', e);
+    console.error("❌ stats-partners-pc failed:", e);
   }
 
-  // account-settings (PC)
+  // stats-overall-pc (全体タブ)
   try {
-    await page.goto(`${BASE_URL}/account`);
-    await page.waitForLoadState('networkidle');
-    await capture(page, 'account-settings', 'pc');
+    await page.goto(`${BASE_URL}/stats`);
+    await page.waitForLoadState("networkidle");
+    const overallTab = page.locator('button[role="tab"]:has-text("全体")');
+    await overallTab.click({ timeout: 5000 });
+    await page.waitForTimeout(300);
+    await capture(page, "stats-overall-pc", "pc");
   } catch (e) {
-    console.error('❌ account-settings failed:', e);
+    console.error("❌ stats-overall-pc failed:", e);
+  }
+
+  // settings-pc
+  try {
+    await page.goto(`${BASE_URL}/settings`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "settings-pc", "pc");
+  } catch (e) {
+    console.error("❌ settings-pc failed:", e);
+  }
+
+  // share-page-pc
+  try {
+    await page.goto(`${BASE_URL}/share/demo-token`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "share-page-pc", "pc");
+  } catch (e) {
+    console.error("❌ share-page-pc failed:", e);
   }
 }
 
 export async function runMobileScenarios(page: Page): Promise<void> {
-  // home-expenses-mobile
+  // home-transactions-mobile
   try {
     await page.goto(`${BASE_URL}/`);
-    await page.waitForLoadState('networkidle');
-    await capture(page, 'home-expenses-mobile', 'mobile');
+    await page.waitForLoadState("networkidle");
+    await capture(page, "home-transactions-mobile", "mobile");
   } catch (e) {
-    console.error('❌ home-expenses-mobile failed:', e);
+    console.error("❌ home-transactions-mobile failed:", e);
   }
 
   // transaction-modal-mobile
   try {
     await page.goto(`${BASE_URL}/`);
-    await page.waitForLoadState('networkidle');
-    const fabBtn = page.locator('button:has-text("新しい取引を追加"), button[title*="追加"], button.rounded-full').first();
+    await page.waitForLoadState("networkidle");
+    const fabBtn = page.locator("button.rounded-full").first();
     await fabBtn.click({ timeout: 5000 });
     await page.waitForTimeout(400);
-    await capture(page, 'transaction-modal-mobile', 'mobile');
-    await page.keyboard.press('Escape');
+    await capture(page, "transaction-modal-mobile", "mobile");
+    await page.keyboard.press("Escape");
     await page.waitForTimeout(200);
   } catch (e) {
-    console.error('❌ transaction-modal-mobile failed:', e);
+    console.error("❌ transaction-modal-mobile failed:", e);
   }
 
-  // from-members-mobile
+  // partners-mobile
   try {
-    await page.goto(`${BASE_URL}/from-members`);
-    await page.waitForLoadState('networkidle');
-    await capture(page, 'from-members-mobile', 'mobile');
+    await page.goto(`${BASE_URL}/partners`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "partners-mobile", "mobile");
   } catch (e) {
-    console.error('❌ from-members-mobile failed:', e);
+    console.error("❌ partners-mobile failed:", e);
   }
 
-  // members-list (mobile)
+  // stats-mobile
   try {
-    await page.goto(`${BASE_URL}/group/members`);
-    await page.waitForLoadState('networkidle');
-    await capture(page, 'members-list-mobile', 'mobile');
+    await page.goto(`${BASE_URL}/stats`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "stats-mobile", "mobile");
   } catch (e) {
-    console.error('❌ members-list-mobile failed:', e);
+    console.error("❌ stats-mobile failed:", e);
   }
 
-  // member-delete-dialog (mobile)
+  // settings-mobile
   try {
-    await page.goto(`${BASE_URL}/group/members`);
-    await page.waitForLoadState('networkidle');
-    const deleteBtn = page.locator('button[title="メンバーを削除"]').first();
-    await deleteBtn.click({ timeout: 5000 });
-    await page.waitForTimeout(400);
-    await capture(page, 'member-delete-dialog-mobile', 'mobile');
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(200);
+    await page.goto(`${BASE_URL}/settings`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "settings-mobile", "mobile");
   } catch (e) {
-    console.error('❌ member-delete-dialog-mobile failed:', e);
+    console.error("❌ settings-mobile failed:", e);
   }
 
-  // invite-link-page (mobile)
+  // share-page-mobile
   try {
-    await page.goto(`${BASE_URL}/invite/demo-invite-code`);
-    await page.waitForLoadState('networkidle');
-    await capture(page, 'invite-link-page-mobile', 'mobile');
+    await page.goto(`${BASE_URL}/share/demo-token`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "share-page-mobile", "mobile");
   } catch (e) {
-    console.error('❌ invite-link-page-mobile failed:', e);
+    console.error("❌ share-page-mobile failed:", e);
   }
 }
 
-export async function runLoginScenarios(page: Page, device: 'pc' | 'mobile'): Promise<void> {
+export async function runLoginScenarios(
+  page: Page,
+  device: "pc" | "mobile",
+): Promise<void> {
   try {
     await page.goto(`${BASE_URL}/login`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState("networkidle");
     await capture(page, `login-${device}`, device);
   } catch (e) {
     console.error(`❌ login-${device} failed:`, e);

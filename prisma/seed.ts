@@ -20,11 +20,6 @@ function daysAgo(days: number): Date {
 async function main() {
   const passwordHash = await bcrypt.hash("password123", 12);
 
-  // 既存データを削除
-  await prisma.transaction.deleteMany({});
-  await prisma.partner.deleteMany({});
-  await prisma.account.deleteMany({});
-
   // メンバー作成
   const taro = await prisma.account.create({
     data: {
