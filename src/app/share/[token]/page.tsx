@@ -43,17 +43,8 @@ export default async function SharePage({ params }: Props) {
 
   return (
     <div className="min-h-screen">
-      {/* Logo header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="mx-auto flex h-14 max-w-lg items-center px-4">
-          <span className="text-2xl font-logo text-primary tracking-tight">
-            <span className="text-[#e07326]">ツケ</span>カン
-          </span>
-        </div>
-      </header>
-
       {/* Page header */}
-      <div className="sticky top-14 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+      <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="mx-auto flex min-h-14 max-w-lg flex-col justify-center px-4 py-2">
           <h1 className="text-lg font-bold leading-tight">
             {partnerName}さんとの取引
