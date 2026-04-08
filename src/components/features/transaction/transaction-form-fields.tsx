@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,36 @@ export function TransactionFormFields({
   isPending,
   maxDate,
 }: Props) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const memoWrapperRef = useRef<HTMLDivElement>(null);
+
+  const filteredSuggestions =
+    description.trim() === ""
+      ? suggestions
+      : suggestions.filter((s) =>
+          s.toLowerCase().startsWith(description.toLowerCase()),
+        );
+
+  const visibleSuggestions = showDropdown ? filteredSuggestions : [];
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        memoWrapperRef.current &&
+        !memoWrapperRef.current.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function handleSelectSuggestion(s: string) {
+    setDescription(s);
+    setShowDropdown(false);
+  }
+
   return (
     <div className="space-y-5">
       {/* Amount */}
@@ -94,35 +125,42 @@ export function TransactionFormFields({
       {/* Memo */}
       <div className="space-y-2">
         <Label>メモ（任意）</Label>
-        <Input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="例: 麻雀、ランチ、返済"
-          maxLength={100}
-          disabled={isPending}
-        />
+        <div ref={memoWrapperRef} className="relative">
+          <Input
+            value={description}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
+            placeholder="例: 麻雀、ランチ、返済"
+            maxLength={100}
+            disabled={isPending}
+          />
+          {visibleSuggestions.length > 0 && (
+            <ul className="absolute left-0 right-0 top-full mt-1 z-50 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
+              {visibleSuggestions.map((s) => (
+                <li key={s}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelectSuggestion(s);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    {s}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <div className="flex justify-end">
           <span className="text-xs text-muted-foreground/60">
             {description.length}/100
           </span>
         </div>
-        {suggestions.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {suggestions.map((s) => (
-              <Button
-                key={s}
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setDescription(s)}
-                className="h-7 text-xs"
-                disabled={isPending}
-              >
-                {s}
-              </Button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Date + Time */}

@@ -1,9 +1,15 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/actions/auth";
-import { getPartnerStats, getOverallStats } from "@/actions/stats";
+import {
+  getPartnerStats,
+  getOverallStats,
+  getMonthlyStats,
+} from "@/actions/stats";
+import type { MonthlyStat } from "@/actions/stats";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layouts/page-header";
 
 function AmountRow({
   label,
@@ -37,19 +43,55 @@ function AmountRow({
   );
 }
 
+function MonthlyRow({ stat }: { stat: MonthlyStat }) {
+  const hasActivity = stat.totalLent > 0 || stat.totalBorrowed > 0;
+
+  return (
+    <div className="py-3 border-b last:border-b-0">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-sm font-medium">{stat.monthLabel}</span>
+        {hasActivity ? (
+          <span
+            className={cn(
+              "text-sm font-semibold tabular-nums",
+              stat.net < 0 ? "text-destructive" : "text-foreground",
+            )}
+          >
+            {stat.net < 0 ? "-" : "+"}¥{Math.abs(stat.net).toLocaleString()}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">取引なし</span>
+        )}
+      </div>
+      {hasActivity && (
+        <div className="flex gap-4">
+          <span className="text-xs text-muted-foreground tabular-nums">
+            貸 ¥{stat.totalLent.toLocaleString()}
+          </span>
+          <span className="text-xs text-destructive tabular-nums">
+            借 ¥{stat.totalBorrowed.toLocaleString()}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default async function StatsPage() {
   const session = await getSession();
   if (!session) {
     redirect("/login");
   }
 
-  const [partnerStats, overallStats] = await Promise.all([
+  const [partnerStats, overallStats, monthlyStats] = await Promise.all([
     getPartnerStats(),
     getOverallStats(),
+    getMonthlyStats(),
   ]);
 
   return (
     <div className="flex flex-col">
+      <PageHeader title="統計" description="貸借の集計と推移" />
       <Tabs defaultValue="partners" className="w-full">
         <div className="p-4">
           <TabsList className="w-full h-10">
@@ -117,7 +159,7 @@ export default async function StatsPage() {
         </TabsContent>
 
         <TabsContent value="overall">
-          <div className="p-4 text-center">
+          <div className="p-4 text-left">
             <p className="text-sm text-muted-foreground">現在の貸借残高合計</p>
             <p
               className={cn(
@@ -132,7 +174,7 @@ export default async function StatsPage() {
             </p>
           </div>
 
-          <div className="px-4 mt-2">
+          <div className="px-4 mt-2 space-y-3">
             <div className="rounded-lg border p-4 space-y-2">
               <AmountRow
                 label="累計の貸した金額"
@@ -144,6 +186,23 @@ export default async function StatsPage() {
                 amount={overallStats.totalBorrowed}
                 variant="borrowed"
               />
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm text-muted-foreground">
+                  取引回数合計
+                </span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {overallStats.transactionCount}回
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <p className="text-sm font-medium mb-2">月別推移（直近12ヶ月）</p>
+              <div>
+                {monthlyStats.map((stat) => (
+                  <MonthlyRow key={stat.month} stat={stat} />
+                ))}
+              </div>
             </div>
           </div>
         </TabsContent>

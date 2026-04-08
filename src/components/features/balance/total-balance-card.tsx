@@ -10,7 +10,7 @@ export function TotalBalanceCard({
   label = "あなたの貸借残高",
 }: Props) {
   return (
-    <div className="p-4 text-center">
+    <div className="p-4 text-left">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p
         className={cn(

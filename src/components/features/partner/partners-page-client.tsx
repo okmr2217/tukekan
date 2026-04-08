@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import type { PartnerWithBalance } from "@/actions/partner";
 import { PartnerCard } from "./partner-card";
 import { AddPartnerDialog } from "./add-partner-dialog";
+import { PageHeader } from "@/components/layouts/page-header";
 
 type Props = {
   partners: PartnerWithBalance[];
@@ -22,13 +23,16 @@ export function PartnersPageClient({ partners }: Props) {
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 py-3">
-        <h1 className="text-lg font-semibold">相手</h1>
-        <Button size="sm" onClick={() => setIsAddOpen(true)}>
-          <UserPlus className="size-4 mr-1" />
-          追加
-        </Button>
-      </div>
+      <PageHeader
+        title="相手"
+        description="取引相手の管理"
+        action={
+          <Button size="sm" onClick={() => setIsAddOpen(true)}>
+            <UserPlus className="size-4 mr-1" />
+            追加
+          </Button>
+        }
+      />
 
       {displayedPartners.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
