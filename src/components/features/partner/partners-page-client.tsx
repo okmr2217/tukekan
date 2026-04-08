@@ -36,12 +36,10 @@ export function PartnersPageClient({ partners }: Props) {
 
       {displayedPartners.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
-          {showArchived
-            ? "相手がいません"
-            : "相手がまだ登録されていません"}
+          {showArchived ? "相手がいません" : "相手がまだ登録されていません"}
         </div>
       ) : (
-        <div className="px-4 space-y-3">
+        <div className="py-3 px-4 space-y-2">
           {displayedPartners.map((partner) => (
             <PartnerCard key={partner.id} partner={partner} />
           ))}
@@ -57,7 +55,10 @@ export function PartnersPageClient({ partners }: Props) {
             onChange={(e) => setShowArchived(e.target.checked)}
             className="size-4 rounded accent-primary cursor-pointer"
           />
-          <Label htmlFor="show-archived" className="text-sm text-muted-foreground cursor-pointer">
+          <Label
+            htmlFor="show-archived"
+            className="text-sm text-muted-foreground cursor-pointer"
+          >
             アーカイブ済みを表示（{archivedPartners.length}件）
           </Label>
         </div>

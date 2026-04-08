@@ -20,23 +20,31 @@ function MonthlyTableRow({ stat }: { stat: MonthlyStat }) {
         {stat.monthLabel}
       </td>
       <td className="py-2.5 pr-3 text-sm tabular-nums text-right">
-        {hasActivity ? `¥${stat.totalLent.toLocaleString()}` : (
+        {hasActivity ? (
+          `¥${stat.totalLent.toLocaleString()}`
+        ) : (
           <span className="text-muted-foreground">—</span>
         )}
       </td>
       <td className="py-2.5 pr-3 text-sm tabular-nums text-right">
         {hasActivity ? (
-          <span className="text-destructive">¥{stat.totalBorrowed.toLocaleString()}</span>
+          <span className="text-destructive">
+            ¥{stat.totalBorrowed.toLocaleString()}
+          </span>
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
       </td>
-      <td className={cn(
-        "py-2.5 text-sm font-semibold tabular-nums text-right",
-        hasActivity
-          ? stat.net < 0 ? "text-destructive" : "text-foreground"
-          : "text-muted-foreground",
-      )}>
+      <td
+        className={cn(
+          "py-2.5 text-sm font-semibold tabular-nums text-right",
+          hasActivity
+            ? stat.net < 0
+              ? "text-destructive"
+              : "text-foreground"
+            : "text-muted-foreground",
+        )}
+      >
         {hasActivity
           ? `${stat.net < 0 ? "-" : "+"}¥${Math.abs(stat.net).toLocaleString()}`
           : "—"}
@@ -48,7 +56,9 @@ function MonthlyTableRow({ stat }: { stat: MonthlyStat }) {
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-card rounded-xl p-4 text-center border border-border">
-      <div className="text-2xl font-bold text-foreground tabular-nums">{value}</div>
+      <div className="text-2xl font-bold text-foreground tabular-nums">
+        {value}
+      </div>
       <div className="text-xs text-muted-foreground mt-1">{label}</div>
     </div>
   );
@@ -71,7 +81,7 @@ export default async function StatsPage() {
       <PageHeader title="統計" description="貸借の集計と推移" />
 
       {/* 残高合計 - タブの上に常時表示 */}
-      <div className="px-4 pb-2 text-left">
+      <div className="px-4 pt-3 pb-4 text-left">
         <p className="text-sm text-muted-foreground">現在の貸借残高合計</p>
         <p
           className={cn(
@@ -110,24 +120,42 @@ export default async function StatsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-left">相手</th>
-                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">残高</th>
-                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">貸出</th>
-                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">借入</th>
-                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">回数</th>
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-left">
+                        相手
+                      </th>
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">
+                        残高
+                      </th>
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">
+                        貸出
+                      </th>
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">
+                        借入
+                      </th>
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">
+                        回数
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {partnerStats.map((stat) => (
-                      <tr key={stat.partnerId} className="border-b last:border-b-0">
+                      <tr
+                        key={stat.partnerId}
+                        className="border-b last:border-b-0"
+                      >
                         <td className="py-2.5 px-3 text-sm font-medium whitespace-nowrap">
                           {stat.partnerName}
                         </td>
-                        <td className={cn(
-                          "py-2.5 px-3 text-sm font-semibold tabular-nums text-right",
-                          stat.balance < 0 ? "text-destructive" : "text-foreground",
-                        )}>
-                          {stat.balance < 0 ? "-" : ""}¥{Math.abs(stat.balance).toLocaleString()}
+                        <td
+                          className={cn(
+                            "py-2.5 px-3 text-sm font-semibold tabular-nums text-right",
+                            stat.balance < 0
+                              ? "text-destructive"
+                              : "text-foreground",
+                          )}
+                        >
+                          {stat.balance < 0 ? "-" : ""}¥
+                          {Math.abs(stat.balance).toLocaleString()}
                         </td>
                         <td className="py-2.5 px-3 text-sm tabular-nums text-right">
                           ¥{stat.totalLent.toLocaleString()}
@@ -170,10 +198,18 @@ export default async function StatsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="pb-2 pr-3 text-xs font-medium text-muted-foreground text-left">月</th>
-                    <th className="pb-2 pr-3 text-xs font-medium text-muted-foreground text-right">貸出</th>
-                    <th className="pb-2 pr-3 text-xs font-medium text-muted-foreground text-right">借入</th>
-                    <th className="pb-2 text-xs font-medium text-muted-foreground text-right">残高</th>
+                    <th className="pb-2 pr-3 text-xs font-medium text-muted-foreground text-left">
+                      月
+                    </th>
+                    <th className="pb-2 pr-3 text-xs font-medium text-muted-foreground text-right">
+                      貸出
+                    </th>
+                    <th className="pb-2 pr-3 text-xs font-medium text-muted-foreground text-right">
+                      借入
+                    </th>
+                    <th className="pb-2 text-xs font-medium text-muted-foreground text-right">
+                      残高
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
