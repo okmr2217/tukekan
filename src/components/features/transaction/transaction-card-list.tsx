@@ -4,13 +4,15 @@ import { useState } from "react";
 import { TransactionCard } from "./transaction-card";
 import { TransactionEditModal } from "./transaction-edit-modal";
 import type { TransactionWithPartner } from "@/actions/transaction";
+import type { Partner } from "@/actions/partner";
 
 type Props = {
   transactions: TransactionWithPartner[];
   suggestions: string[];
+  partners?: Partner[];
 };
 
-export function TransactionCardList({ transactions, suggestions }: Props) {
+export function TransactionCardList({ transactions, suggestions, partners = [] }: Props) {
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionWithPartner | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -40,6 +42,7 @@ export function TransactionCardList({ transactions, suggestions }: Props) {
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
         suggestions={suggestions}
+        partners={partners}
       />
     </>
   );

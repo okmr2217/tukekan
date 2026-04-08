@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Loader2, Trash2, Archive, ArchiveRestore } from "lucide-react";
+import type { Partner } from "@/actions/partner";
 import { toast } from "sonner";
 import { TransactionFormFields } from "./transaction-form-fields";
 import {
@@ -33,6 +34,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   suggestions?: string[];
+  partners?: Partner[];
 };
 
 function initDateMode(date: Date): DateMode {
@@ -67,11 +69,13 @@ export function TransactionEditModal({
   open,
   onOpenChange,
   suggestions = [],
+  partners = [],
 }: Props) {
   const [isUpdatePending, startUpdateTransition] = useTransition();
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [isArchivePending, startArchiveTransition] = useTransition();
 
+  const [partnerId, setPartnerId] = useState("");
   const [isLending, setIsLending] = useState(true);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -85,6 +89,7 @@ export function TransactionEditModal({
 
   useEffect(() => {
     if (transaction) {
+      setPartnerId(transaction.partnerId);
       setIsLending(transaction.amount >= 0);
       setAmount(Math.abs(transaction.amount).toString());
       setDescription(transaction.description ?? "");
@@ -110,6 +115,7 @@ export function TransactionEditModal({
     startUpdateTransition(async () => {
       const formData = new FormData();
       formData.set("transactionId", transaction.id);
+      formData.set("partnerId", partnerId);
       formData.set("amount", signedAmount.toString());
       formData.set("description", description);
       formData.set("date", date.toISOString());
@@ -174,12 +180,47 @@ export function TransactionEditModal({
               </div>
             )}
 
-            {/* Partner (read-only) */}
+            {/* Partner */}
             <div className="space-y-2">
               <Label>相手</Label>
-              <p className="text-sm py-2 px-3 bg-muted rounded-md">
-                {transaction.partnerName}
-              </p>
+              {(() => {
+                const currentInList = partners.some(
+                  (p) => p.id === transaction.partnerId,
+                );
+                const displayPartners = currentInList
+                  ? partners
+                  : [
+                      ...partners,
+                      {
+                        id: transaction.partnerId,
+                        name: transaction.partnerName,
+                      },
+                    ];
+                return (
+                  <div
+                    className={`grid gap-1.5 ${displayPartners.length > 4 ? "grid-cols-3" : "grid-cols-2"}`}
+                  >
+                    {displayPartners.map((p) => {
+                      const isSelected = partnerId === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setPartnerId(p.id)}
+                          disabled={isPending}
+                          className={`px-3 py-2 rounded-xl border transition-all duration-150 active:scale-[0.98] text-sm font-medium truncate ${
+                            isSelected
+                              ? "bg-primary/10 border-primary/40 text-primary"
+                              : "bg-muted border-transparent text-foreground/80 hover:bg-muted/80"
+                          }`}
+                        >
+                          {p.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             <TransactionFormFields

@@ -9,13 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FAB } from "@/components/layouts/fab";
 import { TransactionFormFields } from "./transaction-form-fields";
 import { createTransaction } from "@/actions/transaction";
@@ -141,22 +134,28 @@ export function TransactionModal({
             {/* Partner */}
             <div className="space-y-2">
               <Label>相手</Label>
-              <Select
-                value={partnerId}
-                onValueChange={setPartnerId}
-                disabled={isPending}
+              <div
+                className={`grid gap-1.5 ${partners.length > 4 ? "grid-cols-3" : "grid-cols-2"}`}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="選択してください" />
-                </SelectTrigger>
-                <SelectContent>
-                  {partners.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
+                {partners.map((p) => {
+                  const isSelected = partnerId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPartnerId(p.id)}
+                      disabled={isPending}
+                      className={`px-3 py-2 rounded-xl border transition-all duration-150 active:scale-[0.98] text-sm font-medium truncate ${
+                        isSelected
+                          ? "bg-primary/10 border-primary/40 text-primary"
+                          : "bg-muted border-transparent text-foreground/80 hover:bg-muted/80"
+                      }`}
+                    >
                       {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <TransactionFormFields

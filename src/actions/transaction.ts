@@ -166,6 +166,7 @@ export async function createTransaction(
 // 取引更新
 const updateTransactionSchema = z.object({
   transactionId: z.string().min(1, "取引IDが必要です"),
+  partnerId: z.string().optional(),
   amount: z
     .number()
     .int("整数で入力してください")
@@ -203,6 +204,7 @@ export async function updateTransaction(
 
   const result = updateTransactionSchema.safeParse({
     transactionId: formData.get("transactionId"),
+    partnerId: formData.get("partnerId") || undefined,
     amount: isNaN(amount) ? undefined : amount,
     description: formData.get("description") || undefined,
     date: date,
@@ -214,6 +216,7 @@ export async function updateTransaction(
 
   const {
     transactionId,
+    partnerId,
     amount: validAmount,
     description,
     date: validDate,
@@ -232,9 +235,20 @@ export async function updateTransaction(
     return { error: "この取引を編集する権限がありません" };
   }
 
+  // 相手が変更される場合、相手が自分のものかチェック
+  if (partnerId && partnerId !== transaction.partnerId) {
+    const partner = await prisma.partner.findUnique({
+      where: { id: partnerId },
+    });
+    if (!partner || partner.ownerId !== session.userId) {
+      return { error: "相手が見つかりません" };
+    }
+  }
+
   await prisma.transaction.update({
     where: { id: transactionId },
     data: {
+      ...(partnerId ? { partnerId } : {}),
       amount: validAmount,
       description: description || null,
       date: validDate,
@@ -243,6 +257,9 @@ export async function updateTransaction(
 
   revalidatePath("/");
   revalidatePath(`/partners/${transaction.partnerId}`);
+  if (partnerId && partnerId !== transaction.partnerId) {
+    revalidatePath(`/partners/${partnerId}`);
+  }
 
   return { success: true };
 }

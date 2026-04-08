@@ -56,6 +56,9 @@ export default async function HomePage({
         <TransactionCardList
           transactions={transactions}
           suggestions={suggestions}
+          partners={partnersWithBalance
+            .filter((p) => !p.isArchived)
+            .map((p) => ({ id: p.id, name: p.name }))}
         />
       </div>
     </div>
