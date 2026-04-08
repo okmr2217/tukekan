@@ -16,7 +16,9 @@ export default async function MainLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <TransactionModal partners={partners} suggestions={suggestions} />
-      <main className="mx-auto w-full max-w-lg flex-1 pt-14 pb-20">{children}</main>
+      <main className="mx-auto w-full max-w-lg flex-1 pt-14 pb-16">
+        {children}
+      </main>
       <BottomBar />
     </div>
   );
