@@ -59,11 +59,19 @@ function parseCsv(filePath: string): CsvRow[] {
 }
 
 async function main() {
+  const [csvPath, email, name, password = "password123"] = process.argv.slice(2);
+
+  if (!csvPath || !email || !name) {
+    console.error(
+      "使い方: npx tsx prisma/import-csv.ts <csvPath> <email> <name> [password]",
+    );
+    process.exit(1);
+  }
+
   console.log("CSVインポートを開始します...\n");
 
   // CSVファイルを読み込む
-  const csvPath = path.join(__dirname, "..", "貸借 - 貸借.csv");
-  const rows = parseCsv(csvPath);
+  const rows = parseCsv(path.resolve(csvPath));
   console.log(`CSVから ${rows.length} 件のレコードを読み込みました\n`);
 
   // パートナー名のユニークリストを取得
@@ -78,14 +86,14 @@ async function main() {
   console.log("完了\n");
 
   // パスワードハッシュを生成
-  const passwordHash = await bcrypt.hash("password", 10);
+  const passwordHash = await bcrypt.hash(password, 10);
 
   // メインアカウントを作成
   const daichi = await prisma.account.create({
     data: {
       id: createId(),
-      email: "daichi@example.com",
-      name: "だいち",
+      email,
+      name,
       passwordHash,
     },
   });
