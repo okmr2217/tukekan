@@ -11,38 +11,6 @@ import { Users, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/layouts/page-header";
 
-function AmountRow({
-  label,
-  amount,
-  variant = "default",
-}: {
-  label: string;
-  amount: number;
-  variant?: "default" | "lent" | "borrowed";
-}) {
-  const colorClass =
-    variant === "lent"
-      ? "text-foreground"
-      : variant === "borrowed"
-        ? "text-destructive"
-        : amount < 0
-          ? "text-destructive"
-          : "text-foreground";
-
-  return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={cn("text-sm font-semibold tabular-nums", colorClass)}>
-        {variant === "borrowed"
-          ? `¥${amount.toLocaleString()}`
-          : amount < 0 && variant === "default"
-            ? `-¥${Math.abs(amount).toLocaleString()}`
-            : `¥${Math.abs(amount).toLocaleString()}`}
-      </span>
-    </div>
-  );
-}
-
 function MonthlyTableRow({ stat }: { stat: MonthlyStat }) {
   const hasActivity = stat.totalLent > 0 || stat.totalBorrowed > 0;
 
@@ -77,6 +45,15 @@ function MonthlyTableRow({ stat }: { stat: MonthlyStat }) {
   );
 }
 
+function SummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card rounded-xl p-4 text-center border border-border">
+      <div className="text-2xl font-bold text-foreground tabular-nums">{value}</div>
+      <div className="text-xs text-muted-foreground mt-1">{label}</div>
+    </div>
+  );
+}
+
 export default async function StatsPage() {
   const session = await getSession();
   if (!session) {
@@ -92,8 +69,23 @@ export default async function StatsPage() {
   return (
     <div className="flex flex-col">
       <PageHeader title="統計" description="貸借の集計と推移" />
+
+      {/* 残高合計 - タブの上に常時表示 */}
+      <div className="px-4 pb-2 text-left">
+        <p className="text-sm text-muted-foreground">現在の貸借残高合計</p>
+        <p
+          className={cn(
+            "mt-1 text-3xl font-bold tabular-nums",
+            overallStats.balance < 0 ? "text-destructive" : "text-foreground",
+          )}
+        >
+          {overallStats.balance < 0 ? "-" : ""}¥
+          {Math.abs(overallStats.balance).toLocaleString()}
+        </p>
+      </div>
+
       <Tabs defaultValue="partners" className="w-full">
-        <div className="p-4">
+        <div className="px-4 pb-3">
           <TabsList className="w-full h-10">
             <TabsTrigger value="partners">
               <Users />
@@ -106,94 +98,71 @@ export default async function StatsPage() {
           </TabsList>
         </div>
 
+        {/* 相手タブ - テーブル形式 */}
         <TabsContent value="partners">
           {partnerStats.length === 0 ? (
             <div className="flex items-center justify-center p-8 text-muted-foreground">
               相手が登録されていません
             </div>
           ) : (
-            <div className="px-4 space-y-3">
-              {partnerStats.map((stat) => (
-                <div
-                  key={stat.partnerId}
-                  className="rounded-lg border p-4 space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">{stat.partnerName}</span>
-                    <span
-                      className={cn(
-                        "text-lg font-bold tabular-nums",
-                        stat.balance < 0
-                          ? "text-destructive"
-                          : "text-foreground",
-                      )}
-                    >
-                      {stat.balance < 0 ? "-" : ""}¥
-                      {Math.abs(stat.balance).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="border-t pt-2 space-y-1">
-                    <AmountRow
-                      label="累計の貸した金額"
-                      amount={stat.totalLent}
-                      variant="lent"
-                    />
-                    <AmountRow
-                      label="累計の借りた金額"
-                      amount={stat.totalBorrowed}
-                      variant="borrowed"
-                    />
-                    <div className="flex items-center justify-between py-1">
-                      <span className="text-sm text-muted-foreground">
-                        取引回数
-                      </span>
-                      <span className="text-sm font-semibold tabular-nums">
-                        {stat.transactionCount}回
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="px-4">
+              <div className="rounded-lg border overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-muted/40">
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-left">相手</th>
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">残高</th>
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">貸出</th>
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">借入</th>
+                      <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right">回数</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {partnerStats.map((stat) => (
+                      <tr key={stat.partnerId} className="border-b last:border-b-0">
+                        <td className="py-2.5 px-3 text-sm font-medium whitespace-nowrap">
+                          {stat.partnerName}
+                        </td>
+                        <td className={cn(
+                          "py-2.5 px-3 text-sm font-semibold tabular-nums text-right",
+                          stat.balance < 0 ? "text-destructive" : "text-foreground",
+                        )}>
+                          {stat.balance < 0 ? "-" : ""}¥{Math.abs(stat.balance).toLocaleString()}
+                        </td>
+                        <td className="py-2.5 px-3 text-sm tabular-nums text-right">
+                          ¥{stat.totalLent.toLocaleString()}
+                        </td>
+                        <td className="py-2.5 px-3 text-sm tabular-nums text-right text-destructive">
+                          ¥{stat.totalBorrowed.toLocaleString()}
+                        </td>
+                        <td className="py-2.5 px-3 text-sm tabular-nums text-right text-muted-foreground">
+                          {stat.transactionCount}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </TabsContent>
 
+        {/* 全体タブ - 3カードデザイン + 月別推移テーブル */}
         <TabsContent value="overall">
-          <div className="p-4 text-left">
-            <p className="text-sm text-muted-foreground">現在の貸借残高合計</p>
-            <p
-              className={cn(
-                "mt-2 text-3xl font-bold tabular-nums",
-                overallStats.balance < 0
-                  ? "text-destructive"
-                  : "text-foreground",
-              )}
-            >
-              {overallStats.balance < 0 ? "-" : ""}¥
-              {Math.abs(overallStats.balance).toLocaleString()}
-            </p>
-          </div>
-
-          <div className="px-4 mt-2 space-y-3">
-            <div className="rounded-lg border p-4 space-y-2">
-              <AmountRow
-                label="累計の貸した金額"
-                amount={overallStats.totalLent}
-                variant="lent"
+          <div className="px-4 space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              <SummaryCard
+                label="累計貸出"
+                value={`¥${overallStats.totalLent.toLocaleString()}`}
               />
-              <AmountRow
-                label="累計の借りた金額"
-                amount={overallStats.totalBorrowed}
-                variant="borrowed"
+              <SummaryCard
+                label="累計借入"
+                value={`¥${overallStats.totalBorrowed.toLocaleString()}`}
               />
-              <div className="flex items-center justify-between py-1">
-                <span className="text-sm text-muted-foreground">
-                  取引回数合計
-                </span>
-                <span className="text-sm font-semibold tabular-nums">
-                  {overallStats.transactionCount}回
-                </span>
-              </div>
+              <SummaryCard
+                label="取引回数"
+                value={`${overallStats.transactionCount}回`}
+              />
             </div>
 
             <div className="rounded-lg border p-4">
