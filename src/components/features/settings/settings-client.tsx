@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { User, Mail, Lock, LogOut, Sun, Moon, Monitor, Edit } from "lucide-react";
+import Link from "next/link";
+import { User, Mail, Lock, LogOut, Sun, Moon, Monitor, Edit, HelpCircle, ChevronRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,9 +31,10 @@ interface SettingsClientProps {
     name: string;
     email: string;
   };
+  version: string;
 }
 
-export function SettingsClient({ user }: SettingsClientProps) {
+export function SettingsClient({ user, version }: SettingsClientProps) {
   const { theme, setTheme } = useTheme();
 
   // Display name dialog state
@@ -307,10 +309,20 @@ export function SettingsClient({ user }: SettingsClientProps) {
             その他
           </h2>
           <div className="bg-card rounded-lg border border-border overflow-hidden">
+            <Link
+              href="/help"
+              className="w-full flex items-center justify-between gap-3 p-4 hover:bg-accent transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">ヘルプ</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="w-full flex items-center gap-3 p-4 text-left hover:bg-accent transition-colors disabled:opacity-50"
+              className="w-full flex items-center gap-3 p-4 text-left hover:bg-accent transition-colors disabled:opacity-50 border-t border-border"
             >
               <LogOut className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm font-medium">
@@ -319,6 +331,11 @@ export function SettingsClient({ user }: SettingsClientProps) {
             </button>
           </div>
         </section>
+
+        {/* Version */}
+        <p className="text-center text-xs text-muted-foreground pb-2">
+          バージョン {version}
+        </p>
       </main>
     </div>
   );
