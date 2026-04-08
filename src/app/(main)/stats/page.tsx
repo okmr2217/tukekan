@@ -43,37 +43,37 @@ function AmountRow({
   );
 }
 
-function MonthlyRow({ stat }: { stat: MonthlyStat }) {
+function MonthlyTableRow({ stat }: { stat: MonthlyStat }) {
   const hasActivity = stat.totalLent > 0 || stat.totalBorrowed > 0;
 
   return (
-    <div className="py-3 border-b last:border-b-0">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium">{stat.monthLabel}</span>
-        {hasActivity ? (
-          <span
-            className={cn(
-              "text-sm font-semibold tabular-nums",
-              stat.net < 0 ? "text-destructive" : "text-foreground",
-            )}
-          >
-            {stat.net < 0 ? "-" : "+"}¥{Math.abs(stat.net).toLocaleString()}
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">取引なし</span>
+    <tr className="border-b last:border-b-0">
+      <td className="py-2.5 pr-3 text-sm font-medium whitespace-nowrap">
+        {stat.monthLabel}
+      </td>
+      <td className="py-2.5 pr-3 text-sm tabular-nums text-right">
+        {hasActivity ? `¥${stat.totalLent.toLocaleString()}` : (
+          <span className="text-muted-foreground">—</span>
         )}
-      </div>
-      {hasActivity && (
-        <div className="flex gap-4">
-          <span className="text-xs text-muted-foreground tabular-nums">
-            貸 ¥{stat.totalLent.toLocaleString()}
-          </span>
-          <span className="text-xs text-destructive tabular-nums">
-            借 ¥{stat.totalBorrowed.toLocaleString()}
-          </span>
-        </div>
-      )}
-    </div>
+      </td>
+      <td className="py-2.5 pr-3 text-sm tabular-nums text-right">
+        {hasActivity ? (
+          <span className="text-destructive">¥{stat.totalBorrowed.toLocaleString()}</span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className={cn(
+        "py-2.5 text-sm font-semibold tabular-nums text-right",
+        hasActivity
+          ? stat.net < 0 ? "text-destructive" : "text-foreground"
+          : "text-muted-foreground",
+      )}>
+        {hasActivity
+          ? `${stat.net < 0 ? "-" : "+"}¥${Math.abs(stat.net).toLocaleString()}`
+          : "—"}
+      </td>
+    </tr>
   );
 }
 
@@ -197,12 +197,22 @@ export default async function StatsPage() {
             </div>
 
             <div className="rounded-lg border p-4">
-              <p className="text-sm font-medium mb-2">月別推移（直近12ヶ月）</p>
-              <div>
-                {monthlyStats.map((stat) => (
-                  <MonthlyRow key={stat.month} stat={stat} />
-                ))}
-              </div>
+              <p className="text-sm font-medium mb-3">月別推移（直近12ヶ月）</p>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="pb-2 pr-3 text-xs font-medium text-muted-foreground text-left">月</th>
+                    <th className="pb-2 pr-3 text-xs font-medium text-muted-foreground text-right">貸出</th>
+                    <th className="pb-2 pr-3 text-xs font-medium text-muted-foreground text-right">借入</th>
+                    <th className="pb-2 text-xs font-medium text-muted-foreground text-right">残高</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...monthlyStats].reverse().map((stat) => (
+                    <MonthlyTableRow key={stat.month} stat={stat} />
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </TabsContent>

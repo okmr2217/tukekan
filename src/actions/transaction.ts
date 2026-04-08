@@ -14,6 +14,8 @@ export type TransactionWithPartner = {
   partnerId: string;
   partnerName: string;
   partnerIsArchived: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 type GetTransactionsParams = {
@@ -52,6 +54,8 @@ export async function getTransactions(
     partnerId: t.partnerId,
     partnerName: t.partner.name,
     partnerIsArchived: t.partner.isArchived,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
   }));
 }
 

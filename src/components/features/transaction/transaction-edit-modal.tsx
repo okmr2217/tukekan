@@ -1,24 +1,17 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import {
-  updateTransaction,
-  deleteTransaction,
-  archiveTransaction,
-  unarchiveTransaction,
-} from "@/actions/transaction";
+import { updateTransaction } from "@/actions/transaction";
 import type { TransactionWithPartner } from "@/actions/transaction";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Trash2, Archive, ArchiveRestore } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { Partner } from "@/actions/partner";
 import { toast } from "sonner";
 import { TransactionFormFields } from "./transaction-form-fields";
@@ -72,8 +65,6 @@ export function TransactionEditModal({
   partners = [],
 }: Props) {
   const [isUpdatePending, startUpdateTransition] = useTransition();
-  const [isDeletePending, startDeleteTransition] = useTransition();
-  const [isArchivePending, startArchiveTransition] = useTransition();
 
   const [partnerId, setPartnerId] = useState("");
   const [isLending, setIsLending] = useState(true);
@@ -84,7 +75,6 @@ export function TransactionEditModal({
   const [selectedTime, setSelectedTime] = useState(
     floorToNearest30(new Date()),
   );
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -96,7 +86,6 @@ export function TransactionEditModal({
       setDateMode(initDateMode(transaction.date));
       setOtherDate(getDateString(transaction.date));
       setSelectedTime(floorToNearest30(transaction.date));
-      setShowDeleteConfirm(false);
       setError(null);
     }
   }, [transaction]);
@@ -130,40 +119,9 @@ export function TransactionEditModal({
     });
   };
 
-  const handleDelete = () => {
-    if (!transaction) return;
-    startDeleteTransition(async () => {
-      const result = await deleteTransaction(transaction.id);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-      toast.success("取引を削除しました");
-      onOpenChange(false);
-    });
-  };
-
-  const handleArchiveToggle = () => {
-    if (!transaction) return;
-    const action = transaction.isArchived
-      ? unarchiveTransaction
-      : archiveTransaction;
-    startArchiveTransition(async () => {
-      const result = await action(transaction.id);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-      toast.success(
-        transaction.isArchived ? "アーカイブを解除しました" : "アーカイブしました",
-      );
-      onOpenChange(false);
-    });
-  };
-
   if (!transaction) return null;
 
-  const isPending = isUpdatePending || isDeletePending || isArchivePending;
+  const isPending = isUpdatePending;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !isPending && onOpenChange(v)}>
@@ -172,8 +130,7 @@ export function TransactionEditModal({
           <DialogTitle>取引を編集</DialogTitle>
         </DialogHeader>
 
-        {!showDeleteConfirm ? (
-          <div className="space-y-5">
+        <div className="space-y-5">
             {error && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
                 {error}
@@ -241,92 +198,22 @@ export function TransactionEditModal({
               maxDate={formatDateToJST()}
             />
 
-            {/* Actions */}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={isPending}
-                className="text-destructive hover:text-destructive shrink-0"
-                aria-label="削除"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handleArchiveToggle}
-                disabled={isPending}
-                className="shrink-0"
-                aria-label={
-                  transaction.isArchived ? "アーカイブ解除" : "アーカイブ"
-                }
-              >
-                {isArchivePending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : transaction.isArchived ? (
-                  <ArchiveRestore className="h-4 w-4" />
-                ) : (
-                  <Archive className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                type="button"
-                onClick={handleUpdate}
-                className="flex-1"
-                disabled={isPending || !amount}
-              >
-                {isUpdatePending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    更新中...
-                  </>
-                ) : (
-                  "更新"
-                )}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              onClick={handleUpdate}
+              className="w-full"
+              disabled={isPending || !amount}
+            >
+              {isUpdatePending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  更新中...
+                </>
+              ) : (
+                "更新"
+              )}
+            </Button>
           </div>
-        ) : (
-          <>
-            <DialogDescription>
-              この取引を削除しますか？この操作は取り消せません。
-            </DialogDescription>
-
-            {error && (
-              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                {error}
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeletePending}
-              >
-                キャンセル
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={isDeletePending}
-              >
-                {isDeletePending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    削除中...
-                  </>
-                ) : (
-                  "削除"
-                )}
-              </Button>
-            </DialogFooter>
-          </>
-        )}
       </DialogContent>
     </Dialog>
   );

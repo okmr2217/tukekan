@@ -1,17 +1,27 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { Pencil, MoreVertical, Archive, ArchiveRestore, Trash2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatDateTimeForDisplay } from "@/lib/dateUtils";
 import type { TransactionWithPartner } from "@/actions/transaction";
 
 type Props = {
   transaction: TransactionWithPartner;
   onEdit: (transaction: TransactionWithPartner) => void;
+  onDetail: (transaction: TransactionWithPartner) => void;
+  onArchiveToggle: (transaction: TransactionWithPartner) => void;
+  onDelete: (transaction: TransactionWithPartner) => void;
 };
 
-export function TransactionCard({ transaction, onEdit }: Props) {
+export function TransactionCard({ transaction, onEdit, onDetail, onArchiveToggle, onDelete }: Props) {
   const isLending = transaction.amount > 0;
   const absAmount = Math.abs(transaction.amount);
   const isGrayedOut = transaction.isArchived || transaction.partnerIsArchived;
@@ -44,7 +54,7 @@ export function TransactionCard({ transaction, onEdit }: Props) {
           </span>
         </div>
 
-        {/* Right: amount + edit button */}
+        {/* Right: amount + actions */}
         <div className="flex items-center gap-1 shrink-0">
           <span
             className={cn(
@@ -63,6 +73,45 @@ export function TransactionCard({ transaction, onEdit }: Props) {
           >
             <Pencil className="h-4 w-4" />
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label="その他の操作"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onDetail(transaction)}>
+                <FileText className="h-4 w-4 mr-2" />
+                詳細
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onArchiveToggle(transaction)}>
+                {transaction.isArchived ? (
+                  <>
+                    <ArchiveRestore className="h-4 w-4 mr-2" />
+                    アーカイブ解除
+                  </>
+                ) : (
+                  <>
+                    <Archive className="h-4 w-4 mr-2" />
+                    アーカイブ
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onDelete(transaction)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                削除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
