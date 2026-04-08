@@ -46,7 +46,7 @@ export default async function SharePage({ params }: Props) {
       {/* Page header */}
       <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="mx-auto flex min-h-14 max-w-lg flex-col justify-center px-4 py-2">
-          <h1 className="text-lg font-bold leading-tight">
+          <h1 className="font-medium leading-tight mb-1.5">
             {partnerName}さんとの取引
           </h1>
           <p className="text-xs text-muted-foreground">
