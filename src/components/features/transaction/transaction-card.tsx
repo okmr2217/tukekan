@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDateTimeForDisplay } from "@/lib/dateUtils";
+import { formatCompactTime, formatShortDate } from "@/lib/dateUtils";
 import type { TransactionWithPartner } from "@/actions/transaction";
 
 type Props = {
@@ -26,62 +26,47 @@ export function TransactionCard({ transaction, onEdit, onDetail, onArchiveToggle
   const absAmount = Math.abs(transaction.amount);
   const isGrayedOut = transaction.isArchived || transaction.partnerIsArchived;
 
+  const createdStr = formatShortDate(transaction.createdAt);
+  const updatedStr = formatShortDate(transaction.updatedAt);
+  const showUpdated = createdStr !== updatedStr;
+
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card px-4 py-2.5 shadow-sm",
+        "rounded-xl border bg-card px-3.5 py-2.5 shadow-sm space-y-1",
         isGrayedOut && "opacity-50",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        {/* Left: partner, description, date */}
-        <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm">{transaction.partnerName}</span>
-            {transaction.isArchived && (
-              <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                アーカイブ
-              </span>
-            )}
-          </div>
-          {transaction.description && (
-            <span className="text-sm text-muted-foreground truncate">
-              {transaction.description}
-            </span>
-          )}
-          <span className="text-xs text-muted-foreground">
-            {formatDateTimeForDisplay(transaction.date)}
+      {/* 上段: 取引日時・作成日 ／ ボタン類 */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-medium text-muted-foreground">
+            {formatCompactTime(transaction.date)}
+          </span>
+          <span className="text-xs text-muted-foreground/60">
+            作成 {createdStr}
+            {showUpdated && ` · 更新 ${updatedStr}`}
           </span>
         </div>
-
-        {/* Right: amount + actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          <span
-            className={cn(
-              "font-bold text-base tabular-nums",
-              isLending ? "text-foreground" : "text-destructive",
-            )}
-          >
-            {isLending ? "+" : "-"}¥{absAmount.toLocaleString()}
-          </span>
+        <div className="flex items-center gap-1 shrink-0 -mr-1">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="h-6 w-6 text-muted-foreground hover:text-foreground"
             onClick={() => onEdit(transaction)}
             aria-label="編集"
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-3 w-3" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 aria-label="その他の操作"
               >
-                <MoreVertical className="h-4 w-4" />
+                <MoreVertical className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -114,6 +99,35 @@ export function TransactionCard({ transaction, onEdit, onDetail, onArchiveToggle
           </DropdownMenu>
         </div>
       </div>
+
+      {/* 中段: 相手名 ／ 金額 */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="font-semibold text-sm truncate">{transaction.partnerName}</span>
+          {transaction.isArchived && (
+            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md shrink-0">
+              アーカイブ
+            </span>
+          )}
+        </div>
+        <span
+          className={cn(
+            "font-bold text-base tabular-nums shrink-0",
+            isLending ? "text-foreground" : "text-destructive",
+          )}
+        >
+          {isLending ? "+" : "-"}¥{absAmount.toLocaleString()}
+        </span>
+      </div>
+
+      {/* 下段: メモ（ある場合のみ） */}
+      {transaction.description && (
+        <div className="-mt-0.5">
+          <span className="text-xs text-muted-foreground leading-relaxed">
+            {transaction.description}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
