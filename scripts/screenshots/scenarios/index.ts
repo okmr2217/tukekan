@@ -8,21 +8,25 @@ const BASE_URL = CONFIG.BASE_URL;
  * スクリーンショットシナリオ一覧
  *
  * PC (runPcScenarios)
- *   home-transactions-pc       / ホーム（取引一覧）
- *   transaction-modal-pc       / FAB → 取引追加モーダル
- *   partners-pc                /partners 相手一覧
+ *   home-partners-pc           / ホーム（相手残高一覧）
+ *   transactions-pc            /transactions すべての取引
+ *   transaction-modal-pc       /transactions FAB → 取引追加モーダル
+ *   partners-pc                /partners 相手管理
  *   partner-menu-pc            /partners 相手カードのドロップダウンメニュー
  *   add-partner-dialog-pc      /partners 相手追加ダイアログ
- *   stats-partners-pc          /stats 統計（相手タブ・デフォルト）
- *   stats-overall-pc           /stats 統計（全体タブ）
+ *   statistics-partners-pc     /statistics 統計（相手タブ・デフォルト）
+ *   statistics-overall-pc      /statistics 統計（全体タブ）
+ *   menu-pc                    /menu メニュー
  *   settings-pc                /settings 設定
  *   share-page-pc              /share/demo-token 共有ページ
  *
  * Mobile (runMobileScenarios)
- *   home-transactions-mobile   / ホーム（取引一覧）
- *   transaction-modal-mobile   / FAB → 取引追加モーダル
- *   partners-mobile            /partners 相手一覧
- *   stats-mobile               /stats 統計（相手タブ・デフォルト）
+ *   home-partners-mobile       / ホーム（相手残高一覧）
+ *   transactions-mobile        /transactions すべての取引
+ *   transaction-modal-mobile   /transactions FAB → 取引追加モーダル
+ *   partners-mobile            /partners 相手管理
+ *   statistics-mobile          /statistics 統計（相手タブ・デフォルト）
+ *   menu-mobile                /menu メニュー
  *   settings-mobile            /settings 設定
  *   share-page-mobile          /share/demo-token 共有ページ
  *
@@ -32,20 +36,29 @@ const BASE_URL = CONFIG.BASE_URL;
  */
 
 export async function runPcScenarios(page: Page): Promise<void> {
-  // home-transactions-pc
+  // home-partners-pc
   try {
     await page.goto(`${BASE_URL}/`);
     await page.waitForLoadState("networkidle");
-    await capture(page, "home-transactions-pc", "pc");
+    await capture(page, "home-partners-pc", "pc");
   } catch (e) {
-    console.error("❌ home-transactions-pc failed:", e);
+    console.error("❌ home-partners-pc failed:", e);
+  }
+
+  // transactions-pc
+  try {
+    await page.goto(`${BASE_URL}/transactions`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "transactions-pc", "pc");
+  } catch (e) {
+    console.error("❌ transactions-pc failed:", e);
   }
 
   // transaction-modal-pc
   try {
-    await page.goto(`${BASE_URL}/`);
+    await page.goto(`${BASE_URL}/transactions`);
     await page.waitForLoadState("networkidle");
-    const fabBtn = page.locator("button.rounded-full").first();
+    const fabBtn = page.locator("#transaction-fab");
     await fabBtn.click({ timeout: 5000 });
     await page.waitForTimeout(300);
     await capture(page, "transaction-modal-pc", "pc");
@@ -92,25 +105,34 @@ export async function runPcScenarios(page: Page): Promise<void> {
     console.error("❌ add-partner-dialog-pc failed:", e);
   }
 
-  // stats-partners-pc (相手タブ - デフォルト)
+  // statistics-partners-pc (相手タブ - デフォルト)
   try {
-    await page.goto(`${BASE_URL}/stats`);
+    await page.goto(`${BASE_URL}/statistics`);
     await page.waitForLoadState("networkidle");
-    await capture(page, "stats-partners-pc", "pc");
+    await capture(page, "statistics-partners-pc", "pc");
   } catch (e) {
-    console.error("❌ stats-partners-pc failed:", e);
+    console.error("❌ statistics-partners-pc failed:", e);
   }
 
-  // stats-overall-pc (全体タブ)
+  // statistics-overall-pc (全体タブ)
   try {
-    await page.goto(`${BASE_URL}/stats`);
+    await page.goto(`${BASE_URL}/statistics`);
     await page.waitForLoadState("networkidle");
     const overallTab = page.locator('button[role="tab"]:has-text("全体")');
     await overallTab.click({ timeout: 5000 });
     await page.waitForTimeout(300);
-    await capture(page, "stats-overall-pc", "pc");
+    await capture(page, "statistics-overall-pc", "pc");
   } catch (e) {
-    console.error("❌ stats-overall-pc failed:", e);
+    console.error("❌ statistics-overall-pc failed:", e);
+  }
+
+  // menu-pc
+  try {
+    await page.goto(`${BASE_URL}/menu`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "menu-pc", "pc");
+  } catch (e) {
+    console.error("❌ menu-pc failed:", e);
   }
 
   // settings-pc
@@ -133,20 +155,29 @@ export async function runPcScenarios(page: Page): Promise<void> {
 }
 
 export async function runMobileScenarios(page: Page): Promise<void> {
-  // home-transactions-mobile
+  // home-partners-mobile
   try {
     await page.goto(`${BASE_URL}/`);
     await page.waitForLoadState("networkidle");
-    await capture(page, "home-transactions-mobile", "mobile");
+    await capture(page, "home-partners-mobile", "mobile");
   } catch (e) {
-    console.error("❌ home-transactions-mobile failed:", e);
+    console.error("❌ home-partners-mobile failed:", e);
+  }
+
+  // transactions-mobile
+  try {
+    await page.goto(`${BASE_URL}/transactions`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "transactions-mobile", "mobile");
+  } catch (e) {
+    console.error("❌ transactions-mobile failed:", e);
   }
 
   // transaction-modal-mobile
   try {
-    await page.goto(`${BASE_URL}/`);
+    await page.goto(`${BASE_URL}/transactions`);
     await page.waitForLoadState("networkidle");
-    const fabBtn = page.locator("button.rounded-full").first();
+    const fabBtn = page.locator("#transaction-fab");
     await fabBtn.click({ timeout: 5000 });
     await page.waitForTimeout(400);
     await capture(page, "transaction-modal-mobile", "mobile");
@@ -165,13 +196,22 @@ export async function runMobileScenarios(page: Page): Promise<void> {
     console.error("❌ partners-mobile failed:", e);
   }
 
-  // stats-mobile
+  // statistics-mobile
   try {
-    await page.goto(`${BASE_URL}/stats`);
+    await page.goto(`${BASE_URL}/statistics`);
     await page.waitForLoadState("networkidle");
-    await capture(page, "stats-mobile", "mobile");
+    await capture(page, "statistics-mobile", "mobile");
   } catch (e) {
-    console.error("❌ stats-mobile failed:", e);
+    console.error("❌ statistics-mobile failed:", e);
+  }
+
+  // menu-mobile
+  try {
+    await page.goto(`${BASE_URL}/menu`);
+    await page.waitForLoadState("networkidle");
+    await capture(page, "menu-mobile", "mobile");
+  } catch (e) {
+    console.error("❌ menu-mobile failed:", e);
   }
 
   // settings-mobile
