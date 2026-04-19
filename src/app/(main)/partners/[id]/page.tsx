@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { getSession } from "@/actions/auth";
+import { getSession, getCurrentUser } from "@/actions/auth";
 import { getPartnerById, getPartners } from "@/actions/partner";
 import {
   getDescriptionSuggestions,
@@ -34,11 +34,12 @@ export default async function PartnerDetailPage({
   const sp = await searchParams;
   const showArchived = parseBool(sp.showArchived);
 
-  const [partner, suggestions, transactions, partners] = await Promise.all([
+  const [partner, suggestions, transactions, partners, currentUser] = await Promise.all([
     getPartnerById(id),
     getDescriptionSuggestions(),
     getTransactions({ partnerIds: [id], showArchived }),
     getPartners(),
+    getCurrentUser(),
   ]);
 
   if (!partner) {
@@ -59,7 +60,7 @@ export default async function PartnerDetailPage({
           <p className="text-xs font-medium tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-2">
             現在の残高
           </p>
-          <BalanceCard partner={partner} latestTransaction={transactions[0]} />
+          <BalanceCard partner={partner} userName={currentUser?.name ?? "あなた"} latestTransaction={transactions[0]} />
         </div>
 
         {/* 共有リンクセクション */}

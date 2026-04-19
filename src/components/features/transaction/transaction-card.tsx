@@ -1,6 +1,13 @@
 "use client";
 
-import { Pencil, MoreVertical, Archive, ArchiveRestore, Trash2, FileText } from "lucide-react";
+import {
+  Pencil,
+  MoreVertical,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  FileText,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +29,14 @@ type Props = {
   onDelete: (transaction: TransactionWithPartner) => void;
 };
 
-export function TransactionCard({ transaction, runningBalance, onEdit, onDetail, onArchiveToggle, onDelete }: Props) {
+export function TransactionCard({
+  transaction,
+  runningBalance,
+  onEdit,
+  onDetail,
+  onArchiveToggle,
+  onDelete,
+}: Props) {
   const isLending = transaction.amount > 0;
   const absAmount = Math.abs(transaction.amount);
   const absBalance = Math.abs(runningBalance);
@@ -35,22 +49,33 @@ export function TransactionCard({ transaction, runningBalance, onEdit, onDetail,
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card px-3.5 py-2.5 shadow-sm space-y-1",
+        "rounded-xl border bg-card px-3 py-2 shadow-sm",
         isGrayedOut && "opacity-50",
       )}
     >
-      {/* 上段: 取引日時・作成日 ／ ボタン類 */}
+      {/* 上段: タイプバッジ・日時 ／ アクション */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className={cn(
+              "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+              isLending
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                : "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400",
+            )}
+          >
+            {isLending ? "貸し" : "借り"}
+          </span>
           <span className="text-xs font-medium text-muted-foreground">
             {formatCompactTime(transaction.date)}
           </span>
-          <span className="text-xs text-muted-foreground/60">
-            作成 {createdStr}
-            {showUpdated && ` · 更新 ${updatedStr}`}
-          </span>
+          {transaction.isArchived && (
+            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0 leading-none">
+              アーカイブ
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-1 shrink-0 -mr-1">
+        <div className="flex items-center gap-0.5 shrink-0 -mr-1">
           <Button
             variant="ghost"
             size="icon"
@@ -102,51 +127,49 @@ export function TransactionCard({ transaction, runningBalance, onEdit, onDetail,
         </div>
       </div>
 
-      {/* 中段: 相手名 ／ 金額 */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-semibold text-sm truncate">{transaction.partnerName}</span>
-          {transaction.isArchived && (
-            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md shrink-0">
-              アーカイブ
-            </span>
+      {/* 中段: メモ ／ 金額 */}
+      <div className="flex items-baseline justify-between gap-3 mt-0.5">
+        <span className="font-medium text-sm text-foreground min-w-0">
+          {transaction.description ? (
+            transaction.description
+          ) : (
+            <span className="text-muted-foreground/60 text-xs">メモなし</span>
           )}
-        </div>
+        </span>
         <span
           className={cn(
             "font-bold text-base tabular-nums shrink-0",
-            isLending ? "text-foreground" : "text-destructive",
+            isLending
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-destructive",
           )}
         >
           {isLending ? "+" : "-"}¥{absAmount.toLocaleString()}
         </span>
       </div>
 
-      {/* 残高 */}
-      <div className="flex justify-end">
-        <span className="text-xs text-muted-foreground mr-1">残高</span>
-        <span
-          className={cn(
-            "text-xs tabular-nums",
-            runningBalance > 0
-              ? "text-foreground"
-              : runningBalance < 0
-                ? "text-destructive"
-                : "text-muted-foreground",
-          )}
-        >
-          {runningBalance < 0 ? "-" : ""}¥{absBalance.toLocaleString()}
+      {/* 下段: 作成日 ／ 残高 */}
+      <div className="flex items-center justify-between mt-0.75">
+        <span className="text-xs text-muted-foreground/60">
+          作成 {createdStr}
+          {showUpdated && ` · 更新 ${updatedStr}`}
         </span>
-      </div>
-
-      {/* 下段: メモ（ある場合のみ） */}
-      {transaction.description && (
-        <div className="-mt-0.5">
-          <span className="text-xs text-muted-foreground leading-relaxed">
-            {transaction.description}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">残高</span>
+          <span
+            className={cn(
+              "text-xs tabular-nums",
+              runningBalance > 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : runningBalance < 0
+                  ? "text-destructive"
+                  : "text-muted-foreground",
+            )}
+          >
+            {runningBalance < 0 ? "-" : ""}¥{absBalance.toLocaleString()}
           </span>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -448,12 +448,14 @@ export async function revokeShareToken(
 
 export type SharedPartnerData = {
   partnerName: string;
+  ownerName: string;
   balance: number;
   transactions: Array<{
     id: string;
     amount: number;
     description: string | null;
     date: Date;
+    runningBalance: number;
   }>;
 };
 
@@ -465,6 +467,7 @@ export async function getPartnerByShareToken(
     select: {
       name: true,
       shareTokenExpiresAt: true,
+      owner: { select: { name: true } },
       transactions: {
         where: { isArchived: false },
         select: {
@@ -488,11 +491,21 @@ export async function getPartnerByShareToken(
 
   const balance = partner.transactions.reduce((sum, t) => sum + t.amount, 0);
 
+  // transactions は date desc 順 — 先頭が最新。
+  // 最新取引後の残高 = balance から逆順に累積。
+  let runningBalance = balance;
+  const transactionsWithBalance = partner.transactions.map((t) => {
+    const entry = { ...t, runningBalance };
+    runningBalance -= t.amount;
+    return entry;
+  });
+
   return {
     data: {
       partnerName: partner.name,
+      ownerName: partner.owner.name,
       balance,
-      transactions: partner.transactions,
+      transactions: transactionsWithBalance,
     },
   };
 }
