@@ -51,6 +51,7 @@ export type PartnerWithBalance = {
   transactionCount: number;
   shareToken: string | null;
   shareTokenExpiresAt: Date | null;
+  createdAt: Date;
 };
 
 export type PartnerForHome = {
@@ -156,6 +157,7 @@ export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
       isArchived: true,
       shareToken: true,
       shareTokenExpiresAt: true,
+      createdAt: true,
       transactions: {
         where: { isArchived: false },
         select: { amount: true },
@@ -170,6 +172,7 @@ export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
     isArchived: p.isArchived,
     shareToken: p.shareToken,
     shareTokenExpiresAt: p.shareTokenExpiresAt,
+    createdAt: p.createdAt,
     transactionCount: p.transactions.length,
     balance: p.transactions.reduce((sum, t) => sum + t.amount, 0),
   }));
@@ -347,6 +350,31 @@ export async function unarchivePartner(
   return {};
 }
 
+
+export async function deletePartner(
+  partnerId: string,
+): Promise<{ error?: string }> {
+  const session = await getSession();
+  if (!session) {
+    return { error: "ログインが必要です" };
+  }
+
+  const partner = await prisma.partner.findUnique({
+    where: { id: partnerId },
+  });
+
+  if (!partner || partner.ownerId !== session.userId) {
+    return { error: "相手が見つかりません" };
+  }
+
+  await prisma.partner.delete({ where: { id: partnerId } });
+
+  revalidatePath("/");
+  revalidatePath("/transactions");
+  revalidatePath("/partners");
+
+  return {};
+}
 
 export type ShareTokenState = {
   error?: string;

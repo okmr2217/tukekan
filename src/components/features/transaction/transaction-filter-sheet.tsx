@@ -66,7 +66,7 @@ function FilterForm({
 
   useEffect(() => {
     setDraft(committed);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const activePartners = partners;
@@ -192,7 +192,10 @@ export function TransactionFilterSheet({ partners }: Props) {
       <>
         <FilterButton activeCount={activeCount} onClick={() => setOpen(true)} />
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
+          <SheetContent
+            side="bottom"
+            className="max-h-[85vh] overflow-y-auto rounded-t-2xl"
+          >
             <SheetHeader>
               <SheetTitle>検索・絞り込み</SheetTitle>
             </SheetHeader>
@@ -238,7 +241,7 @@ function FilterButton({
       type="button"
       onClick={onClick}
       aria-label="検索・絞り込み"
-      className="fixed bottom-[8.75rem] right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border bg-background shadow-md transition-colors hover:bg-muted"
+      className="fixed bottom-37 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border bg-background shadow-md transition-colors hover:bg-muted"
     >
       <SlidersHorizontal className="h-5 w-5" />
       {activeCount > 0 && (

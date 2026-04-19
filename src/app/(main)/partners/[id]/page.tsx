@@ -4,6 +4,7 @@ import { getPartnerById, getPartners } from "@/actions/partner";
 import { getDescriptionSuggestions, getTransactions } from "@/actions/transaction";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
 import { ShareLinkSection } from "@/components/features/partner/share-link-section";
+import { PartnerDetailClient } from "@/components/features/partner/partner-detail-client";
 import { PageHeader } from "@/components/layouts/page-header";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,11 @@ export default async function PartnerDetailPage({
 
   return (
     <div className="flex flex-col">
-      <PageHeader title={partner.name} description="取引履歴と残高" backHref="/" />
+      <PageHeader
+        title={partner.name}
+        description="取引履歴と残高"
+        backHref="/partners"
+      />
 
       <div className="px-4 pt-3 pb-4 space-y-3">
         {/* 残高カード */}
@@ -77,6 +82,9 @@ export default async function PartnerDetailPage({
           suggestions={suggestions}
           partners={partners}
         />
+
+        {/* 相手の管理（名前変更・アーカイブ・削除） */}
+        <PartnerDetailClient partner={partner} />
       </div>
     </div>
   );

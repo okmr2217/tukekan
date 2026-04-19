@@ -28,15 +28,6 @@ type GetTransactionsParams = {
   sortOrder?: SortOrder;
 };
 
-function buildOrderBy(sortOrder: SortOrder) {
-  switch (sortOrder) {
-    case "date_asc": return { date: "asc" as const };
-    case "amount_desc": return { amount: "desc" as const };
-    case "amount_asc": return { amount: "asc" as const };
-    default: return { date: "desc" as const };
-  }
-}
-
 export async function getTransactions(
   params: GetTransactionsParams = {},
 ): Promise<TransactionWithPartner[]> {
@@ -51,7 +42,12 @@ export async function getTransactions(
     sortOrder = "date_desc",
   } = params;
 
-  const transactions = await prisma.transaction.findMany({
+  const dbOrderBy =
+    sortOrder === "date_asc"
+      ? { date: "asc" as const }
+      : { date: "desc" as const };
+
+  const rows = await prisma.transaction.findMany({
     where: {
       ownerId: session.userId,
       ...(showArchived ? {} : { isArchived: false }),
@@ -61,11 +57,11 @@ export async function getTransactions(
         ...(partnerIds && partnerIds.length > 0 ? { id: { in: partnerIds } } : {}),
       },
     },
-    orderBy: buildOrderBy(sortOrder),
+    orderBy: dbOrderBy,
     include: { partner: { select: { name: true, isArchived: true } } },
   });
 
-  return transactions.map((t) => ({
+  const mapped = rows.map((t) => ({
     id: t.id,
     amount: t.amount,
     description: t.description,
@@ -77,6 +73,14 @@ export async function getTransactions(
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
   }));
+
+  if (sortOrder === "amount_desc") {
+    return mapped.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+  }
+  if (sortOrder === "amount_asc") {
+    return mapped.sort((a, b) => Math.abs(a.amount) - Math.abs(b.amount));
+  }
+  return mapped;
 }
 
 export async function getDescriptionSuggestions(): Promise<string[]> {
