@@ -18,7 +18,7 @@ function formatDate(date: Date): string {
 export function PartnerCard({ partner }: Props) {
   return (
     <Link
-      href={`/partners/${partner.id}`}
+      href={`/partners/${partner.id}/edit`}
       className={cn(
         "flex items-center gap-3 rounded-lg border bg-card px-4 py-3 shadow-sm hover:bg-muted/50 transition-colors active:scale-[0.99]",
         partner.isArchived && "opacity-60",
