@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { TransactionModal } from "@/components/features/transaction/transaction-modal";
+import { TransactionFilterSheet } from "@/components/features/transaction/transaction-filter-sheet";
 import type { Partner } from "@/actions/partner";
 
 type Props = {
@@ -22,10 +23,13 @@ export function FABController({ partners, suggestions }: Props) {
     : undefined;
 
   return (
-    <TransactionModal
-      partners={partners}
-      suggestions={suggestions}
-      defaultPartnerId={defaultPartnerId}
-    />
+    <>
+      {isTransactions && <TransactionFilterSheet partners={partners} />}
+      <TransactionModal
+        partners={partners}
+        suggestions={suggestions}
+        defaultPartnerId={defaultPartnerId}
+      />
+    </>
   );
 }

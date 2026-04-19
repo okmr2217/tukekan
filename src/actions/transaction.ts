@@ -18,11 +18,24 @@ export type TransactionWithPartner = {
   updatedAt: Date;
 };
 
+export type SortOrder = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+
 type GetTransactionsParams = {
   partnerIds?: string[];
   showArchived?: boolean;
   showArchivedPartners?: boolean;
+  q?: string;
+  sortOrder?: SortOrder;
 };
+
+function buildOrderBy(sortOrder: SortOrder) {
+  switch (sortOrder) {
+    case "date_asc": return { date: "asc" as const };
+    case "amount_desc": return { amount: "desc" as const };
+    case "amount_asc": return { amount: "asc" as const };
+    default: return { date: "desc" as const };
+  }
+}
 
 export async function getTransactions(
   params: GetTransactionsParams = {},
@@ -30,18 +43,25 @@ export async function getTransactions(
   const session = await getSession();
   if (!session) return [];
 
-  const { partnerIds, showArchived = false, showArchivedPartners = false } = params;
+  const {
+    partnerIds,
+    showArchived = false,
+    showArchivedPartners = false,
+    q,
+    sortOrder = "date_desc",
+  } = params;
 
   const transactions = await prisma.transaction.findMany({
     where: {
       ownerId: session.userId,
       ...(showArchived ? {} : { isArchived: false }),
+      ...(q ? { description: { contains: q } } : {}),
       partner: {
         ...(showArchivedPartners ? {} : { isArchived: false }),
         ...(partnerIds && partnerIds.length > 0 ? { id: { in: partnerIds } } : {}),
       },
     },
-    orderBy: { date: "desc" },
+    orderBy: buildOrderBy(sortOrder),
     include: { partner: { select: { name: true, isArchived: true } } },
   });
 
