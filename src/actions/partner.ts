@@ -79,15 +79,24 @@ export async function getPartnersForHome(): Promise<PartnerForHome[]> {
         orderBy: { date: "desc" },
       },
     },
-    orderBy: { name: "asc" },
   });
 
-  return partners.map((p) => ({
-    id: p.id,
-    name: p.name,
-    balance: p.transactions.reduce((sum, t) => sum + t.amount, 0),
-    lastTransaction: p.transactions[0] ?? null,
-  }));
+  return partners
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      balance: p.transactions.reduce((sum, t) => sum + t.amount, 0),
+      lastTransaction: p.transactions[0] ?? null,
+    }))
+    .sort((a, b) => {
+      if (!a.lastTransaction && !b.lastTransaction) return 0;
+      if (!a.lastTransaction) return 1;
+      if (!b.lastTransaction) return -1;
+      return (
+        new Date(b.lastTransaction.date).getTime() -
+        new Date(a.lastTransaction.date).getTime()
+      );
+    });
 }
 
 export type PartnerById = {
@@ -338,55 +347,6 @@ export async function unarchivePartner(
   return {};
 }
 
-export type SettlePartnerState = {
-  error?: string;
-  success?: boolean;
-};
-
-export async function settlePartner(
-  partnerId: string,
-): Promise<SettlePartnerState> {
-  const session = await getSession();
-  if (!session) {
-    return { error: "ログインが必要です" };
-  }
-
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.ownerId !== session.userId) {
-    return { error: "相手が見つかりません" };
-  }
-
-  const result = await prisma.transaction.aggregate({
-    where: { ownerId: session.userId, partnerId, isArchived: false },
-    _sum: { amount: true },
-  });
-
-  const balance = result._sum.amount ?? 0;
-
-  if (balance === 0) {
-    return { error: "残高が0のため精算できません" };
-  }
-
-  await prisma.transaction.create({
-    data: {
-      amount: -balance,
-      description: "精算",
-      date: new Date(),
-      ownerId: session.userId,
-      partnerId,
-    },
-  });
-
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath("/partners");
-  revalidatePath(`/partners/${partnerId}`);
-
-  return { success: true };
-}
 
 export type ShareTokenState = {
   error?: string;

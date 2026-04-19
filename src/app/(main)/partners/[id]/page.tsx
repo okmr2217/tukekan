@@ -45,7 +45,7 @@ export default async function PartnerDetailPage({
 
   return (
     <div className="flex flex-col">
-      <PageHeader title={partner.name} description="取引履歴と残高" />
+      <PageHeader title={partner.name} description="取引履歴と残高" backHref="/" />
 
       <div className="px-4 pt-3 pb-4 space-y-3">
         {/* 残高カード */}
