@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { buildRunningBalanceMap } from "@/lib/calc-running-balance";
 import { TransactionCard } from "./transaction-card";
 import { TransactionEditModal } from "./transaction-edit-modal";
 import { TransactionDetailModal } from "./transaction-detail-modal";
@@ -79,6 +80,11 @@ export function TransactionCardList({ transactions, suggestions, partners = [] }
     });
   };
 
+  const runningBalanceMap = useMemo(
+    () => buildRunningBalanceMap(transactions),
+    [transactions],
+  );
+
   if (transactions.length === 0) {
     return (
       <div className="py-8 text-center text-muted-foreground">
@@ -94,6 +100,7 @@ export function TransactionCardList({ transactions, suggestions, partners = [] }
           <TransactionCard
             key={t.id}
             transaction={t}
+            runningBalance={runningBalanceMap.get(t.id) ?? 0}
             onEdit={handleEdit}
             onDetail={handleDetail}
             onArchiveToggle={handleArchiveToggle}

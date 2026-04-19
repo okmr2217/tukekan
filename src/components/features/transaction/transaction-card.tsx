@@ -15,15 +15,17 @@ import type { TransactionWithPartner } from "@/actions/transaction";
 
 type Props = {
   transaction: TransactionWithPartner;
+  runningBalance: number;
   onEdit: (transaction: TransactionWithPartner) => void;
   onDetail: (transaction: TransactionWithPartner) => void;
   onArchiveToggle: (transaction: TransactionWithPartner) => void;
   onDelete: (transaction: TransactionWithPartner) => void;
 };
 
-export function TransactionCard({ transaction, onEdit, onDetail, onArchiveToggle, onDelete }: Props) {
+export function TransactionCard({ transaction, runningBalance, onEdit, onDetail, onArchiveToggle, onDelete }: Props) {
   const isLending = transaction.amount > 0;
   const absAmount = Math.abs(transaction.amount);
+  const absBalance = Math.abs(runningBalance);
   const isGrayedOut = transaction.isArchived || transaction.partnerIsArchived;
 
   const createdStr = formatShortDate(transaction.createdAt);
@@ -117,6 +119,23 @@ export function TransactionCard({ transaction, onEdit, onDetail, onArchiveToggle
           )}
         >
           {isLending ? "+" : "-"}¥{absAmount.toLocaleString()}
+        </span>
+      </div>
+
+      {/* 残高 */}
+      <div className="flex justify-end">
+        <span className="text-xs text-muted-foreground mr-1">残高</span>
+        <span
+          className={cn(
+            "text-xs tabular-nums",
+            runningBalance > 0
+              ? "text-foreground"
+              : runningBalance < 0
+                ? "text-destructive"
+                : "text-muted-foreground",
+          )}
+        >
+          {runningBalance < 0 ? "-" : ""}¥{absBalance.toLocaleString()}
         </span>
       </div>
 
