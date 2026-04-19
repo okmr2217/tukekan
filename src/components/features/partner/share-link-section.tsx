@@ -1,8 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Link, Link2Off, RefreshCw, Copy, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Share2, Link2Off, RefreshCw, Copy, ExternalLink } from "lucide-react";
 import { generateShareToken, revokeShareToken } from "@/actions/partner";
 import { toast } from "sonner";
 import type { PartnerById } from "@/actions/partner";
@@ -18,6 +17,11 @@ export function ShareLinkSection({ partner }: Props) {
     partner.shareToken !== null &&
     partner.shareTokenExpiresAt !== null &&
     new Date(partner.shareTokenExpiresAt) > new Date();
+
+  const shareUrl =
+    hasActiveToken && partner.shareToken
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/share/${partner.shareToken}`
+      : null;
 
   const handleGenerate = () => {
     startTransition(async () => {
@@ -35,16 +39,14 @@ export function ShareLinkSection({ partner }: Props) {
   };
 
   const handleCopy = async () => {
-    if (!partner.shareToken) return;
-    const url = `${window.location.origin}/share/${partner.shareToken}`;
-    await navigator.clipboard.writeText(url);
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
     toast.success("共有リンクをコピーしました");
   };
 
   const handleOpen = () => {
-    if (!partner.shareToken) return;
-    const url = `${window.location.origin}/share/${partner.shareToken}`;
-    window.open(url, "_blank");
+    if (!shareUrl) return;
+    window.open(shareUrl, "_blank");
   };
 
   const handleRevoke = () => {
@@ -68,68 +70,74 @@ export function ShareLinkSection({ partner }: Props) {
   };
 
   return (
-    <div className="rounded-xl border bg-card px-4 py-3 shadow-sm space-y-2.5">
-      <div className="flex items-center gap-2">
-        <Link className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="text-sm font-medium">共有リンク</span>
+    <div className="bg-card border border-border rounded-2xl p-4">
+      {/* ヘッダー */}
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0">
+          <Share2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <p className="text-sm font-medium">{partner.name}との取引を共有</p>
       </div>
 
-      {hasActiveToken && expiresAt ? (
+      {hasActiveToken && expiresAt && shareUrl ? (
         <>
-          <p className="text-xs text-muted-foreground">
-            有効期限：{formatExpiry(expiresAt)}まで
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
+          {/* URL表示 + コピーボタン */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 text-xs font-mono bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-lg px-2.5 py-2 text-emerald-900 dark:text-emerald-100 truncate">
+              {shareUrl}
+            </div>
+            <button
               onClick={handleCopy}
               disabled={isPending}
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg px-3 py-2 transition-colors"
             >
-              <Copy className="h-3.5 w-3.5 mr-1.5" />
-              リンクをコピー
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleOpen}
-              disabled={isPending}
-              aria-label="リンクを開く"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerate}
-              disabled={isPending}
-              aria-label="再発行"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRevoke}
-              disabled={isPending}
-              aria-label="停止"
-            >
-              <Link2Off className="h-3.5 w-3.5" />
-            </Button>
+              <Copy className="w-3.5 h-3.5" />
+              コピー
+            </button>
+          </div>
+
+          {/* 有効期限 + サブアクション */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+              有効期限：{formatExpiry(expiresAt)}まで
+            </p>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleOpen}
+                disabled={isPending}
+                aria-label="リンクを開く"
+                className="text-xs text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-md p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors disabled:opacity-50"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleGenerate}
+                disabled={isPending}
+                aria-label="再発行"
+                className="text-xs text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-md p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleRevoke}
+                disabled={isPending}
+                aria-label="停止"
+                className="text-xs text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-md p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors disabled:opacity-50"
+              >
+                <Link2Off className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </>
       ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
+        <button
           onClick={handleGenerate}
           disabled={isPending}
+          className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg px-3.5 py-2 transition-colors"
         >
-          <Link className="h-3.5 w-3.5 mr-1.5" />
+          <Share2 className="w-3.5 h-3.5" />
           共有リンクを発行
-        </Button>
+        </button>
       )}
     </div>
   );

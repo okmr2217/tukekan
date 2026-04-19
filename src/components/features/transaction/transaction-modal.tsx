@@ -117,7 +117,7 @@ export function TransactionModal({
 
   return (
     <>
-      <FAB onClick={() => setOpen(true)} />
+      <FAB id="transaction-fab" onClick={() => setOpen(true)} />
       <Dialog open={open} onOpenChange={(v) => !isPending && setOpen(v)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>

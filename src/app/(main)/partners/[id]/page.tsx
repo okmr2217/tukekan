@@ -1,12 +1,15 @@
 import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/actions/auth";
 import { getPartnerById, getPartners } from "@/actions/partner";
-import { getDescriptionSuggestions, getTransactions } from "@/actions/transaction";
+import {
+  getDescriptionSuggestions,
+  getTransactions,
+} from "@/actions/transaction";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
 import { ShareLinkSection } from "@/components/features/partner/share-link-section";
+import { BalanceCard } from "@/components/features/partner/balance-card";
 import { PartnerDetailClient } from "@/components/features/partner/partner-detail-client";
 import { PageHeader } from "@/components/layouts/page-header";
-import { cn } from "@/lib/utils";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -42,46 +45,42 @@ export default async function PartnerDetailPage({
     notFound();
   }
 
-  const absBalance = Math.abs(partner.balance);
-
   return (
     <div className="flex flex-col">
       <PageHeader
         title={partner.name}
         description="取引履歴と残高"
-        backHref="/partners"
+        backHref="/"
       />
 
-      <div className="px-4 pt-3 pb-4 space-y-3">
+      <div className="px-4 pt-3 pb-4 space-y-4">
         {/* 残高カード */}
-        <div className="rounded-xl border bg-card px-4 py-3 shadow-sm">
-          <p className="text-xs text-muted-foreground">現在の残高</p>
-          <p
-            className={cn(
-              "mt-1 text-2xl font-bold tabular-nums",
-              partner.balance < 0 ? "text-destructive" : "text-foreground",
-            )}
-          >
-            {partner.balance < 0 ? "-" : ""}¥{absBalance.toLocaleString()}
+        <div>
+          <p className="text-xs font-medium tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-2">
+            現在の残高
           </p>
-          {partner.balance !== 0 && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {partner.balance > 0
-                ? `${partner.name}から¥${absBalance.toLocaleString()}受け取る予定`
-                : `${partner.name}に¥${absBalance.toLocaleString()}返す予定`}
-            </p>
-          )}
+          <BalanceCard partner={partner} latestTransaction={transactions[0]} />
         </div>
 
         {/* 共有リンクセクション */}
-        <ShareLinkSection partner={partner} />
+        <div>
+          <p className="text-xs font-medium tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-2">
+            共有リンク
+          </p>
+          <ShareLinkSection partner={partner} />
+        </div>
 
         {/* 取引一覧 */}
-        <TransactionCardList
-          transactions={transactions}
-          suggestions={suggestions}
-          partners={partners}
-        />
+        <div>
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
+            取引一覧
+          </p>
+          <TransactionCardList
+            transactions={transactions}
+            suggestions={suggestions}
+            partners={partners}
+          />
+        </div>
 
         {/* 相手の管理（名前変更・アーカイブ・削除） */}
         <PartnerDetailClient partner={partner} />
