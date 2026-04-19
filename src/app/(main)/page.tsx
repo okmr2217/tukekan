@@ -1,59 +1,44 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/actions/auth";
-import { getPartnersWithBalance } from "@/actions/partner";
-import { getDescriptionSuggestions, getTransactions } from "@/actions/transaction";
-import { TransactionFilters } from "@/components/features/transaction/transaction-filters";
-import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
+import { getPartnersForHome } from "@/actions/partner";
+import { PartnerHomeCard } from "@/components/features/partner/partner-home-card";
 import { PageHeader } from "@/components/layouts/page-header";
+import Link from "next/link";
+import { UserPlus } from "lucide-react";
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
-
-function parsePartnerIds(raw: string | string[] | undefined): string[] {
-  if (!raw) return [];
-  const str = Array.isArray(raw) ? raw[0] : raw;
-  return str.split(",").filter(Boolean);
-}
-
-function parseBool(raw: string | string[] | undefined): boolean {
-  const str = Array.isArray(raw) ? raw[0] : raw;
-  return str === "true";
-}
-
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
+export default async function HomePage() {
   const session = await getSession();
   if (!session) {
     redirect("/login");
   }
 
-  const params = await searchParams;
-  const partnerIds = parsePartnerIds(params.partnerIds);
-  const showArchived = parseBool(params.showArchived);
-  const showArchivedPartners = parseBool(params.showArchivedPartners);
-
-  const [partnersWithBalance, suggestions, transactions] =
-    await Promise.all([
-      getPartnersWithBalance(),
-      getDescriptionSuggestions(),
-      getTransactions({ partnerIds, showArchived, showArchivedPartners }),
-    ]);
+  const partners = await getPartnersForHome();
 
   return (
     <div className="flex flex-col">
-      <PageHeader title="取引" description="お金の貸し借りの記録" />
+      <PageHeader title="相手" description="取引相手の残高と履歴" />
 
-      <div className="px-4 pt-3 pb-4 space-y-3">
-        <TransactionFilters partners={partnersWithBalance} />
-        <TransactionCardList
-          transactions={transactions}
-          suggestions={suggestions}
-          partners={partnersWithBalance
-            .filter((p) => !p.isArchived)
-            .map((p) => ({ id: p.id, name: p.name }))}
-        />
+      <div className="px-4 pt-3 pb-4">
+        {partners.length === 0 ? (
+          <div className="py-16 text-center space-y-3">
+            <p className="text-muted-foreground text-sm">
+              相手がまだ登録されていません
+            </p>
+            <Link
+              href="/partners"
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              <UserPlus className="h-4 w-4" />
+              相手を追加する
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {partners.map((partner) => (
+              <PartnerHomeCard key={partner.id} partner={partner} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

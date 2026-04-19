@@ -53,6 +53,86 @@ export type PartnerWithBalance = {
   shareTokenExpiresAt: Date | null;
 };
 
+export type PartnerForHome = {
+  id: string;
+  name: string;
+  balance: number;
+  lastTransaction: {
+    amount: number;
+    description: string | null;
+    date: Date;
+  } | null;
+};
+
+export async function getPartnersForHome(): Promise<PartnerForHome[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const partners = await prisma.partner.findMany({
+    where: { ownerId: session.userId, isArchived: false },
+    select: {
+      id: true,
+      name: true,
+      transactions: {
+        where: { isArchived: false },
+        select: { amount: true, description: true, date: true },
+        orderBy: { date: "desc" },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return partners.map((p) => ({
+    id: p.id,
+    name: p.name,
+    balance: p.transactions.reduce((sum, t) => sum + t.amount, 0),
+    lastTransaction: p.transactions[0] ?? null,
+  }));
+}
+
+export type PartnerById = {
+  id: string;
+  name: string;
+  balance: number;
+  isArchived: boolean;
+  shareToken: string | null;
+  shareTokenExpiresAt: Date | null;
+};
+
+export async function getPartnerById(
+  partnerId: string,
+): Promise<PartnerById | null> {
+  const session = await getSession();
+  if (!session) return null;
+
+  const partner = await prisma.partner.findUnique({
+    where: { id: partnerId },
+    select: {
+      id: true,
+      name: true,
+      isArchived: true,
+      ownerId: true,
+      shareToken: true,
+      shareTokenExpiresAt: true,
+      transactions: {
+        where: { isArchived: false },
+        select: { amount: true },
+      },
+    },
+  });
+
+  if (!partner || partner.ownerId !== session.userId) return null;
+
+  return {
+    id: partner.id,
+    name: partner.name,
+    isArchived: partner.isArchived,
+    shareToken: partner.shareToken,
+    shareTokenExpiresAt: partner.shareTokenExpiresAt,
+    balance: partner.transactions.reduce((sum, t) => sum + t.amount, 0),
+  };
+}
+
 export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
   const session = await getSession();
   if (!session) {
@@ -126,6 +206,7 @@ export async function createPartner(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath("/partners");
 
   return {
@@ -192,7 +273,9 @@ export async function updatePartner(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath("/partners");
+  revalidatePath(`/partners/${partnerId}`);
 
   return { success: true };
 }
@@ -219,7 +302,9 @@ export async function archivePartner(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath("/partners");
+  revalidatePath(`/partners/${partnerId}`);
 
   return {};
 }
@@ -246,7 +331,9 @@ export async function unarchivePartner(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath("/partners");
+  revalidatePath(`/partners/${partnerId}`);
 
   return {};
 }
@@ -294,7 +381,9 @@ export async function settlePartner(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath("/partners");
+  revalidatePath(`/partners/${partnerId}`);
 
   return { success: true };
 }
@@ -334,6 +423,7 @@ export async function generateShareToken(
   });
 
   revalidatePath("/partners");
+  revalidatePath(`/partners/${partnerId}`);
 
   return { success: true, token };
 }
@@ -363,6 +453,7 @@ export async function revokeShareToken(
   });
 
   revalidatePath("/partners");
+  revalidatePath(`/partners/${partnerId}`);
 
   return { success: true };
 }

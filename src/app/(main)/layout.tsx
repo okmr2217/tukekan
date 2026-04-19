@@ -1,6 +1,6 @@
 import { getPartners } from "@/actions/partner";
 import { getDescriptionSuggestions } from "@/actions/transaction";
-import { TransactionModal } from "@/components/features/transaction/transaction-modal";
+import { FABController } from "@/components/layouts/fab-controller";
 import { BottomBar } from "@/components/layouts/bottom-bar";
 
 export default async function MainLayout({
@@ -15,7 +15,7 @@ export default async function MainLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <TransactionModal partners={partners} suggestions={suggestions} />
+      <FABController partners={partners} suggestions={suggestions} />
       <main className="mx-auto w-full max-w-lg flex-1 pt-14 pb-16">
         {children}
       </main>

@@ -162,6 +162,7 @@ export async function createTransaction(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath(`/partners/${partnerId}`);
 
   return { success: true };
@@ -260,6 +261,7 @@ export async function updateTransaction(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath(`/partners/${transaction.partnerId}`);
   if (partnerId && partnerId !== transaction.partnerId) {
     revalidatePath(`/partners/${partnerId}`);
@@ -290,6 +292,7 @@ export async function archiveTransaction(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath(`/partners/${transaction.partnerId}`);
   return {};
 }
@@ -316,6 +319,7 @@ export async function unarchiveTransaction(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath(`/partners/${transaction.partnerId}`);
   return {};
 }
@@ -351,6 +355,7 @@ export async function deleteTransaction(
   });
 
   revalidatePath("/");
+  revalidatePath("/transactions");
   revalidatePath(`/partners/${transaction.partnerId}`);
 
   return { success: true };
