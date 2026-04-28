@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
@@ -23,6 +24,13 @@ export function PageHeader({ title, description, action, backHref }: Props) {
               <ChevronLeft className="h-5 w-5" />
             </Link>
           )}
+          <Image
+            src="/icon-192.png"
+            alt="ツケカン"
+            width={45}
+            height={45}
+            className="shrink-0 rounded-md mr-3"
+          />
           <div className="min-w-0">
             <h1 className="font-bold leading-tight mb-1.5">{title}</h1>
             {description && (
