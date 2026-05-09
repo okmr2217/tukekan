@@ -100,6 +100,15 @@ export async function getPartnersForHome(): Promise<PartnerForHome[]> {
     });
 }
 
+export type PartnerNote = {
+  id: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+  partnerId: string;
+  ownerId: string;
+};
+
 export type PartnerById = {
   id: string;
   name: string;
@@ -107,6 +116,7 @@ export type PartnerById = {
   isArchived: boolean;
   shareToken: string | null;
   shareTokenExpiresAt: Date | null;
+  notes: PartnerNote[];
 };
 
 export async function getPartnerById(
@@ -128,6 +138,9 @@ export async function getPartnerById(
         where: { isArchived: false },
         select: { amount: true },
       },
+      notes: {
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
@@ -140,6 +153,7 @@ export async function getPartnerById(
     shareToken: partner.shareToken,
     shareTokenExpiresAt: partner.shareTokenExpiresAt,
     balance: partner.transactions.reduce((sum, t) => sum + t.amount, 0),
+    notes: partner.notes,
   };
 }
 
@@ -457,6 +471,7 @@ export type SharedPartnerData = {
     date: Date;
     runningBalance: number;
   }>;
+  notes: PartnerNote[];
 };
 
 export async function getPartnerByShareToken(
@@ -465,6 +480,7 @@ export async function getPartnerByShareToken(
   const partner = await prisma.partner.findUnique({
     where: { shareToken: token },
     select: {
+      id: true,
       name: true,
       shareTokenExpiresAt: true,
       owner: { select: { name: true } },
@@ -477,6 +493,9 @@ export async function getPartnerByShareToken(
           date: true,
         },
         orderBy: { date: "desc" },
+      },
+      notes: {
+        orderBy: { createdAt: "desc" },
       },
     },
   });
@@ -506,6 +525,7 @@ export async function getPartnerByShareToken(
       ownerName: partner.owner.name,
       balance,
       transactions: transactionsWithBalance,
+      notes: partner.notes,
     },
   };
 }

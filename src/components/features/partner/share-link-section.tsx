@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { Share2, Link2Off, RefreshCw, Copy, ExternalLink } from "lucide-react";
 import { generateShareToken, revokeShareToken } from "@/actions/partner";
 import { toast } from "sonner";
@@ -12,6 +12,11 @@ type Props = {
 
 export function ShareLinkSection({ partner }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const hasActiveToken =
     partner.shareToken !== null &&
@@ -20,7 +25,7 @@ export function ShareLinkSection({ partner }: Props) {
 
   const shareUrl =
     hasActiveToken && partner.shareToken
-      ? `${typeof window !== "undefined" ? window.location.origin : ""}/share/${partner.shareToken}`
+      ? `${origin}/share/${partner.shareToken}`
       : null;
 
   const handleGenerate = () => {

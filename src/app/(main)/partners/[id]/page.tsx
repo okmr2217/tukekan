@@ -9,6 +9,7 @@ import { TransactionCardList } from "@/components/features/transaction/transacti
 import { ShareLinkSection } from "@/components/features/partner/share-link-section";
 import { BalanceCard } from "@/components/features/partner/balance-card";
 import { PartnerDetailClient } from "@/components/features/partner/partner-detail-client";
+import { PartnerNoteSection } from "@/components/features/partner/partner-note-section";
 import { PageHeader } from "@/components/layouts/page-header";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -70,6 +71,9 @@ export default async function PartnerDetailPage({
           </p>
           <ShareLinkSection partner={partner} />
         </div>
+
+        {/* メモセクション */}
+        <PartnerNoteSection partnerId={partner.id} notes={partner.notes} />
 
         {/* 取引一覧 */}
         <div>

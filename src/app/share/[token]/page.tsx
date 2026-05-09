@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPartnerByShareToken } from "@/actions/partner";
 import { SharedBalanceCard } from "@/components/features/partner/balance-card";
+import { PartnerNoteSection } from "@/components/features/partner/partner-note-section";
 import { formatDateTimeForDisplay } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +41,7 @@ export default async function SharePage({ params }: Props) {
     );
   }
 
-  const { partnerName, ownerName, balance, transactions } = result.data!;
+  const { partnerName, ownerName, balance, transactions, notes } = result.data!;
 
   return (
     <div className="min-h-screen">
@@ -68,6 +69,15 @@ export default async function SharePage({ params }: Props) {
             partnerName={partnerName}
           />
         </div>
+
+        {/* Notes */}
+        {notes.length > 0 && (
+          <PartnerNoteSection
+            partnerId=""
+            notes={notes}
+            readOnly
+          />
+        )}
 
         {/* Transaction list */}
         <div>

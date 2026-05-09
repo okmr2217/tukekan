@@ -22,6 +22,7 @@ model Account {
 
   partners     Partner[]
   transactions Transaction[]
+  partnerNotes PartnerNote[]
 }
 
 model Partner {
@@ -37,6 +38,7 @@ model Partner {
   owner   Account @relation(fields: [ownerId], references: [id])
 
   transactions Transaction[]
+  notes        PartnerNote[]
 
   @@unique([ownerId, name])
 }
@@ -59,4 +61,20 @@ model Transaction {
   @@index([ownerId])
   @@index([partnerId])
   @@index([date])
+}
+
+model PartnerNote {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownerId String
+  owner   Account @relation(fields: [ownerId], references: [id])
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([ownerId])
 }
