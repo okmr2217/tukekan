@@ -28,9 +28,10 @@ type Props = {
   transactions: TransactionWithPartner[];
   suggestions: string[];
   partners?: Partner[];
+  showPartnerName?: boolean;
 };
 
-export function TransactionCardList({ transactions, suggestions, partners = [] }: Props) {
+export function TransactionCardList({ transactions, suggestions, partners = [], showPartnerName = false }: Props) {
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionWithPartner | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -105,6 +106,7 @@ export function TransactionCardList({ transactions, suggestions, partners = [] }
             onDetail={handleDetail}
             onArchiveToggle={handleArchiveToggle}
             onDelete={handleDeleteRequest}
+            showPartnerName={showPartnerName}
           />
         ))}
       </div>

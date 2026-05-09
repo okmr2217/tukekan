@@ -27,6 +27,7 @@ type Props = {
   onDetail: (transaction: TransactionWithPartner) => void;
   onArchiveToggle: (transaction: TransactionWithPartner) => void;
   onDelete: (transaction: TransactionWithPartner) => void;
+  showPartnerName?: boolean;
 };
 
 export function TransactionCard({
@@ -36,6 +37,7 @@ export function TransactionCard({
   onDetail,
   onArchiveToggle,
   onDelete,
+  showPartnerName = false,
 }: Props) {
   const isLending = transaction.amount > 0;
   const absAmount = Math.abs(transaction.amount);
@@ -69,6 +71,11 @@ export function TransactionCard({
           <span className="text-xs font-medium text-muted-foreground">
             {formatCompactTime(transaction.date)}
           </span>
+          {showPartnerName && (
+            <span className="text-xs font-medium text-foreground truncate max-w-[8rem]">
+              {transaction.partnerName}
+            </span>
+          )}
           {transaction.isArchived && (
             <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0 leading-none">
               アーカイブ

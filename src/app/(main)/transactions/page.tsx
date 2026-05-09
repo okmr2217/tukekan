@@ -56,6 +56,7 @@ export default async function TransactionsPage({
           partners={partnersWithBalance
             .filter((p) => !p.isArchived)
             .map((p) => ({ id: p.id, name: p.name }))}
+          showPartnerName
         />
       </div>
     </div>
