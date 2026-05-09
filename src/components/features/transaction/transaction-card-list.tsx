@@ -65,6 +65,7 @@ export function TransactionCardList({ transactions, suggestions, partners = [], 
   };
 
   const handleDeleteRequest = (transaction: TransactionWithPartner) => {
+    setDetailModalOpen(false);
     setDeleteTargetTransaction(transaction);
   };
 
@@ -102,10 +103,7 @@ export function TransactionCardList({ transactions, suggestions, partners = [], 
             key={t.id}
             transaction={t}
             runningBalance={runningBalanceMap.get(t.id) ?? 0}
-            onEdit={handleEdit}
-            onDetail={handleDetail}
-            onArchiveToggle={handleArchiveToggle}
-            onDelete={handleDeleteRequest}
+            onClick={() => handleDetail(t)}
             showPartnerName={showPartnerName}
           />
         ))}
@@ -123,6 +121,15 @@ export function TransactionCardList({ transactions, suggestions, partners = [], 
         transaction={selectedTransaction}
         open={detailModalOpen}
         onOpenChange={setDetailModalOpen}
+        onEdit={(t) => {
+          setDetailModalOpen(false);
+          handleEdit(t);
+        }}
+        onArchiveToggle={(t) => {
+          setDetailModalOpen(false);
+          handleArchiveToggle(t);
+        }}
+        onDelete={handleDeleteRequest}
       />
 
       {/* 削除確認ダイアログ */}

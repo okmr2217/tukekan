@@ -1,42 +1,21 @@
 "use client";
 
-import {
-  Pencil,
-  MoreVertical,
-  Archive,
-  ArchiveRestore,
-  Trash2,
-  FileText,
-} from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { formatCompactTime, formatShortDate } from "@/lib/dateUtils";
 import type { TransactionWithPartner } from "@/actions/transaction";
 
 type Props = {
   transaction: TransactionWithPartner;
   runningBalance: number;
-  onEdit: (transaction: TransactionWithPartner) => void;
-  onDetail: (transaction: TransactionWithPartner) => void;
-  onArchiveToggle: (transaction: TransactionWithPartner) => void;
-  onDelete: (transaction: TransactionWithPartner) => void;
+  onClick: () => void;
   showPartnerName?: boolean;
 };
 
 export function TransactionCard({
   transaction,
   runningBalance,
-  onEdit,
-  onDetail,
-  onArchiveToggle,
-  onDelete,
+  onClick,
   showPartnerName = false,
 }: Props) {
   const isLending = transaction.amount > 0;
@@ -51,87 +30,40 @@ export function TransactionCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card px-3 py-2 shadow-sm",
+        "rounded-xl border bg-card px-3 py-2 shadow-sm cursor-pointer hover:bg-accent/50 transition-colors",
         isGrayedOut && "opacity-50",
       )}
+      onClick={onClick}
     >
-      {/* 上段: タイプバッジ・日時 ／ アクション */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span
-            className={cn(
-              "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none",
-              isLending
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-                : "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400",
-            )}
-          >
-            {isLending ? "貸し" : "借り"}
-          </span>
-          <span className="text-xs font-medium text-muted-foreground">
-            {formatCompactTime(transaction.date)}
-          </span>
-          {showPartnerName && (
-            <span className="text-xs font-medium text-foreground truncate max-w-[8rem]">
-              {transaction.partnerName}
-            </span>
+      {/* 上段: タイプバッジ・日時 */}
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span
+          className={cn(
+            "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+            isLending
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+              : "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400",
           )}
-          {transaction.isArchived && (
-            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0 leading-none">
-              アーカイブ
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-0.5 shrink-0 -mr-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-foreground"
-            onClick={() => onEdit(transaction)}
-            aria-label="編集"
+        >
+          {isLending ? "貸し" : "借り"}
+        </span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {formatCompactTime(transaction.date)}
+        </span>
+        {showPartnerName && (
+          <Link
+            href={`/partners/${transaction.partnerId}`}
+            className="text-xs font-medium text-foreground truncate max-w-[8rem] hover:underline"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Pencil className="h-3 w-3" />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                aria-label="その他の操作"
-              >
-                <MoreVertical className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onDetail(transaction)}>
-                <FileText className="h-4 w-4 mr-2" />
-                詳細
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onArchiveToggle(transaction)}>
-                {transaction.isArchived ? (
-                  <>
-                    <ArchiveRestore className="h-4 w-4 mr-2" />
-                    アーカイブ解除
-                  </>
-                ) : (
-                  <>
-                    <Archive className="h-4 w-4 mr-2" />
-                    アーカイブ
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(transaction)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                削除
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            {transaction.partnerName}
+          </Link>
+        )}
+        {transaction.isArchived && (
+          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0 leading-none">
+            アーカイブ
+          </span>
+        )}
       </div>
 
       {/* 中段: メモ ／ 金額 */}
