@@ -2,18 +2,11 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 import type { PartnerWithBalance } from "@/actions/partner";
+import { formatYMD } from "@/lib/date-utils";
 
 type Props = {
   partner: PartnerWithBalance;
 };
-
-function formatDate(date: Date): string {
-  const d = new Date(date);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}/${m}/${day}`;
-}
 
 export function PartnerCard({ partner }: Props) {
   return (
@@ -38,7 +31,7 @@ export function PartnerCard({ partner }: Props) {
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {formatDate(partner.createdAt)} 追加
+          {formatYMD(partner.createdAt)} 追加
         </p>
       </div>
 

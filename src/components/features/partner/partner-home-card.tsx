@@ -4,30 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PartnerForHome } from "@/actions/partner";
-import { toJST } from "@/lib/date-utils";
-
-function formatRelativeDay(date: Date): string {
-  const jst = toJST(date);
-  const jstNow = toJST(new Date());
-
-  const sameDate = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  if (sameDate(jst, jstNow)) return "今日";
-
-  const yesterday = new Date(jstNow);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (sameDate(jst, yesterday)) return "昨日";
-
-  const diffDays = Math.floor(
-    (jstNow.getTime() - jst.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (diffDays < 30) return `${diffDays}日前`;
-
-  return `${jst.getMonth() + 1}/${jst.getDate()}`;
-}
+import { formatRelativeDay } from "@/lib/date-utils";
 
 type Props = {
   partner: PartnerForHome;

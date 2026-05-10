@@ -60,6 +60,42 @@ export function formatCompactTime(date: Date): string {
 }
 
 /**
+ * JST基準の相対日付（今日／昨日／N日前／M/D）
+ */
+export function formatRelativeDay(date: Date): string {
+  const jst = toJST(date);
+  const jstNow = toJST(new Date());
+
+  const sameDate = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (sameDate(jst, jstNow)) return "今日";
+
+  const yesterday = new Date(jstNow);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (sameDate(jst, yesterday)) return "昨日";
+
+  const diffDays = Math.floor(
+    (jstNow.getTime() - jst.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (diffDays < 30) return `${diffDays}日前`;
+
+  return `${jst.getMonth() + 1}/${jst.getDate()}`;
+}
+
+/**
+ * 「YYYY/MM/DD」形式の日付
+ */
+export function formatYMD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}/${m}/${d}`;
+}
+
+/**
  * 「M/d」形式の短い日付（JST基準）
  */
 export function formatShortDate(date: Date): string {
