@@ -122,6 +122,14 @@ const createTransactionSchema = z.object({
     .refine((date) => date <= new Date(), "未来の日付は選択できません"),
 });
 
+function parseAmountAndDate(formData: FormData): { amount: number; date: Date } {
+  const amountStr = formData.get("amount");
+  const amount = amountStr ? parseInt(amountStr.toString(), 10) : NaN;
+  const dateStr = formData.get("date");
+  const date = dateStr ? new Date(dateStr.toString()) : new Date();
+  return { amount, date };
+}
+
 export type CreateTransactionState = {
   error?: string;
   success?: boolean;
@@ -136,13 +144,7 @@ export async function createTransaction(
     return { error: "ログインが必要です" };
   }
 
-  // amountの解析
-  const amountStr = formData.get("amount");
-  const amount = amountStr ? parseInt(amountStr.toString(), 10) : NaN;
-
-  // dateの解析
-  const dateStr = formData.get("date");
-  const date = dateStr ? new Date(dateStr.toString()) : new Date();
+  const { amount, date } = parseAmountAndDate(formData);
 
   const result = createTransactionSchema.safeParse({
     partnerId: formData.get("partnerId"),
@@ -223,11 +225,7 @@ export async function updateTransaction(
     return { error: "ログインが必要です" };
   }
 
-  const amountStr = formData.get("amount");
-  const amount = amountStr ? parseInt(amountStr.toString(), 10) : NaN;
-
-  const dateStr = formData.get("date");
-  const date = dateStr ? new Date(dateStr.toString()) : new Date();
+  const { amount, date } = parseAmountAndDate(formData);
 
   const result = updateTransactionSchema.safeParse({
     transactionId: formData.get("transactionId"),
