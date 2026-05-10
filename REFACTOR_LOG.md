@@ -15,10 +15,27 @@
 | 4 | `refactor: revalidatePartnerScope/TransactionScopeヘルパーを抽出` | 1-H | revalidatePath の3行セット44箇所を `lib/revalidate.ts` の2関数に集約 |
 | 5 | `refactor: getSessionの二重exportを削除しimportパスを統一` | 5-B | actions/auth.ts の re-export を削除し全9ファイルを `@/lib/auth` に統一 |
 | 6 | `refactor: help/page.tsx を SECTIONS データ駆動型に変換` | 2-E | 247行の手書きHTMLを SECTIONS 配列 + ループ描画に置き換え（約100行削減） |
+| 7 | `refactor: 日付フォーマッタをdate-utils.tsに集約 (1-C)` | 1-C | `formatRelativeDay`（今日/昨日/N日前/M/D）と `formatYMD`（YYYY/MM/DD）を date-utils.ts に追加。partner-home-card / partner-card のローカル関数を削除 |
+| 8 | `refactor: transaction.tsのFormData解析を共通ヘルパーに抽出 (2-B)` | 2-B | `createTransaction` / `updateTransaction` の amount+date 解析イディオムを `parseAmountAndDate(formData)` ヘルパーに集約 |
+| 9 | `refactor: partner.tsの認可チェックパターンをfindOwnedPartnerに集約 (1-G)` | 1-G | `findUnique → ownerId 不一致なら return error` の6箇所を `findOwnedPartner(partnerId, userId)` ヘルパーに置き換え。エラーメッセージは呼び出し側に残し可視性を保持 |
+| 10 | `refactor: transaction-modalのeslint-disable useEffectをdeps明示に修正 (4-A)` | 4-A | `resetForm` 関数を廃止し useEffect 内で state setter を直接呼び出し。`[open, defaultPartnerId]` を deps に明示して eslint-disable コメントを削除 |
 
 ---
 
 ## スキップ項目と理由
+
+### スキップ（振る舞い変更リスクあり・今セッション追加）
+
+| プランID | 内容 | スキップ理由 |
+|---------|------|------------|
+| 1-C (balance-card) | formatRelativeDate の JST 化 | ローカル時刻ベースの計算（diffMs/86400000）から JST カレンダー日付比較に変えると午前0時前後の挙動が変わる。日本国内アクセス限定なら実質同じだが仕様変更に相当 |
+| 4-A (filter-sheet) | useEffect([], eslint-disable) → useState(committed) | nuqs の useQueryStates は SSR レンダリング時にデフォルト値を返し、クライアント hydration 後に URL 値へ更新する場合がある。効果を除去すると hydration 後の committed 値が draft に反映されなくなるリスク |
+| 4-B | keydown shortcut を useKeyboardShortcut フックに抽出 | 使用箇所が transaction-modal.tsx の 1 箇所のみで共通化の恩恵がない。新ファイル作成はスコープ外 |
+| 4-C | add-partner-dialog.tsx の useEffect 2 個 | 既存の useEffect は deps が正しく eslint-disable もない。Dialog の onOpenChange への移行は Radix の controlled/uncontrolled 挙動の違いによりリスクあり |
+| 4-F | partner-detail-client.tsx の useActionState/useTransition 混在 | update は form エラーを返す設計のため useActionState が適切、archive/delete は一発操作で useTransition が適切。意図的な使い分けであり統一はむしろ退化 |
+| 1-J | BalanceCard/SharedBalanceCard の統合 | 統合するには公開 API（prop interface）を変更する必要があり 3 の制約に抵触 |
+| 8-G | getTransactions の JS ソートを DB ソートに移行 | $queryRaw が必要で SQL 正確性の検証リスクあり。取引数が少ない間は現状許容範囲 |
+| 8-H | createPartner/updatePartner の重複名チェックを unique constraint catch に変更 | Prisma エラーのキャッチ処理が増え、エラーメッセージの形式変更が必要 |
 
 ### スキップ（振る舞い変更リスクあり）
 
