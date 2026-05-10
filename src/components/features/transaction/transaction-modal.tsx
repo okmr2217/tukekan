@@ -17,7 +17,7 @@ import {
   buildDateTime,
   type DateMode,
 } from "@/lib/date-picker-utils";
-import { formatDateToJST } from "@/lib/dateUtils";
+import { formatDateToJST } from "@/lib/date-utils";
 import { toast } from "sonner";
 import type { Partner } from "@/actions/partner";
 

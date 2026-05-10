@@ -21,7 +21,7 @@ import { Loader2 } from "lucide-react";
 import { deletePartnerNote } from "@/actions/partner-note";
 import type { PartnerNote } from "@/actions/partner";
 import { PartnerNoteFormDialog } from "./partner-note-form-dialog";
-import { formatDateTimeForDisplay } from "@/lib/dateUtils";
+import { formatDateTimeForDisplay } from "@/lib/date-utils";
 import { toast } from "sonner";
 
 type Props = {

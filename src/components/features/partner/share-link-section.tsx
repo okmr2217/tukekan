@@ -5,7 +5,7 @@ import { Share2, Link2Off, RefreshCw, Copy, ExternalLink } from "lucide-react";
 import { generateShareToken, revokeShareToken } from "@/actions/partner";
 import { toast } from "sonner";
 import type { PartnerById } from "@/actions/partner";
-import { toJST } from "@/lib/dateUtils";
+import { toJST } from "@/lib/date-utils";
 
 type Props = {
   partner: PartnerById;

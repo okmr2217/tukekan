@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getPartnerByShareToken } from "@/actions/partner";
 import { SharedBalanceCard } from "@/components/features/partner/balance-card";
 import { PartnerNoteSection } from "@/components/features/partner/partner-note-section";
-import { formatDateTimeForDisplay } from "@/lib/dateUtils";
+import { formatDateTimeForDisplay } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 type Props = {

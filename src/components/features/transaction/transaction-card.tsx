@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { formatCompactTime, formatShortDate } from "@/lib/dateUtils";
+import { formatCompactTime, formatShortDate } from "@/lib/date-utils";
 import type { TransactionWithPartner } from "@/actions/transaction";
 
 type Props = {

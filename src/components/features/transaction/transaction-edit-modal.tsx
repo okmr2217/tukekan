@@ -20,7 +20,7 @@ import {
   buildDateTime,
   type DateMode,
 } from "@/lib/date-picker-utils";
-import { formatDateToJST, toJST } from "@/lib/dateUtils";
+import { formatDateToJST, toJST } from "@/lib/date-utils";
 
 type Props = {
   transaction: TransactionWithPartner | null;

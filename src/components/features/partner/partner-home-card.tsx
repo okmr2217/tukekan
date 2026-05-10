@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PartnerForHome } from "@/actions/partner";
-import { toJST } from "@/lib/dateUtils";
+import { toJST } from "@/lib/date-utils";
 
 function formatRelativeDay(date: Date): string {
   const jst = toJST(date);

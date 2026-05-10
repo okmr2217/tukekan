@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { formatDateTimeForDisplay } from "@/lib/dateUtils";
+import { formatDateTimeForDisplay } from "@/lib/date-utils";
 import {
   Pencil,
   Archive,

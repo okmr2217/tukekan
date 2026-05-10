@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { toJST } from "@/lib/dateUtils";
+import { toJST } from "@/lib/date-utils";
 
 export type PartnerStat = {
   partnerId: string;
