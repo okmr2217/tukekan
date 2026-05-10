@@ -46,7 +46,8 @@ export function TransactionModal({
   );
   const [error, setError] = useState<string | null>(null);
 
-  function resetForm() {
+  useEffect(() => {
+    if (!open) return;
     setPartnerId(defaultPartnerId ?? "");
     setIsLending(true);
     setAmount("");
@@ -55,13 +56,7 @@ export function TransactionModal({
     setOtherDate(formatDateToJST());
     setSelectedTime(floorToNearest30(new Date()));
     setError(null);
-  }
-
-  // Reset form when modal opens
-  useEffect(() => {
-    if (open) resetForm();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, defaultPartnerId]);
 
   // Keyboard shortcut: N to open modal
   useEffect(() => {
