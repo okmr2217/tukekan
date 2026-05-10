@@ -192,6 +192,12 @@ export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
   }));
 }
 
+async function findOwnedPartner(partnerId: string, userId: string) {
+  const partner = await prisma.partner.findUnique({ where: { id: partnerId } });
+  if (!partner || partner.ownerId !== userId) return null;
+  return partner;
+}
+
 export async function createPartner(
   _prevState: CreatePartnerState,
   formData: FormData,
@@ -275,11 +281,7 @@ export async function updatePartner(
 
   const { partnerId, name } = result.data;
 
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.ownerId !== session.userId) {
+  if (!(await findOwnedPartner(partnerId, session.userId))) {
     return { error: "相手が見つかりません" };
   }
 
@@ -309,11 +311,7 @@ export async function archivePartner(
     return { error: "ログインが必要です" };
   }
 
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.ownerId !== session.userId) {
+  if (!(await findOwnedPartner(partnerId, session.userId))) {
     return { error: "相手が見つかりません" };
   }
 
@@ -334,11 +332,7 @@ export async function unarchivePartner(
     return { error: "ログインが必要です" };
   }
 
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.ownerId !== session.userId) {
+  if (!(await findOwnedPartner(partnerId, session.userId))) {
     return { error: "相手が見つかりません" };
   }
 
@@ -359,11 +353,7 @@ export async function deletePartner(
     return { error: "ログインが必要です" };
   }
 
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.ownerId !== session.userId) {
+  if (!(await findOwnedPartner(partnerId, session.userId))) {
     return { error: "相手が見つかりません" };
   }
 
@@ -387,11 +377,7 @@ export async function generateShareToken(
     return { error: "ログインが必要です" };
   }
 
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.ownerId !== session.userId) {
+  if (!(await findOwnedPartner(partnerId, session.userId))) {
     return { error: "相手が見つかりません" };
   }
 
@@ -420,11 +406,7 @@ export async function revokeShareToken(
     return { error: "ログインが必要です" };
   }
 
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.ownerId !== session.userId) {
+  if (!(await findOwnedPartner(partnerId, session.userId))) {
     return { error: "相手が見つかりません" };
   }
 
