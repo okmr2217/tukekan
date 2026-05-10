@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { getSession } from "@/actions/auth";
+import { getSession } from "@/lib/auth";
 import { getPartnerById } from "@/actions/partner";
 import { PartnerDetailClient } from "@/components/features/partner/partner-detail-client";
 import { PageHeader } from "@/components/layouts/page-header";

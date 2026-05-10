@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/actions/auth";
+import { getSession } from "@/lib/auth";
 import Link from "next/link";
 import { Users, Settings, HelpCircle, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/layouts/page-header";

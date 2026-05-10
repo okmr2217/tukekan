@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/actions/auth";
+import { getSession } from "@/lib/auth";
 import { getPartnersForHome } from "@/actions/partner";
 import { PartnerHomeCard } from "@/components/features/partner/partner-home-card";
 import { PageHeader } from "@/components/layouts/page-header";

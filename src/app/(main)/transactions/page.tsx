@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/actions/auth";
+import { getSession } from "@/lib/auth";
 import { getPartnersWithBalance } from "@/actions/partner";
 import { getDescriptionSuggestions, getTransactions, type SortOrder } from "@/actions/transaction";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";

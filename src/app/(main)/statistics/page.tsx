@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/actions/auth";
+import { getSession } from "@/lib/auth";
 import {
   getPartnerStats,
   getOverallStats,

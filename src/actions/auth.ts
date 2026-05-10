@@ -212,5 +212,3 @@ export async function updateProfile(
 
   return { success: true };
 }
-
-export { getSession };

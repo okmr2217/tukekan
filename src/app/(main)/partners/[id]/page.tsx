@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
-import { getSession, getCurrentUser } from "@/actions/auth";
+import { getSession } from "@/lib/auth";
+import { getCurrentUser } from "@/actions/auth";
 import { getPartnerById, getPartners } from "@/actions/partner";
 import {
   getDescriptionSuggestions,
