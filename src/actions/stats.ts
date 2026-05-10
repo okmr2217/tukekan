@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { toJST } from "@/lib/dateUtils";
 
 export type PartnerStat = {
   partnerId: string;
@@ -134,9 +135,7 @@ export async function getMonthlyStats(): Promise<MonthlyStat[]> {
     .then((partners) => partners.map((p) => p.id));
 
   // JST での現在月を基準に直近12ヶ月を計算
-  const nowJST = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
-  );
+  const nowJST = toJST(new Date());
   const startOfEarliestMonthJST = new Date(
     nowJST.getFullYear(),
     nowJST.getMonth() - 11,
@@ -167,9 +166,7 @@ export async function getMonthlyStats(): Promise<MonthlyStat[]> {
 
   // 取引を JST 月ごとに集計
   for (const tx of transactions) {
-    const jst = new Date(
-      tx.date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
-    );
+    const jst = toJST(tx.date);
     const key = `${jst.getFullYear()}-${String(jst.getMonth() + 1).padStart(2, "0")}`;
     const entry = monthMap.get(key);
     if (!entry) continue;

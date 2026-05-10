@@ -1,8 +1,7 @@
-/**
- * 日本標準時(JST)での日付をYYYY-MM-DD形式で取得
- * @param date - 変換する日付（省略時は現在時刻）
- * @returns YYYY-MM-DD形式の日付文字列
- */
+export function toJST(date: Date): Date {
+  return new Date(date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+}
+
 export function formatDateToJST(date: Date = new Date()): string {
   const jstDate = date.toLocaleString('ja-JP', {
     timeZone: 'Asia/Tokyo',
@@ -31,9 +30,8 @@ export function formatDateForDisplay(date: Date): string {
  * それ以前 → "M/d HH:mm"
  */
 export function formatCompactTime(date: Date): string {
-  const now = new Date();
-  const jst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-  const jstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+  const jst = toJST(date);
+  const jstNow = toJST(new Date());
 
   const diffMinutes = Math.floor((jstNow.getTime() - jst.getTime()) / (1000 * 60));
   const hours = String(jst.getHours()).padStart(2, "0");
@@ -65,7 +63,7 @@ export function formatCompactTime(date: Date): string {
  * 「M/d」形式の短い日付（JST基準）
  */
 export function formatShortDate(date: Date): string {
-  const jst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+  const jst = toJST(date);
   return `${jst.getMonth() + 1}/${jst.getDate()}`;
 }
 
@@ -73,7 +71,7 @@ export function formatShortDate(date: Date): string {
  * 日時を JST に変換して「YYYY年M月D日(曜) HH:MM」形式で返す
  */
 export function formatDateTimeForDisplay(date: Date): string {
-  const jst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+  const jst = toJST(date);
   const year = jst.getFullYear();
   const month = jst.getMonth() + 1;
   const day = jst.getDate();

@@ -20,7 +20,7 @@ import {
   buildDateTime,
   type DateMode,
 } from "@/lib/date-picker-utils";
-import { formatDateToJST } from "@/lib/dateUtils";
+import { formatDateToJST, toJST } from "@/lib/dateUtils";
 
 type Props = {
   transaction: TransactionWithPartner | null;
@@ -31,12 +31,8 @@ type Props = {
 };
 
 function initDateMode(date: Date): DateMode {
-  const jst = new Date(
-    date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
-  );
-  const nowJst = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
-  );
+  const jst = toJST(date);
+  const nowJst = toJST(new Date());
   const today = new Date(
     nowJst.getFullYear(),
     nowJst.getMonth(),
@@ -51,9 +47,7 @@ function initDateMode(date: Date): DateMode {
 }
 
 function getDateString(date: Date): string {
-  const jst = new Date(
-    date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
-  );
+  const jst = toJST(date);
   return `${jst.getFullYear()}-${String(jst.getMonth() + 1).padStart(2, "0")}-${String(jst.getDate()).padStart(2, "0")}`;
 }
 

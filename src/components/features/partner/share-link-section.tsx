@@ -5,6 +5,7 @@ import { Share2, Link2Off, RefreshCw, Copy, ExternalLink } from "lucide-react";
 import { generateShareToken, revokeShareToken } from "@/actions/partner";
 import { toast } from "sonner";
 import type { PartnerById } from "@/actions/partner";
+import { toJST } from "@/lib/dateUtils";
 
 type Props = {
   partner: PartnerById;
@@ -70,7 +71,7 @@ export function ShareLinkSection({ partner }: Props) {
     : null;
 
   const formatExpiry = (date: Date) => {
-    const jst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+    const jst = toJST(date);
     return `${jst.getFullYear()}年${jst.getMonth() + 1}月${jst.getDate()}日`;
   };
 

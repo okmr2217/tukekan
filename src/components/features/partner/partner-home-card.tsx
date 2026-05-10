@@ -4,11 +4,11 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PartnerForHome } from "@/actions/partner";
+import { toJST } from "@/lib/dateUtils";
 
 function formatRelativeDay(date: Date): string {
-  const now = new Date();
-  const jst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-  const jstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+  const jst = toJST(date);
+  const jstNow = toJST(new Date());
 
   const sameDate = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() &&
