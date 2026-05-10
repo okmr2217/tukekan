@@ -1,10 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createId } from "@paralleldrive/cuid2";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { revalidatePartnerScope } from "@/lib/revalidate";
 
 export type Partner = {
   id: string;
@@ -231,9 +231,7 @@ export async function createPartner(
     },
   });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath("/partners");
+  revalidatePartnerScope();
 
   return {
     success: true,
@@ -298,10 +296,7 @@ export async function updatePartner(
     data: { name },
   });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath("/partners");
-  revalidatePath(`/partners/${partnerId}`);
+  revalidatePartnerScope(partnerId);
 
   return { success: true };
 }
@@ -327,11 +322,7 @@ export async function archivePartner(
     data: { isArchived: true },
   });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath("/partners");
-  revalidatePath(`/partners/${partnerId}`);
-
+  revalidatePartnerScope(partnerId);
   return {};
 }
 
@@ -356,14 +347,9 @@ export async function unarchivePartner(
     data: { isArchived: false },
   });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath("/partners");
-  revalidatePath(`/partners/${partnerId}`);
-
+  revalidatePartnerScope(partnerId);
   return {};
 }
-
 
 export async function deletePartner(
   partnerId: string,
@@ -383,10 +369,7 @@ export async function deletePartner(
 
   await prisma.partner.delete({ where: { id: partnerId } });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath("/partners");
-
+  revalidatePartnerScope();
   return {};
 }
 
@@ -424,8 +407,7 @@ export async function generateShareToken(
     },
   });
 
-  revalidatePath("/partners");
-  revalidatePath(`/partners/${partnerId}`);
+  revalidatePartnerScope(partnerId);
 
   return { success: true, token };
 }
@@ -454,8 +436,7 @@ export async function revokeShareToken(
     },
   });
 
-  revalidatePath("/partners");
-  revalidatePath(`/partners/${partnerId}`);
+  revalidatePartnerScope(partnerId);
 
   return { success: true };
 }

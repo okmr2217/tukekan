@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { revalidateTransactionScope } from "@/lib/revalidate";
 
 export type TransactionWithPartner = {
   id: string;
@@ -185,9 +185,7 @@ export async function createTransaction(
     },
   });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath(`/partners/${partnerId}`);
+  revalidateTransactionScope(partnerId);
 
   return { success: true };
 }
@@ -284,12 +282,9 @@ export async function updateTransaction(
     },
   });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath(`/partners/${transaction.partnerId}`);
-  if (partnerId && partnerId !== transaction.partnerId) {
-    revalidatePath(`/partners/${partnerId}`);
-  }
+  const extraIds =
+    partnerId && partnerId !== transaction.partnerId ? [partnerId] : [];
+  revalidateTransactionScope(transaction.partnerId, ...extraIds);
 
   return { success: true };
 }
@@ -315,9 +310,7 @@ export async function archiveTransaction(
     data: { isArchived: true },
   });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath(`/partners/${transaction.partnerId}`);
+  revalidateTransactionScope(transaction.partnerId);
   return {};
 }
 
@@ -342,9 +335,7 @@ export async function unarchiveTransaction(
     data: { isArchived: false },
   });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath(`/partners/${transaction.partnerId}`);
+  revalidateTransactionScope(transaction.partnerId);
   return {};
 }
 
@@ -378,9 +369,7 @@ export async function deleteTransaction(
     where: { id: transactionId },
   });
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath(`/partners/${transaction.partnerId}`);
+  revalidateTransactionScope(transaction.partnerId);
 
   return { success: true };
 }
