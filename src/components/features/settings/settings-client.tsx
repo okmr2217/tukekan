@@ -5,6 +5,7 @@ import Link from "next/link";
 import { User, Mail, Lock, LogOut, Sun, Moon, Monitor, Edit, HelpCircle, ChevronRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -166,12 +167,14 @@ export function SettingsClient({ user, version }: SettingsClientProps) {
                     >
                       キャンセル
                     </Button>
-                    <Button
+                    <LoadingButton
                       onClick={handleNameChange}
-                      disabled={isChangingName || !newName.trim()}
+                      loading={isChangingName}
+                      loadingText="変更中..."
+                      disabled={!newName.trim()}
                     >
-                      {isChangingName ? "変更中..." : "変更する"}
-                    </Button>
+                      変更する
+                    </LoadingButton>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -259,14 +262,14 @@ export function SettingsClient({ user, version }: SettingsClientProps) {
                     >
                       キャンセル
                     </Button>
-                    <Button
+                    <LoadingButton
                       onClick={handlePasswordChange}
-                      disabled={
-                        isChangingPassword || !currentPassword || !newPassword
-                      }
+                      loading={isChangingPassword}
+                      loadingText="変更中..."
+                      disabled={!currentPassword || !newPassword}
                     >
-                      {isChangingPassword ? "変更中..." : "変更する"}
-                    </Button>
+                      変更する
+                    </LoadingButton>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>

@@ -3,6 +3,7 @@
 import { useState, useTransition, useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,7 +13,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
 import {
   updatePartner,
   archivePartner,
@@ -113,21 +113,16 @@ export function PartnerDetailClient({ partner }: Props) {
               disabled={isUpdatePending}
             />
           </div>
-          <Button
+          <LoadingButton
             type="submit"
             size="sm"
-            disabled={isUpdatePending || !name.trim() || name === partner.name}
+            loading={isUpdatePending}
+            loadingText="変更中..."
+            disabled={!name.trim() || name === partner.name}
             className="w-full"
           >
-            {isUpdatePending ? (
-              <>
-                <Loader2 className="size-4 animate-spin mr-1" />
-                変更中...
-              </>
-            ) : (
-              "保存"
-            )}
-          </Button>
+            保存
+          </LoadingButton>
         </form>
       </div>
 
@@ -139,21 +134,15 @@ export function PartnerDetailClient({ partner }: Props) {
         <p className="text-xs text-muted-foreground">
           アーカイブした相手は相手一覧に表示されなくなります。取引履歴は保持されます。
         </p>
-        <Button
+        <LoadingButton
           variant="outline"
           size="sm"
           className="w-full mt-1"
           onClick={partner.isArchived ? handleUnarchive : handleArchive}
-          disabled={isArchivePending}
+          loading={isArchivePending}
         >
-          {isArchivePending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : partner.isArchived ? (
-            "アーカイブを解除"
-          ) : (
-            "アーカイブ"
-          )}
-        </Button>
+          {partner.isArchived ? "アーカイブを解除" : "アーカイブ"}
+        </LoadingButton>
       </div>
 
       {/* 削除 */}
@@ -187,18 +176,14 @@ export function PartnerDetailClient({ partner }: Props) {
             >
               キャンセル
             </Button>
-            <Button
+            <LoadingButton
               variant="destructive"
               className="flex-1"
               onClick={handleDelete}
-              disabled={isDeletePending}
+              loading={isDeletePending}
             >
-              {isDeletePending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                "削除"
-              )}
-            </Button>
+              削除
+            </LoadingButton>
           </div>
         </DialogContent>
       </Dialog>

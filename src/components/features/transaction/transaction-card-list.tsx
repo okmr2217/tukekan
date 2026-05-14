@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { toast } from "sonner";
 
 type Props = {
@@ -154,20 +154,14 @@ export function TransactionCardList({ transactions, suggestions, partners = [], 
             >
               キャンセル
             </Button>
-            <Button
+            <LoadingButton
               variant="destructive"
               onClick={handleDeleteConfirm}
-              disabled={isDeletePending}
+              loading={isDeletePending}
+              loadingText="削除中..."
             >
-              {isDeletePending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  削除中...
-                </>
-              ) : (
-                "削除"
-              )}
-            </Button>
+              削除
+            </LoadingButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

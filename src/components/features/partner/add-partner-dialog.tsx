@@ -8,9 +8,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
 import { createPartner, type CreatePartnerState } from "@/actions/partner";
 import { toast } from "sonner";
 
@@ -80,20 +80,15 @@ export function AddPartnerDialog({ open, onOpenChange }: Props) {
             >
               キャンセル
             </Button>
-            <Button
+            <LoadingButton
               type="submit"
-              disabled={isPending || !name.trim()}
+              loading={isPending}
+              loadingText="追加中..."
+              disabled={!name.trim()}
               className="flex-1"
             >
-              {isPending ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  追加中...
-                </>
-              ) : (
-                "追加"
-              )}
-            </Button>
+              追加
+            </LoadingButton>
           </div>
         </form>
       </DialogContent>

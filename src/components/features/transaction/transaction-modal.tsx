@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Label } from "@/components/ui/label";
 import { FAB } from "@/components/layouts/fab";
 import { TransactionFormFields } from "./transaction-form-fields";
@@ -171,14 +171,16 @@ export function TransactionModal({
               maxDate={formatDateToJST()}
             />
 
-            <Button
+            <LoadingButton
               type="button"
               onClick={handleSubmit}
               className="w-full"
-              disabled={isPending || !partnerId || !amount}
+              loading={isPending}
+              loadingText="登録中..."
+              disabled={!partnerId || !amount}
             >
-              {isPending ? "登録中..." : "登録"}
-            </Button>
+              登録
+            </LoadingButton>
           </div>
         </DialogContent>
       </Dialog>

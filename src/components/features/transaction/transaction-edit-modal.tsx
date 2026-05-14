@@ -10,8 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
 import type { Partner } from "@/actions/partner";
 import { toast } from "sonner";
 import { TransactionFormFields } from "./transaction-form-fields";
@@ -192,21 +192,16 @@ export function TransactionEditModal({
               maxDate={formatDateToJST()}
             />
 
-            <Button
+            <LoadingButton
               type="button"
               onClick={handleUpdate}
               className="w-full"
-              disabled={isPending || !amount}
+              loading={isPending}
+              loadingText="更新中..."
+              disabled={!amount}
             >
-              {isUpdatePending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                  更新中...
-                </>
-              ) : (
-                "更新"
-              )}
-            </Button>
+              更新
+            </LoadingButton>
           </div>
       </DialogContent>
     </Dialog>

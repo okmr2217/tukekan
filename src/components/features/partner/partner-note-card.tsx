@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { deletePartnerNote } from "@/actions/partner-note";
 import type { PartnerNote } from "@/actions/partner";
 import { PartnerNoteFormDialog } from "./partner-note-form-dialog";
@@ -119,20 +119,14 @@ export function PartnerNoteCard({ note, readOnly = false }: Props) {
                 >
                   キャンセル
                 </Button>
-                <Button
+                <LoadingButton
                   variant="destructive"
                   onClick={handleDeleteConfirm}
-                  disabled={isDeletePending}
+                  loading={isDeletePending}
+                  loadingText="削除中..."
                 >
-                  {isDeletePending ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      削除中...
-                    </>
-                  ) : (
-                    "削除"
-                  )}
-                </Button>
+                  削除
+                </LoadingButton>
               </DialogFooter>
             </DialogContent>
           </Dialog>

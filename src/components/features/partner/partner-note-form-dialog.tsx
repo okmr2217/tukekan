@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { createPartnerNote, updatePartnerNote } from "@/actions/partner-note";
 import type { PartnerNote } from "@/actions/partner";
 import { toast } from "sonner";
@@ -87,21 +87,16 @@ export function PartnerNoteFormDialog({
             >
               キャンセル
             </Button>
-            <Button
+            <LoadingButton
               type="button"
               onClick={handleSubmit}
-              disabled={!isValid || isPending}
+              disabled={!isValid}
+              loading={isPending}
+              loadingText="保存中..."
               className="flex-1"
             >
-              {isPending ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  保存中...
-                </>
-              ) : (
-                "保存"
-              )}
-            </Button>
+              保存
+            </LoadingButton>
           </div>
         </div>
       </DialogContent>
