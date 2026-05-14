@@ -20,6 +20,15 @@
 | 9 | `refactor: partner.tsの認可チェックパターンをfindOwnedPartnerに集約 (1-G)` | 1-G | `findUnique → ownerId 不一致なら return error` の6箇所を `findOwnedPartner(partnerId, userId)` ヘルパーに置き換え。エラーメッセージは呼び出し側に残し可視性を保持 |
 | 10 | `refactor: transaction-modalのeslint-disable useEffectをdeps明示に修正 (4-A)` | 4-A | `resetForm` 関数を廃止し useEffect 内で state setter を直接呼び出し。`[open, defaultPartnerId]` を deps に明示して eslint-disable コメントを削除 |
 
+| 11 | `refactor: radix-ui メタパッケージを @radix-ui/react-* 個別パッケージに統一 (6-B)` | 6-B | badge.tsx(Slot.Root→Slot) / sheet.tsx(Dialog→@radix-ui/react-dialog) を更新し radix-ui メタパッケージを package.json から削除 |
+| 12 | `refactor: generated/prisma を src/app 外の src/generated に移動 (5-D)` | 5-D | schema.prisma の output パスを変更し prisma generate を再実行。tsconfig.json exclude に追加。関連 import 計5ファイルを更新。旧 src/app/generated を削除 |
+| 13 | `refactor: 生 textarea/select を shadcn UI コンポーネントに置換 (7-A)` | 7-A | Textarea コンポーネント新規作成。partner-note-form-dialog の生 textarea を置換。transaction-form-fields の時刻セレクトを shadcn Select に置換 |
+| 14 | `refactor: LoadingButtonコンポーネントを作成しLoader2パターン9箇所を集約 (1-I)` | 1-I | LoadingButton を src/components/ui/ に追加し 9 箇所の {isPending ? <Loader2/>... : "ラベル"} を置換 |
+| 15 | `refactor: getOverallStats/getMonthlyStats の事前 partnerIds 取得を削除 (8-D)` | 8-D | partner.findMany + partnerId:{in:[...]} の 2 ラウンドトリップを partner:{ownerId,isArchived:false} のリレーション制約で 1 ラウンドトリップに削減 |
+| 16 | `refactor: settings-client.tsx を AccountSection/AppearanceSection/OtherSection に分割 (2-C)` | 2-C | 342 行を 3 セクションコンポーネントに分割。settings-client.tsx は 20 行の合成コンポーネントに |
+| 17 | `refactor: partner.ts を queries/mutations/share に分割 (2-A)` | 2-A | 494 行を partner/types.ts + queries.ts + mutations.ts + share.ts + _helpers.ts に分割。既存 import パスを壊さないバレル re-export を維持 |
+| 18 | `refactor: react-hook-form を導入し取引フォームの props バケツリレーを解消 (7-E)` | 7-E, 4-D | react-hook-form インストール。TransactionFormFields の 11 個 props setter を廃止し useFormContext/Controller に移行。TransactionModal/TransactionEditModal は useForm + FormProvider に移行 |
+
 ---
 
 ## スキップ項目と理由
@@ -36,6 +45,19 @@
 | 1-J | BalanceCard/SharedBalanceCard の統合 | 統合するには公開 API（prop interface）を変更する必要があり 3 の制約に抵触 |
 | 8-G | getTransactions の JS ソートを DB ソートに移行 | $queryRaw が必要で SQL 正確性の検証リスクあり。取引数が少ない間は現状許容範囲 |
 | 8-H | createPartner/updatePartner の重複名チェックを unique constraint catch に変更 | Prisma エラーのキャッチ処理が増え、エラーメッセージの形式変更が必要 |
+
+### セッション3で実施済み（上記「実施済みコミット」に昇格）
+
+| プランID | 内容 |
+|---------|------|
+| 6-B | radix-ui メタパッケージ統一 |
+| 5-D | generated/prisma を src/generated へ移動 |
+| 7-A | 生 textarea/select → shadcn |
+| 1-I | LoadingButton 共通化 |
+| 8-D | getOverallStats/getMonthlyStats N+1 解消 |
+| 2-C | settings-client.tsx 分割 |
+| 2-A | partner.ts 分割 |
+| 7-E + 4-D | react-hook-form 導入・フォーム props バケツリレー解消 |
 
 ### スキップ（振る舞い変更リスクあり）
 
