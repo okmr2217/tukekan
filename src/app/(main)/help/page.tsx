@@ -105,7 +105,7 @@ export default async function HelpPage() {
 
   return (
     <div className="flex flex-col">
-      <PageHeader title="ヘルプ" description="ツケカンの使い方" />
+      <PageHeader title="ヘルプ" backHref="/menu" />
       <main className="px-4 pt-4 pb-20 md:pb-4 space-y-4">
         {SECTIONS.map((section) => (
           <section key={section.heading}>

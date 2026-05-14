@@ -10,7 +10,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col">
-      <PageHeader title="設定" description="アカウントとアプリの設定" />
+      <PageHeader title="設定" backHref="/menu" />
       <SettingsClient user={{ name: user.name, email: user.email }} version={version} />
     </div>
   );

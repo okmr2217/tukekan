@@ -25,7 +25,7 @@ export function PartnersPageClient({ partners }: Props) {
     <>
       <PageHeader
         title="相手の管理"
-        description="取引相手の追加・編集・削除"
+        backHref="/menu"
         action={
           <Button size="sm" onClick={() => setIsAddOpen(true)}>
             <UserPlus className="size-4 mr-1" />
