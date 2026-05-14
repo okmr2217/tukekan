@@ -85,17 +85,10 @@ export async function getOverallStats(): Promise<OverallStat> {
     return { balance: 0, totalLent: 0, totalBorrowed: 0, transactionCount: 0 };
   }
 
-  const activePartnerIds = await prisma.partner
-    .findMany({
-      where: { ownerId: session.userId, isArchived: false },
-      select: { id: true },
-    })
-    .then((partners) => partners.map((p) => p.id));
-
   const baseWhere = {
     ownerId: session.userId,
     isArchived: false,
-    partnerId: { in: activePartnerIds },
+    partner: { ownerId: session.userId, isArchived: false },
   };
 
   const [aggregate, lentAggregate, borrowedAggregate, transactionCount] =
@@ -127,13 +120,6 @@ export async function getMonthlyStats(): Promise<MonthlyStat[]> {
   const session = await getSession();
   if (!session) return [];
 
-  const activePartnerIds = await prisma.partner
-    .findMany({
-      where: { ownerId: session.userId, isArchived: false },
-      select: { id: true },
-    })
-    .then((partners) => partners.map((p) => p.id));
-
   // JST での現在月を基準に直近12ヶ月を計算
   const nowJST = toJST(new Date());
   const startOfEarliestMonthJST = new Date(
@@ -150,7 +136,7 @@ export async function getMonthlyStats(): Promise<MonthlyStat[]> {
     where: {
       ownerId: session.userId,
       isArchived: false,
-      partnerId: { in: activePartnerIds },
+      partner: { ownerId: session.userId, isArchived: false },
       date: { gte: startUTC },
     },
     select: { amount: true, date: true },
