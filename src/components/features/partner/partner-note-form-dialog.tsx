@@ -12,7 +12,7 @@ import { Loader2 } from "lucide-react";
 import { createPartnerNote, updatePartnerNote } from "@/actions/partner-note";
 import type { PartnerNote } from "@/actions/partner";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
   partnerId: string;
@@ -64,18 +64,15 @@ export function PartnerNoteFormDialog({
         </DialogHeader>
         <div className="space-y-3">
           <div className="relative">
-            <textarea
+            <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="例: 5/15に2万円返済の約束"
-              className="w-full min-h-24 text-sm rounded-md border border-input bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+              className="min-h-24 resize-none pb-6"
               disabled={isPending}
             />
             <span
-              className={cn(
-                "absolute bottom-2 right-3 text-xs",
-                isOver ? "text-destructive" : "text-muted-foreground",
-              )}
+              className={`absolute bottom-2 right-3 text-xs ${isOver ? "text-destructive" : "text-muted-foreground"}`}
             >
               {content.length} / 100
             </span>

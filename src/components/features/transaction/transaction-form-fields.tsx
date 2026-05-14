@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TIME_OPTIONS, type DateMode } from "@/lib/date-picker-utils";
 
 type Props = {
@@ -198,21 +204,22 @@ export function TransactionFormFields({
         )}
 
         {/* Time picker */}
-        <div className="relative">
-          <select
-            value={selectedTime}
-            onChange={(e) => setSelectedTime(e.target.value)}
-            disabled={isPending}
-            className="w-full appearance-none bg-muted rounded-lg px-3 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer border border-border"
-          >
+        <Select
+          value={selectedTime}
+          onValueChange={setSelectedTime}
+          disabled={isPending}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
             {TIME_OPTIONS.map((t) => (
-              <option key={t} value={t}>
+              <SelectItem key={t} value={t}>
                 {t}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        </div>
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
