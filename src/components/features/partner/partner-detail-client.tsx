@@ -7,12 +7,14 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
 import {
   updatePartner,
   archivePartner,
@@ -159,34 +161,39 @@ export function PartnerDetailClient({ partner }: Props) {
       </div>
 
       {/* 削除確認ダイアログ */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>相手を削除しますか？</DialogTitle>
-            <DialogDescription>
+      <ResponsiveDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>相手を削除しますか？</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               削除すると取引履歴もすべて失われます。この操作は取り消せません。
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeletePending}
-            >
-              キャンセル
-            </Button>
-            <LoadingButton
-              variant="destructive"
-              className="flex-1"
-              onClick={handleDelete}
-              loading={isDeletePending}
-            >
-              削除
-            </LoadingButton>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody>
+            <div className="py-1" />
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter>
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setDeleteDialogOpen(false)}
+                disabled={isDeletePending}
+              >
+                キャンセル
+              </Button>
+              <LoadingButton
+                variant="destructive"
+                className="flex-1"
+                onClick={handleDelete}
+                loading={isDeletePending}
+              >
+                削除
+              </LoadingButton>
+            </div>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   );
 }

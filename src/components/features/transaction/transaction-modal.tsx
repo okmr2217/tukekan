@@ -3,11 +3,13 @@
 import { useState, useEffect, useTransition } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
 import { FAB } from "@/components/layouts/fab";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { TransactionFormFields } from "./transaction-form-fields";
@@ -116,48 +118,51 @@ export function TransactionModal({
   return (
     <>
       <FAB id="transaction-fab" onClick={() => setOpen(true)} />
-      <Dialog open={open} onOpenChange={(v) => !isPending && setOpen(v)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>新しい取引</DialogTitle>
-          </DialogHeader>
+      <ResponsiveDialog open={open} onOpenChange={(v) => !isPending && setOpen(v)}>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>新しい取引</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
 
-          <FormProvider {...form}>
-            <div className="space-y-5">
-              {error && (
-                <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                  {error}
-                </div>
-              )}
+          <ResponsiveDialogBody>
+            <FormProvider {...form}>
+              <div className="space-y-5 pb-2">
+                {error && (
+                  <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                    {error}
+                  </div>
+                )}
 
-              {/* Partner */}
-              <PartnerPickerField
-                partners={partners}
-                selectedId={partnerId}
-                onSelect={setPartnerId}
-                disabled={isPending}
-              />
+                <PartnerPickerField
+                  partners={partners}
+                  selectedId={partnerId}
+                  onSelect={setPartnerId}
+                  disabled={isPending}
+                />
 
-              <TransactionFormFields
-                suggestions={suggestions}
-                isPending={isPending}
-                maxDate={formatDateToJST()}
-              />
+                <TransactionFormFields
+                  suggestions={suggestions}
+                  isPending={isPending}
+                  maxDate={formatDateToJST()}
+                />
+              </div>
+            </FormProvider>
+          </ResponsiveDialogBody>
 
-              <LoadingButton
-                type="button"
-                onClick={handleSubmit}
-                className="w-full"
-                loading={isPending}
-                loadingText="登録中..."
-                disabled={!partnerId || !form.watch("amount")}
-              >
-                登録
-              </LoadingButton>
-            </div>
-          </FormProvider>
-        </DialogContent>
-      </Dialog>
+          <ResponsiveDialogFooter>
+            <LoadingButton
+              type="button"
+              onClick={handleSubmit}
+              className="w-full"
+              loading={isPending}
+              loadingText="登録中..."
+              disabled={!partnerId || !form.watch("amount")}
+            >
+              登録
+            </LoadingButton>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   );
 }

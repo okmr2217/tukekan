@@ -13,13 +13,14 @@ import {
 import type { TransactionWithPartner } from "@/actions/transaction";
 import type { Partner } from "@/actions/partner";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { toast } from "sonner";
@@ -133,38 +134,45 @@ export function TransactionCardList({ transactions, suggestions, partners = [], 
       />
 
       {/* 削除確認ダイアログ */}
-      <Dialog
+      <ResponsiveDialog
         open={deleteTargetTransaction !== null}
         onOpenChange={(open) => {
           if (!open && !isDeletePending) setDeleteTargetTransaction(null);
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>取引を削除</DialogTitle>
-            <DialogDescription>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>取引を削除</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               この取引を削除しますか？この操作は取り消せません。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteTargetTransaction(null)}
-              disabled={isDeletePending}
-            >
-              キャンセル
-            </Button>
-            <LoadingButton
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              loading={isDeletePending}
-              loadingText="削除中..."
-            >
-              削除
-            </LoadingButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody>
+            <div className="py-1" />
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter>
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteTargetTransaction(null)}
+                disabled={isDeletePending}
+                className="flex-1"
+              >
+                キャンセル
+              </Button>
+              <LoadingButton
+                variant="destructive"
+                onClick={handleDeleteConfirm}
+                loading={isDeletePending}
+                loadingText="削除中..."
+                className="flex-1"
+              >
+                削除
+              </LoadingButton>
+            </div>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   );
 }

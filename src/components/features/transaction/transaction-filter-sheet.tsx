@@ -18,11 +18,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+} from "@/components/ui/responsive-dialog";
 import { cn } from "@/lib/utils";
 import type { Partner } from "@/actions/partner";
 import type { SortOrder } from "@/actions/transaction";
@@ -213,18 +214,20 @@ export function TransactionFilterSheet({ partners }: Props) {
   return (
     <>
       <FilterButton activeCount={activeCount} onClick={() => setOpen(true)} />
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>検索・絞り込み</DialogTitle>
-          </DialogHeader>
-          <FilterForm
-            partners={partners}
-            onApply={() => setOpen(false)}
-            onClose={() => setOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog open={open} onOpenChange={setOpen}>
+        <ResponsiveDialogContent className="max-w-md">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>検索・絞り込み</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody>
+            <FilterForm
+              partners={partners}
+              onApply={() => setOpen(false)}
+              onClose={() => setOpen(false)}
+            />
+          </ResponsiveDialogBody>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   );
 }

@@ -2,11 +2,13 @@
 
 import { useActionState, useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
@@ -47,51 +49,57 @@ export function AddPartnerDialog({ open, onOpenChange }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>相手を追加</DialogTitle>
-        </DialogHeader>
-        <form action={handleSubmit} className="space-y-4">
-          {state.error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-              {state.error}
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>相手を追加</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
+        <form action={handleSubmit}>
+          <ResponsiveDialogBody>
+            <div className="space-y-4 pb-2">
+              {state.error && (
+                <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                  {state.error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="new-partner-name">名前</Label>
+                <Input
+                  id="new-partner-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="相手の名前を入力"
+                  maxLength={50}
+                  disabled={isPending}
+                  autoFocus
+                />
+              </div>
             </div>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="new-partner-name">名前</Label>
-            <Input
-              id="new-partner-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="相手の名前を入力"
-              maxLength={50}
-              disabled={isPending}
-              autoFocus
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isPending}
-              className="flex-1"
-            >
-              キャンセル
-            </Button>
-            <LoadingButton
-              type="submit"
-              loading={isPending}
-              loadingText="追加中..."
-              disabled={!name.trim()}
-              className="flex-1"
-            >
-              追加
-            </LoadingButton>
-          </div>
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter>
+            <div className="flex gap-2 w-full">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isPending}
+                className="flex-1"
+              >
+                キャンセル
+              </Button>
+              <LoadingButton
+                type="submit"
+                loading={isPending}
+                loadingText="追加中..."
+                disabled={!name.trim()}
+                className="flex-1"
+              >
+                追加
+              </LoadingButton>
+            </div>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

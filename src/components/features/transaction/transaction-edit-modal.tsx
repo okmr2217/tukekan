@@ -5,11 +5,13 @@ import { useForm, FormProvider } from "react-hook-form";
 import { updateTransaction } from "@/actions/transaction";
 import type { TransactionWithPartner } from "@/actions/transaction";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import type { Partner } from "@/actions/partner";
@@ -123,58 +125,61 @@ export function TransactionEditModal({
     : [...partners, { id: transaction.partnerId, name: transaction.partnerName }];
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !isPending && onOpenChange(v)}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>取引を編集</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog open={open} onOpenChange={(v) => !isPending && onOpenChange(v)}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>取引を編集</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
 
-        <FormProvider {...form}>
-          <div className="space-y-5">
-            {error && (
-              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                {error}
-              </div>
-            )}
+        <ResponsiveDialogBody>
+          <FormProvider {...form}>
+            <div className="space-y-5 pb-2">
+              {error && (
+                <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                  {error}
+                </div>
+              )}
 
-            {/* Partner */}
-            <PartnerPickerField
-              partners={displayPartners}
-              selectedId={partnerId}
-              onSelect={setPartnerId}
-              disabled={isPending}
-            />
-
-            <TransactionFormFields
-              suggestions={suggestions}
-              isPending={isPending}
-              maxDate={formatDateToJST()}
-            />
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
+              <PartnerPickerField
+                partners={displayPartners}
+                selectedId={partnerId}
+                onSelect={setPartnerId}
                 disabled={isPending}
-                className="flex-1"
-              >
-                キャンセル
-              </Button>
-              <LoadingButton
-                type="button"
-                onClick={handleUpdate}
-                className="flex-1"
-                loading={isPending}
-                loadingText="更新中..."
-                disabled={!form.watch("amount")}
-              >
-                更新
-              </LoadingButton>
+              />
+
+              <TransactionFormFields
+                suggestions={suggestions}
+                isPending={isPending}
+                maxDate={formatDateToJST()}
+              />
             </div>
+          </FormProvider>
+        </ResponsiveDialogBody>
+
+        <ResponsiveDialogFooter>
+          <div className="flex gap-2 w-full">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+              className="flex-1"
+            >
+              キャンセル
+            </Button>
+            <LoadingButton
+              type="button"
+              onClick={handleUpdate}
+              className="flex-1"
+              loading={isPending}
+              loadingText="更新中..."
+              disabled={!form.watch("amount")}
+            >
+              更新
+            </LoadingButton>
           </div>
-        </FormProvider>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

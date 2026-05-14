@@ -7,14 +7,15 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
+  ResponsiveDialogBody,
+} from "@/components/ui/responsive-dialog";
 import { updateProfile } from "@/actions/auth";
 import { toast } from "sonner";
 
@@ -87,7 +88,7 @@ export function AccountSection({ user }: Props) {
               <div className="text-sm text-muted-foreground">{user.name}</div>
             </div>
           </div>
-          <Dialog
+          <ResponsiveDialog
             open={isNameDialogOpen}
             onOpenChange={(open) => {
               setIsNameDialogOpen(open);
@@ -97,48 +98,54 @@ export function AccountSection({ user }: Props) {
               }
             }}
           >
-            <DialogTrigger asChild>
+            <ResponsiveDialogTrigger asChild>
               <Button variant="ghost" size="sm" className="text-primary hover:text-primary">
                 <Edit className="h-4 w-4" />
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>表示名の変更</DialogTitle>
-                <DialogDescription>新しい表示名を入力してください</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-name">表示名</Label>
-                  <Input
-                    id="new-name"
-                    type="text"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    disabled={isChangingName}
-                  />
+            </ResponsiveDialogTrigger>
+            <ResponsiveDialogContent>
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle>表示名の変更</ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>新しい表示名を入力してください</ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
+              <ResponsiveDialogBody>
+                <div className="space-y-4 pb-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-name">表示名</Label>
+                    <Input
+                      id="new-name"
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      disabled={isChangingName}
+                    />
+                  </div>
+                  {nameError && <p className="text-sm text-destructive">{nameError}</p>}
                 </div>
-                {nameError && <p className="text-sm text-destructive">{nameError}</p>}
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsNameDialogOpen(false)}
-                  disabled={isChangingName}
-                >
-                  キャンセル
-                </Button>
-                <LoadingButton
-                  onClick={handleNameChange}
-                  loading={isChangingName}
-                  loadingText="変更中..."
-                  disabled={!newName.trim()}
-                >
-                  変更する
-                </LoadingButton>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </ResponsiveDialogBody>
+              <ResponsiveDialogFooter>
+                <div className="flex gap-2 w-full">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsNameDialogOpen(false)}
+                    disabled={isChangingName}
+                    className="flex-1"
+                  >
+                    キャンセル
+                  </Button>
+                  <LoadingButton
+                    onClick={handleNameChange}
+                    loading={isChangingName}
+                    loadingText="変更中..."
+                    disabled={!newName.trim()}
+                    className="flex-1"
+                  >
+                    変更する
+                  </LoadingButton>
+                </div>
+              </ResponsiveDialogFooter>
+            </ResponsiveDialogContent>
+          </ResponsiveDialog>
         </div>
 
         {/* メールアドレス */}
@@ -161,7 +168,7 @@ export function AccountSection({ user }: Props) {
               <div className="text-sm text-muted-foreground">••••••••</div>
             </div>
           </div>
-          <Dialog
+          <ResponsiveDialog
             open={isPasswordDialogOpen}
             onOpenChange={(open) => {
               setIsPasswordDialogOpen(open);
@@ -172,64 +179,70 @@ export function AccountSection({ user }: Props) {
               }
             }}
           >
-            <DialogTrigger asChild>
+            <ResponsiveDialogTrigger asChild>
               <Button variant="ghost" size="sm" className="text-primary hover:text-primary">
                 <Edit className="h-4 w-4" />
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>パスワードの変更</DialogTitle>
-                <DialogDescription>
+            </ResponsiveDialogTrigger>
+            <ResponsiveDialogContent>
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle>パスワードの変更</ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>
                   現在のパスワードと新しいパスワードを入力してください
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">現在のパスワード</Label>
-                  <Input
-                    id="current-password"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    disabled={isChangingPassword}
-                    autoComplete="current-password"
-                  />
+                </ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
+              <ResponsiveDialogBody>
+                <div className="space-y-4 pb-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="current-password">現在のパスワード</Label>
+                    <Input
+                      id="current-password"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      disabled={isChangingPassword}
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">新しいパスワード</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={isChangingPassword}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  {passwordError && (
+                    <p className="text-sm text-destructive">{passwordError}</p>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">新しいパスワード</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
+              </ResponsiveDialogBody>
+              <ResponsiveDialogFooter>
+                <div className="flex gap-2 w-full">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsPasswordDialogOpen(false)}
                     disabled={isChangingPassword}
-                    autoComplete="new-password"
-                  />
+                    className="flex-1"
+                  >
+                    キャンセル
+                  </Button>
+                  <LoadingButton
+                    onClick={handlePasswordChange}
+                    loading={isChangingPassword}
+                    loadingText="変更中..."
+                    disabled={!currentPassword || !newPassword}
+                    className="flex-1"
+                  >
+                    変更する
+                  </LoadingButton>
                 </div>
-                {passwordError && (
-                  <p className="text-sm text-destructive">{passwordError}</p>
-                )}
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsPasswordDialogOpen(false)}
-                  disabled={isChangingPassword}
-                >
-                  キャンセル
-                </Button>
-                <LoadingButton
-                  onClick={handlePasswordChange}
-                  loading={isChangingPassword}
-                  loadingText="変更中..."
-                  disabled={!currentPassword || !newPassword}
-                >
-                  変更する
-                </LoadingButton>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </ResponsiveDialogFooter>
+            </ResponsiveDialogContent>
+          </ResponsiveDialog>
         </div>
       </div>
     </section>

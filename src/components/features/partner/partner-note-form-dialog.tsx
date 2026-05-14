@@ -2,11 +2,13 @@
 
 import { useState, useTransition, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { createPartnerNote, updatePartnerNote } from "@/actions/partner-note";
@@ -57,27 +59,31 @@ export function PartnerNoteFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{note ? "メモを編集" : "メモを追加"}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="relative">
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="例: 5/15に2万円返済の約束"
-              className="min-h-24 resize-none pb-6"
-              disabled={isPending}
-            />
-            <span
-              className={`absolute bottom-2 right-3 text-xs ${isOver ? "text-destructive" : "text-muted-foreground"}`}
-            >
-              {content.length} / 100
-            </span>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>{note ? "メモを編集" : "メモを追加"}</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
+        <ResponsiveDialogBody>
+          <div className="pb-2">
+            <div className="relative">
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="例: 5/15に2万円返済の約束"
+                className="min-h-24 resize-none pb-6"
+                disabled={isPending}
+              />
+              <span
+                className={`absolute bottom-2 right-3 text-xs ${isOver ? "text-destructive" : "text-muted-foreground"}`}
+              >
+                {content.length} / 100
+              </span>
+            </div>
           </div>
-          <div className="flex gap-2">
+        </ResponsiveDialogBody>
+        <ResponsiveDialogFooter>
+          <div className="flex gap-2 w-full">
             <Button
               type="button"
               variant="outline"
@@ -98,8 +104,8 @@ export function PartnerNoteFormDialog({
               保存
             </LoadingButton>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
