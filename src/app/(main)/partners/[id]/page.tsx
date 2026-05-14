@@ -52,7 +52,7 @@ export default async function PartnerDetailPage({
     <div className="flex flex-col">
       <MobileHeader title={partner.name} backHref="/" />
 
-      <div className="px-4 pt-3 pb-4 space-y-4">
+      <div className="px-4 pt-3 pb-4 space-y-4 max-w-lg mx-auto w-full">
         <p className="text-xs text-muted-foreground mb-1">取引履歴と残高</p>
         {/* 残高カード */}
         <div>

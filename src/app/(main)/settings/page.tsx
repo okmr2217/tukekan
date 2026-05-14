@@ -11,7 +11,9 @@ export default async function SettingsPage() {
   return (
     <div className="flex flex-col">
       <MobileHeader title="設定" backHref="/menu" />
-      <SettingsClient user={{ name: user.name, email: user.email }} version={version} />
+      <div className="max-w-lg mx-auto w-full">
+        <SettingsClient user={{ name: user.name, email: user.email }} version={version} />
+      </div>
     </div>
   );
 }

@@ -35,7 +35,7 @@ export default async function MenuPage() {
     <div className="flex flex-col">
       <MobileHeader title="メニュー" />
 
-      <nav className="px-4 pt-3 space-y-2">
+      <nav className="px-4 pt-3 space-y-2 max-w-lg mx-auto w-full">
         {MENU_ITEMS.map(({ href, label, description, icon: Icon }) => (
           <Link
             key={href}

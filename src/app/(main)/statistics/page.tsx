@@ -80,6 +80,7 @@ export default async function StatisticsPage() {
     <div className="flex flex-col">
       <MobileHeader title="統計" />
 
+      <div className="max-w-lg mx-auto w-full">
       <div className="px-4 pt-3 pb-4 text-left">
         <p className="text-xs text-muted-foreground mb-3">貸借の集計と推移</p>
         <p className="text-sm text-muted-foreground">現在の貸借残高合計</p>
@@ -220,6 +221,7 @@ export default async function StatisticsPage() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

@@ -18,7 +18,7 @@ export default async function HomePage() {
     <div className="flex flex-col">
       <MobileHeader title="相手" />
 
-      <div className="px-4 pt-3 pb-4">
+      <div className="px-4 pt-3 pb-4 max-w-lg mx-auto w-full">
         <p className="text-xs text-muted-foreground mb-3">取引相手の残高と履歴</p>
         {partners.length === 0 ? (
           <div className="py-16 text-center space-y-3">

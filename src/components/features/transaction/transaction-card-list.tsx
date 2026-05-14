@@ -22,7 +22,12 @@ type Props = {
   showPartnerName?: boolean;
 };
 
-export function TransactionCardList({ transactions, suggestions, partners = [], showPartnerName = false }: Props) {
+export function TransactionCardList({
+  transactions,
+  suggestions,
+  partners = [],
+  showPartnerName = false,
+}: Props) {
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionWithPartner | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -44,14 +49,20 @@ export function TransactionCardList({ transactions, suggestions, partners = [], 
   };
 
   const handleArchiveToggle = (transaction: TransactionWithPartner) => {
-    const action = transaction.isArchived ? unarchiveTransaction : archiveTransaction;
+    const action = transaction.isArchived
+      ? unarchiveTransaction
+      : archiveTransaction;
     startArchiveTransition(async () => {
       const result = await action(transaction.id);
       if (result.error) {
         toast.error(result.error);
         return;
       }
-      toast.success(transaction.isArchived ? "アーカイブを解除しました" : "アーカイブしました");
+      toast.success(
+        transaction.isArchived
+          ? "アーカイブを解除しました"
+          : "アーカイブしました",
+      );
     });
   };
 
@@ -88,7 +99,7 @@ export function TransactionCardList({ transactions, suggestions, partners = [], 
 
   return (
     <>
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {transactions.map((t) => (
           <TransactionCard
             key={t.id}

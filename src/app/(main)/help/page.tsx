@@ -106,7 +106,7 @@ export default async function HelpPage() {
   return (
     <div className="flex flex-col">
       <MobileHeader title="ヘルプ" backHref="/menu" />
-      <main className="px-4 pt-4 pb-20 md:pb-4 space-y-4">
+      <main className="px-4 pt-4 pb-20 md:pb-4 space-y-4 max-w-lg mx-auto w-full">
         {SECTIONS.map((section) => (
           <section key={section.heading}>
             <h2 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">

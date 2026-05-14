@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
@@ -23,14 +22,7 @@ export function MobileHeader({ title, action, backHref }: Props) {
               <ChevronLeft className="h-5 w-5" />
             </Link>
           )}
-          <Image
-            src="/icon-192.png"
-            alt="ツケカン"
-            width={40}
-            height={40}
-            className="shrink-0 rounded-md mr-2"
-          />
-          <h1 className="font-bold leading-tight truncate">{title}</h1>
+          <h1 className="font-semibold leading-tight truncate">{title}</h1>
         </div>
         {action}
       </div>

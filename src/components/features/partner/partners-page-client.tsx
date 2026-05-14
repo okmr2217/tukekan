@@ -34,36 +34,37 @@ export function PartnersPageClient({ partners }: Props) {
         }
       />
 
+      <div className="max-w-lg mx-auto w-full">
+        {displayedPartners.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground">
+            {showArchived ? "相手がいません" : "相手がまだ登録されていません"}
+          </div>
+        ) : (
+          <div className="py-3 px-4 space-y-2">
+            {displayedPartners.map((partner) => (
+              <PartnerCard key={partner.id} partner={partner} />
+            ))}
+          </div>
+        )}
 
-      {displayedPartners.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">
-          {showArchived ? "相手がいません" : "相手がまだ登録されていません"}
-        </div>
-      ) : (
-        <div className="py-3 px-4 space-y-2">
-          {displayedPartners.map((partner) => (
-            <PartnerCard key={partner.id} partner={partner} />
-          ))}
-        </div>
-      )}
-
-      {archivedPartners.length > 0 && (
-        <div className="flex items-center gap-2 px-4 py-3 mt-2">
-          <input
-            id="show-archived"
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            className="size-4 rounded accent-primary cursor-pointer"
-          />
-          <Label
-            htmlFor="show-archived"
-            className="text-sm text-muted-foreground cursor-pointer"
-          >
-            アーカイブ済みを表示（{archivedPartners.length}件）
-          </Label>
-        </div>
-      )}
+        {archivedPartners.length > 0 && (
+          <div className="flex items-center gap-2 px-4 py-3 mt-2">
+            <input
+              id="show-archived"
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="size-4 rounded accent-primary cursor-pointer"
+            />
+            <Label
+              htmlFor="show-archived"
+              className="text-sm text-muted-foreground cursor-pointer"
+            >
+              アーカイブ済みを表示（{archivedPartners.length}件）
+            </Label>
+          </div>
+        )}
+      </div>
 
       <AddPartnerDialog open={isAddOpen} onOpenChange={setIsAddOpen} />
     </>

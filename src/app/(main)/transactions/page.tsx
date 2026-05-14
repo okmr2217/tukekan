@@ -49,7 +49,7 @@ export default async function TransactionsPage({
     <div className="flex flex-col">
       <MobileHeader title="すべての取引" />
 
-      <div className="px-4 pt-3 pb-4 space-y-3">
+      <div className="px-4 pt-3 pb-4 space-y-3 max-w-lg mx-auto w-full">
         <p className="text-xs text-muted-foreground mb-3">全相手の取引一覧</p>
         <TransactionCardList
           transactions={transactions}
