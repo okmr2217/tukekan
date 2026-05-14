@@ -6,15 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-  ResponsiveDialogDescription,
-  ResponsiveDialogBody,
-  ResponsiveDialogFooter,
-} from "@/components/ui/responsive-dialog";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import {
   updatePartner,
   archivePartner,
@@ -160,40 +152,14 @@ export function PartnerDetailClient({ partner }: Props) {
         </Button>
       </div>
 
-      {/* 削除確認ダイアログ */}
-      <ResponsiveDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <ResponsiveDialogContent>
-          <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>相手を削除しますか？</ResponsiveDialogTitle>
-            <ResponsiveDialogDescription>
-              削除すると取引履歴もすべて失われます。この操作は取り消せません。
-            </ResponsiveDialogDescription>
-          </ResponsiveDialogHeader>
-          <ResponsiveDialogBody>
-            <div className="py-1" />
-          </ResponsiveDialogBody>
-          <ResponsiveDialogFooter>
-            <div className="flex gap-2 w-full">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setDeleteDialogOpen(false)}
-                disabled={isDeletePending}
-              >
-                キャンセル
-              </Button>
-              <LoadingButton
-                variant="destructive"
-                className="flex-1"
-                onClick={handleDelete}
-                loading={isDeletePending}
-              >
-                削除
-              </LoadingButton>
-            </div>
-          </ResponsiveDialogFooter>
-        </ResponsiveDialogContent>
-      </ResponsiveDialog>
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="相手を削除しますか？"
+        description="削除すると取引履歴もすべて失われます。この操作は取り消せません。"
+        onConfirm={handleDelete}
+        isPending={isDeletePending}
+      />
     </div>
   );
 }

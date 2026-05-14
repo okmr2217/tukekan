@@ -8,17 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogFooter,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-  ResponsiveDialogBody,
-} from "@/components/ui/responsive-dialog";
-import { Button } from "@/components/ui/button";
-import { LoadingButton } from "@/components/ui/loading-button";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { deletePartnerNote } from "@/actions/partner-note";
 import type { PartnerNote } from "@/actions/partner";
 import { PartnerNoteFormDialog } from "./partner-note-form-dialog";
@@ -104,40 +94,14 @@ export function PartnerNoteCard({ note, readOnly = false }: Props) {
             open={editOpen}
             onOpenChange={setEditOpen}
           />
-          <ResponsiveDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <ResponsiveDialogContent>
-              <ResponsiveDialogHeader>
-                <ResponsiveDialogTitle>メモを削除</ResponsiveDialogTitle>
-                <ResponsiveDialogDescription>
-                  このメモを削除しますか？この操作は取り消せません。
-                </ResponsiveDialogDescription>
-              </ResponsiveDialogHeader>
-              <ResponsiveDialogBody>
-                <div className="py-1" />
-              </ResponsiveDialogBody>
-              <ResponsiveDialogFooter>
-                <div className="flex gap-2 w-full">
-                  <Button
-                    variant="outline"
-                    onClick={() => setDeleteOpen(false)}
-                    disabled={isDeletePending}
-                    className="flex-1"
-                  >
-                    キャンセル
-                  </Button>
-                  <LoadingButton
-                    variant="destructive"
-                    onClick={handleDeleteConfirm}
-                    loading={isDeletePending}
-                    loadingText="削除中..."
-                    className="flex-1"
-                  >
-                    削除
-                  </LoadingButton>
-                </div>
-              </ResponsiveDialogFooter>
-            </ResponsiveDialogContent>
-          </ResponsiveDialog>
+          <DeleteConfirmDialog
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            title="メモを削除"
+            description="このメモを削除しますか？この操作は取り消せません。"
+            onConfirm={handleDeleteConfirm}
+            isPending={isDeletePending}
+          />
         </>
       )}
     </>
