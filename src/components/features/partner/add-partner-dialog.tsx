@@ -62,7 +62,7 @@ export function AddPartnerDialog({ open, onOpenChange }: Props) {
                   {state.error}
                 </div>
               )}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="new-partner-name">名前</Label>
                 <Input
                   id="new-partner-name"

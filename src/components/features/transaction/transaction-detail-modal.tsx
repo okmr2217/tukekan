@@ -58,7 +58,7 @@ export function TransactionDetailModal({
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
 
-        <ResponsiveDialogBody className="py-0">
+        <ResponsiveDialogBody>
           {/* 金額ヒーロー */}
           <div className="px-0 pt-6 pb-4 text-center">
             <Badge
@@ -99,7 +99,9 @@ export function TransactionDetailModal({
           {transaction.description && (
             <div className="pb-3">
               <div className="rounded-md bg-muted/50 px-3.5 py-3">
-                <div className="mb-1 text-[11px] text-muted-foreground">メモ</div>
+                <div className="mb-1 text-[11px] text-muted-foreground">
+                  メモ
+                </div>
                 <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                   {transaction.description}
                 </div>
@@ -111,7 +113,9 @@ export function TransactionDetailModal({
           <div className="pb-3">
             <div className="flex items-center gap-2.5 rounded-md bg-muted/50 px-3.5 py-2.5">
               <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="text-[13px] text-muted-foreground">取引日時</span>
+              <span className="text-[13px] text-muted-foreground">
+                取引日時
+              </span>
               <span className="ml-auto text-[13px]">
                 {formatDateTimeForDisplay(transaction.date)}
               </span>

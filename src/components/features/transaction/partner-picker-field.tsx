@@ -18,7 +18,7 @@ export function PartnerPickerField({
   disabled = false,
 }: Props) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <Label>相手</Label>
       <div
         className={`grid gap-1.5 ${partners.length > 4 ? "grid-cols-3" : "grid-cols-2"}`}

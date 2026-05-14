@@ -49,19 +49,38 @@ const ResponsiveDialog = ({ children, ...props }: RootProps) => {
   return <Drawer {...props}>{children}</Drawer>;
 };
 
-const ResponsiveDialogTrigger = ({ className, children, ...props }: ResponsiveDialogProps) => {
+const ResponsiveDialogTrigger = ({
+  className,
+  children,
+  ...props
+}: ResponsiveDialogProps) => {
   const isDesktop = useMediaQuery(desktop);
   const Component = isDesktop ? DialogTrigger : DrawerTrigger;
-  return <Component className={className} {...props}>{children}</Component>;
+  return (
+    <Component className={className} {...props}>
+      {children}
+    </Component>
+  );
 };
 
-const ResponsiveDialogClose = ({ className, children, ...props }: ResponsiveDialogProps) => {
+const ResponsiveDialogClose = ({
+  className,
+  children,
+  ...props
+}: ResponsiveDialogProps) => {
   const isDesktop = useMediaQuery(desktop);
   const Component = isDesktop ? DialogClose : DrawerClose;
-  return <Component className={className} {...props}>{children}</Component>;
+  return (
+    <Component className={className} {...props}>
+      {children}
+    </Component>
+  );
 };
 
-const ResponsiveDialogContent = ({ className, children }: ResponsiveDialogProps) => {
+const ResponsiveDialogContent = ({
+  className,
+  children,
+}: ResponsiveDialogProps) => {
   const isDesktop = useMediaQuery(desktop);
   if (isDesktop) {
     return (
@@ -74,7 +93,7 @@ const ResponsiveDialogContent = ({ className, children }: ResponsiveDialogProps)
             "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-            className
+            className,
           )}
         >
           {children}
@@ -89,47 +108,78 @@ const ResponsiveDialogContent = ({ className, children }: ResponsiveDialogProps)
   return <DrawerContent className={className}>{children}</DrawerContent>;
 };
 
-const ResponsiveDialogDescription = ({ className, children, ...props }: ResponsiveDialogProps) => {
+const ResponsiveDialogDescription = ({
+  className,
+  children,
+  ...props
+}: ResponsiveDialogProps) => {
   const isDesktop = useMediaQuery(desktop);
   const Component = isDesktop ? DialogDescription : DrawerDescription;
-  return <Component className={className} {...props}>{children}</Component>;
+  return (
+    <Component className={className} {...props}>
+      {children}
+    </Component>
+  );
 };
 
-const ResponsiveDialogHeader = ({ className, children, ...props }: ResponsiveDialogProps) => {
+const ResponsiveDialogHeader = ({
+  className,
+  children,
+  ...props
+}: ResponsiveDialogProps) => {
   const isDesktop = useMediaQuery(desktop);
   if (isDesktop) {
     return (
-      <DialogHeader className={cn("p-6 pb-4 text-left", className)} {...props}>
+      <DialogHeader className={cn("p-6", className)} {...props}>
         {children}
       </DialogHeader>
     );
   }
   return (
-    <DrawerHeader className={cn("text-left", className)} {...props}>
+    <DrawerHeader className={cn("pb-6", className)} {...props}>
       {children}
     </DrawerHeader>
   );
 };
 
-const ResponsiveDialogTitle = ({ className, children, ...props }: ResponsiveDialogProps) => {
+const ResponsiveDialogTitle = ({
+  className,
+  children,
+  ...props
+}: ResponsiveDialogProps) => {
   const isDesktop = useMediaQuery(desktop);
   const Component = isDesktop ? DialogTitle : DrawerTitle;
-  return <Component className={className} {...props}>{children}</Component>;
+  return (
+    <Component className={className} {...props}>
+      {children}
+    </Component>
+  );
 };
 
-const ResponsiveDialogBody = ({ className, children, ...props }: Omit<ResponsiveDialogProps, "asChild">) => {
+const ResponsiveDialogBody = ({
+  className,
+  children,
+  ...props
+}: Omit<ResponsiveDialogProps, "asChild">) => {
   return (
-    <div className={cn("flex-1 overflow-y-auto px-4 md:px-6", className)} {...props}>
+    <div
+      className={cn("flex-1 overflow-y-auto px-4 md:px-6", className)}
+      {...props}
+    >
       {children}
     </div>
   );
 };
 
-const ResponsiveDialogFooter = ({ className, children, ...props }: ResponsiveDialogProps) => {
+const ResponsiveDialogFooter = ({
+  className,
+  children,
+  ...props
+}: ResponsiveDialogProps) => {
   const isDesktop = useMediaQuery(desktop);
   if (isDesktop) {
     return (
-      <DialogFooter className={cn("p-6 pt-4", className)} {...props}>
+      <DialogFooter className={cn("p-6", className)} {...props}>
         {children}
       </DialogFooter>
     );

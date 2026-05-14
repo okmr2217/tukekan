@@ -96,8 +96,8 @@ function FilterForm({
   return (
     <div className="flex flex-col gap-5 pt-2">
       {/* テキスト検索 */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">メモで検索</Label>
+      <div className="space-y-1.5">
+        <Label>メモで検索</Label>
         <Input
           placeholder="キーワードを入力"
           value={draft.q}
@@ -107,8 +107,8 @@ function FilterForm({
 
       {/* 相手フィルター */}
       {activePartners.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">相手で絞り込む</Label>
+        <div className="space-y-1.5">
+          <Label>相手で絞り込む</Label>
           <div className="flex flex-wrap gap-1.5">
             {activePartners.map((partner) => {
               const selected = draft.partnerIds.includes(partner.id);
@@ -133,8 +133,8 @@ function FilterForm({
       )}
 
       {/* 並び替え */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">並び替え</Label>
+      <div className="space-y-1.5">
+        <Label>並び替え</Label>
         <div className="grid grid-cols-2 gap-2">
           {SORT_OPTIONS.map((opt) => (
             <button

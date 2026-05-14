@@ -110,7 +110,7 @@ export function AccountSection({ user }: Props) {
               </ResponsiveDialogHeader>
               <ResponsiveDialogBody>
                 <div className="space-y-4 pb-2">
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="new-name">表示名</Label>
                     <Input
                       id="new-name"
@@ -119,8 +119,8 @@ export function AccountSection({ user }: Props) {
                       onChange={(e) => setNewName(e.target.value)}
                       disabled={isChangingName}
                     />
+                    {nameError && <p className="text-sm text-destructive">{nameError}</p>}
                   </div>
-                  {nameError && <p className="text-sm text-destructive">{nameError}</p>}
                 </div>
               </ResponsiveDialogBody>
               <ResponsiveDialogFooter>
@@ -193,7 +193,7 @@ export function AccountSection({ user }: Props) {
               </ResponsiveDialogHeader>
               <ResponsiveDialogBody>
                 <div className="space-y-4 pb-2">
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="current-password">現在のパスワード</Label>
                     <Input
                       id="current-password"
@@ -204,7 +204,7 @@ export function AccountSection({ user }: Props) {
                       autoComplete="current-password"
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="new-password">新しいパスワード</Label>
                     <Input
                       id="new-password"
@@ -214,10 +214,10 @@ export function AccountSection({ user }: Props) {
                       disabled={isChangingPassword}
                       autoComplete="new-password"
                     />
+                    {passwordError && (
+                      <p className="text-sm text-destructive">{passwordError}</p>
+                    )}
                   </div>
-                  {passwordError && (
-                    <p className="text-sm text-destructive">{passwordError}</p>
-                  )}
                 </div>
               </ResponsiveDialogBody>
               <ResponsiveDialogFooter>

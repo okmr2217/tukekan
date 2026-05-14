@@ -91,9 +91,6 @@ export function PartnerDetailClient({ partner }: Props) {
       <div className="rounded-xl border bg-card px-4 py-4 shadow-sm space-y-3">
         <p className="text-sm font-medium">名前を変更</p>
         <form action={handleSubmit} className="space-y-3">
-          {updateState.error && (
-            <p className="text-sm text-destructive">{updateState.error}</p>
-          )}
           <div className="space-y-1.5">
             <Label htmlFor="partner-name" className="text-xs text-muted-foreground">
               名前
@@ -106,6 +103,9 @@ export function PartnerDetailClient({ partner }: Props) {
               maxLength={50}
               disabled={isUpdatePending}
             />
+            {updateState.error && (
+              <p className="text-sm text-destructive">{updateState.error}</p>
+            )}
           </div>
           <LoadingButton
             type="submit"

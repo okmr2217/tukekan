@@ -60,7 +60,7 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
   return (
     <div className="space-y-5">
       {/* Amount */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label>金額</Label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -109,7 +109,7 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
       </div>
 
       {/* Memo */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label>メモ（任意）</Label>
         <div ref={memoWrapperRef} className="relative">
           <Input
@@ -150,7 +150,7 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
       </div>
 
       {/* Date + Time */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label>日時</Label>
 
         {/* Date mode pills */}

@@ -31,7 +31,7 @@ export function RegisterForm() {
               {state.error}
             </div>
           )}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="name">表示名</Label>
             <Input
               id="name"
@@ -43,7 +43,7 @@ export function RegisterForm() {
               maxLength={20}
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="email">メールアドレス</Label>
             <Input
               id="email"
@@ -54,7 +54,7 @@ export function RegisterForm() {
               required
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="password">パスワード</Label>
             <Input
               id="password"

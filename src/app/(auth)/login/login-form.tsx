@@ -25,7 +25,7 @@ export function LoginForm() {
               {state.error}
             </div>
           )}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="email">メールアドレス</Label>
             <Input
               id="email"
@@ -36,7 +36,7 @@ export function LoginForm() {
               required
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="password">パスワード</Label>
             <Input
               id="password"
