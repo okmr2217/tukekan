@@ -3,8 +3,7 @@ import Link from "next/link";
 import { getPartnerByShareToken } from "@/actions/partner";
 import { SharedBalanceCard } from "@/components/features/partner/balance-card";
 import { PartnerNoteSection } from "@/components/features/partner/partner-note-section";
-import { formatDateTimeForDisplay } from "@/lib/date-utils";
-import { cn } from "@/lib/utils";
+import { SharedTransactionCard } from "@/components/features/transaction/shared-transaction-card";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -90,71 +89,9 @@ export default async function SharePage({ params }: Props) {
             </p>
           ) : (
             <div className="space-y-2">
-              {transactions.map((tx) => {
-                const isLending = tx.amount > 0;
-                const absAmount = Math.abs(tx.amount);
-                const absBalance = Math.abs(tx.runningBalance);
-                return (
-                  <div
-                    key={tx.id}
-                    className="rounded-xl border bg-card px-3 py-2 shadow-sm"
-                  >
-                    {/* 上段: タイプバッジ・日時 */}
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={cn(
-                          "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none",
-                          isLending
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-red-100 text-red-600",
-                        )}
-                      >
-                        {isLending ? "貸し" : "借り"}
-                      </span>
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {formatDateTimeForDisplay(new Date(tx.date))}
-                      </span>
-                    </div>
-                    {/* 中段: メモ ／ 金額 */}
-                    <div className="flex items-baseline justify-between gap-3 mt-0.5">
-                      <span className="font-medium text-sm text-foreground truncate min-w-0">
-                        {tx.description ?? (
-                          <span className="text-muted-foreground/60 text-xs">
-                            メモなし
-                          </span>
-                        )}
-                      </span>
-                      <span
-                        className={cn(
-                          "font-bold text-base tabular-nums shrink-0",
-                          isLending ? "text-emerald-600" : "text-destructive",
-                        )}
-                      >
-                        {isLending ? "+" : "-"}¥{absAmount.toLocaleString()}
-                      </span>
-                    </div>
-                    {/* 下段: 残高 */}
-                    <div className="flex justify-end mt-0.75">
-                      <span className="text-xs text-muted-foreground mr-1">
-                        残高
-                      </span>
-                      <span
-                        className={cn(
-                          "text-xs tabular-nums",
-                          tx.runningBalance > 0
-                            ? "text-emerald-600"
-                            : tx.runningBalance < 0
-                              ? "text-destructive"
-                              : "text-muted-foreground",
-                        )}
-                      >
-                        {tx.runningBalance < 0 ? "-" : ""}¥
-                        {absBalance.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+              {transactions.map((tx) => (
+                <SharedTransactionCard key={tx.id} transaction={tx} />
+              ))}
             </div>
           )}
         </div>
