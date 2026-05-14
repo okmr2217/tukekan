@@ -28,6 +28,8 @@
 | 16 | `refactor: settings-client.tsx を AccountSection/AppearanceSection/OtherSection に分割 (2-C)` | 2-C | 342 行を 3 セクションコンポーネントに分割。settings-client.tsx は 20 行の合成コンポーネントに |
 | 17 | `refactor: partner.ts を queries/mutations/share に分割 (2-A)` | 2-A | 494 行を partner/types.ts + queries.ts + mutations.ts + share.ts + _helpers.ts に分割。既存 import パスを壊さないバレル re-export を維持 |
 | 18 | `refactor: react-hook-form を導入し取引フォームの props バケツリレーを解消 (7-E)` | 7-E, 4-D | react-hook-form インストール。TransactionFormFields の 11 個 props setter を廃止し useFormContext/Controller に移行。TransactionModal/TransactionEditModal は useForm + FormProvider に移行 |
+| 19 | `refactor: SharedTransactionCardを抽出しshareページのインライン重複を解消 (1-B)` | 1-B | share/[token]/page.tsx の65行インライン取引カードを SharedTransactionCard に集約。ダークモード対応も追加。transaction-list.tsx は6-Aで削除済みのため重複は2箇所→1コンポーネントに |
+| 20 | `refactor: PartnerPickerFieldを抽出し2つのモーダルの重複を解消 (1-E)` | 1-E | transaction-modal / transaction-edit-modal に重複していた25行のパートナー選択グリッドを PartnerPickerField に集約。react-hook-form 導入（7-E）後で残った最大の JSX 重複を解消 |
 
 ---
 
@@ -38,6 +40,7 @@
 | プランID | 内容 | スキップ理由 |
 |---------|------|------------|
 | 1-C (balance-card) | formatRelativeDate の JST 化 | ローカル時刻ベースの計算（diffMs/86400000）から JST カレンダー日付比較に変えると午前0時前後の挙動が変わる。日本国内アクセス限定なら実質同じだが仕様変更に相当 |
+| 1-F | 相手名変更フォームの統合 | edit-partner-dialog.tsx は6-Aで削除済みで残り2箇所（add-partner-dialog / partner-detail-client）。2箇所はaction・エラー表示スタイル・ボタン構成が異なり、共通コンポーネント化しても props が増えるだけで可読性が下がる。ROI が低いためスキップ |
 | 4-A (filter-sheet) | useEffect([], eslint-disable) → useState(committed) | nuqs の useQueryStates は SSR レンダリング時にデフォルト値を返し、クライアント hydration 後に URL 値へ更新する場合がある。効果を除去すると hydration 後の committed 値が draft に反映されなくなるリスク |
 | 4-B | keydown shortcut を useKeyboardShortcut フックに抽出 | 使用箇所が transaction-modal.tsx の 1 箇所のみで共通化の恩恵がない。新ファイル作成はスコープ外 |
 | 4-C | add-partner-dialog.tsx の useEffect 2 個 | 既存の useEffect は deps が正しく eslint-disable もない。Dialog の onOpenChange への移行は Radix の controlled/uncontrolled 挙動の違いによりリスクあり |
@@ -58,6 +61,13 @@
 | 2-C | settings-client.tsx 分割 |
 | 2-A | partner.ts 分割 |
 | 7-E + 4-D | react-hook-form 導入・フォーム props バケツリレー解消 |
+
+### セッション4で実施済み（上記「実施済みコミット」に昇格）
+
+| プランID | 内容 |
+|---------|------|
+| 1-B | SharedTransactionCard 抽出（share ページのインライン取引カードを集約） |
+| 1-E | PartnerPickerField 抽出（2 モーダルのパートナー選択グリッドを集約） |
 
 ### スキップ（振る舞い変更リスクあり）
 
