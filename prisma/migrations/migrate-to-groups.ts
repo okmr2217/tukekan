@@ -7,7 +7,7 @@
  * 注意: このスクリプトはスキーママイグレーション後に一度だけ実行してください
  */
 
-import { PrismaClient } from "../../src/app/generated/prisma/client";
+import { PrismaClient } from "../../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createId } from "@paralleldrive/cuid2";
 import "dotenv/config";

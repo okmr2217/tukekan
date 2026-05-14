@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import type { PartnerNote } from "@/app/generated/prisma";
+import type { PartnerNote } from "@/generated/prisma";
 
 function validateContent(content: string): string | null {
   const trimmed = content.trim();
