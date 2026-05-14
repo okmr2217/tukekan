@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import Link from "next/link";
 import { Users, Settings, HelpCircle, ChevronRight } from "lucide-react";
-import { PageHeader } from "@/components/layouts/page-header";
+import { MobileHeader } from "@/components/layouts/mobile-header";
 
 const MENU_ITEMS = [
   {
@@ -33,7 +33,7 @@ export default async function MenuPage() {
 
   return (
     <div className="flex flex-col">
-      <PageHeader title="メニュー" />
+      <MobileHeader title="メニュー" />
 
       <nav className="px-4 pt-3 space-y-2">
         {MENU_ITEMS.map(({ href, label, description, icon: Icon }) => (

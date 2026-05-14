@@ -11,7 +11,7 @@ import { ShareLinkSection } from "@/components/features/partner/share-link-secti
 import { BalanceCard } from "@/components/features/partner/balance-card";
 import { PartnerDetailClient } from "@/components/features/partner/partner-detail-client";
 import { PartnerNoteSection } from "@/components/features/partner/partner-note-section";
-import { PageHeader } from "@/components/layouts/page-header";
+import { MobileHeader } from "@/components/layouts/mobile-header";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -50,13 +50,10 @@ export default async function PartnerDetailPage({
 
   return (
     <div className="flex flex-col">
-      <PageHeader
-        title={partner.name}
-        description="取引履歴と残高"
-        backHref="/"
-      />
+      <MobileHeader title={partner.name} backHref="/" />
 
       <div className="px-4 pt-3 pb-4 space-y-4">
+        <p className="text-xs text-muted-foreground mb-1">取引履歴と残高</p>
         {/* 残高カード */}
         <div>
           <p className="text-xs font-medium tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-2">

@@ -16,7 +16,7 @@ export default async function MainLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <FABController partners={partners} suggestions={suggestions} />
-      <main className="mx-auto w-full max-w-lg flex-1 pt-14 pb-16">
+      <main className="mx-auto w-full max-w-lg flex-1 pb-16">
         {children}
       </main>
       <BottomBar />

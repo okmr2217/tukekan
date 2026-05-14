@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getPartnersForHome } from "@/actions/partner";
 import { PartnerHomeCard } from "@/components/features/partner/partner-home-card";
-import { PageHeader } from "@/components/layouts/page-header";
+import { MobileHeader } from "@/components/layouts/mobile-header";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
 
@@ -16,9 +16,10 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col">
-      <PageHeader title="相手" description="取引相手の残高と履歴" />
+      <MobileHeader title="相手" />
 
       <div className="px-4 pt-3 pb-4">
+        <p className="text-xs text-muted-foreground mb-3">取引相手の残高と履歴</p>
         {partners.length === 0 ? (
           <div className="py-16 text-center space-y-3">
             <p className="text-muted-foreground text-sm">

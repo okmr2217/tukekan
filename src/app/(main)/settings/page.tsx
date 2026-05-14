@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/actions/auth";
-import { PageHeader } from "@/components/layouts/page-header";
+import { MobileHeader } from "@/components/layouts/mobile-header";
 import { SettingsClient } from "@/components/features/settings/settings-client";
 import { version } from "../../../../package.json";
 
@@ -10,7 +10,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col">
-      <PageHeader title="設定" backHref="/menu" />
+      <MobileHeader title="設定" backHref="/menu" />
       <SettingsClient user={{ name: user.name, email: user.email }} version={version} />
     </div>
   );

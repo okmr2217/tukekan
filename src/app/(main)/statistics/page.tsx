@@ -9,7 +9,7 @@ import type { MonthlyStat } from "@/actions/stats";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/layouts/page-header";
+import { MobileHeader } from "@/components/layouts/mobile-header";
 
 function MonthlyTableRow({ stat }: { stat: MonthlyStat }) {
   const hasActivity = stat.totalLent > 0 || stat.totalBorrowed > 0;
@@ -78,9 +78,10 @@ export default async function StatisticsPage() {
 
   return (
     <div className="flex flex-col">
-      <PageHeader title="統計" description="貸借の集計と推移" />
+      <MobileHeader title="統計" />
 
       <div className="px-4 pt-3 pb-4 text-left">
+        <p className="text-xs text-muted-foreground mb-3">貸借の集計と推移</p>
         <p className="text-sm text-muted-foreground">現在の貸借残高合計</p>
         <p
           className={cn(

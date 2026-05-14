@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { getPartnersWithBalance } from "@/actions/partner";
 import { getDescriptionSuggestions, getTransactions, type SortOrder } from "@/actions/transaction";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
-import { PageHeader } from "@/components/layouts/page-header";
+import { MobileHeader } from "@/components/layouts/mobile-header";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -47,9 +47,10 @@ export default async function TransactionsPage({
 
   return (
     <div className="flex flex-col">
-      <PageHeader title="すべての取引" description="全相手の取引一覧" />
+      <MobileHeader title="すべての取引" />
 
       <div className="px-4 pt-3 pb-4 space-y-3">
+        <p className="text-xs text-muted-foreground mb-3">全相手の取引一覧</p>
         <TransactionCardList
           transactions={transactions}
           suggestions={suggestions}

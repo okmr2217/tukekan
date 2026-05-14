@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getPartnerById } from "@/actions/partner";
 import { PartnerDetailClient } from "@/components/features/partner/partner-detail-client";
-import { PageHeader } from "@/components/layouts/page-header";
+import { MobileHeader } from "@/components/layouts/mobile-header";
 
 export default async function PartnerEditPage({
   params,
@@ -23,13 +23,10 @@ export default async function PartnerEditPage({
 
   return (
     <div className="flex flex-col">
-      <PageHeader
-        title={partner.name}
-        description="相手の管理"
-        backHref="/partners"
-      />
+      <MobileHeader title={partner.name} backHref="/partners" />
 
       <div className="px-4 pt-3 pb-4">
+        <p className="text-xs text-muted-foreground mb-3">相手の管理</p>
         <PartnerDetailClient partner={partner} />
       </div>
     </div>
