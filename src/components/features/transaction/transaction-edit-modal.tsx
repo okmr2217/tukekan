@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useForm, FormProvider } from "react-hook-form";
 import { updateTransaction } from "@/actions/transaction";
 import type { TransactionWithPartner } from "@/actions/transaction";
 import {
@@ -10,8 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { LoadingButton } from "@/components/ui/loading-button";
 import { Label } from "@/components/ui/label";
+import { LoadingButton } from "@/components/ui/loading-button";
 import type { Partner } from "@/actions/partner";
 import { toast } from "sonner";
 import { TransactionFormFields } from "./transaction-form-fields";
@@ -21,6 +22,7 @@ import {
   type DateMode,
 } from "@/lib/date-picker-utils";
 import { formatDateToJST, toJST } from "@/lib/date-utils";
+import type { TransactionFormValues } from "./transaction-form-schema";
 
 type Props = {
   transaction: TransactionWithPartner | null;
@@ -33,11 +35,7 @@ type Props = {
 function initDateMode(date: Date): DateMode {
   const jst = toJST(date);
   const nowJst = toJST(new Date());
-  const today = new Date(
-    nowJst.getFullYear(),
-    nowJst.getMonth(),
-    nowJst.getDate(),
-  );
+  const today = new Date(nowJst.getFullYear(), nowJst.getMonth(), nowJst.getDate());
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   const d = new Date(jst.getFullYear(), jst.getMonth(), jst.getDate());
@@ -58,49 +56,53 @@ export function TransactionEditModal({
   suggestions = [],
   partners = [],
 }: Props) {
-  const [isUpdatePending, startUpdateTransition] = useTransition();
-
+  const [isPending, startTransition] = useTransition();
   const [partnerId, setPartnerId] = useState("");
-  const [isLending, setIsLending] = useState(true);
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [dateMode, setDateMode] = useState<DateMode>("today");
-  const [otherDate, setOtherDate] = useState(formatDateToJST());
-  const [selectedTime, setSelectedTime] = useState(
-    floorToNearest30(new Date()),
-  );
   const [error, setError] = useState<string | null>(null);
+
+  const form = useForm<TransactionFormValues>({
+    defaultValues: {
+      amount: "",
+      isLending: true,
+      description: "",
+      dateMode: "today",
+      otherDate: formatDateToJST(),
+      selectedTime: floorToNearest30(new Date()),
+    },
+  });
 
   useEffect(() => {
     if (transaction) {
       setPartnerId(transaction.partnerId);
-      setIsLending(transaction.amount >= 0);
-      setAmount(Math.abs(transaction.amount).toString());
-      setDescription(transaction.description ?? "");
-      setDateMode(initDateMode(transaction.date));
-      setOtherDate(getDateString(transaction.date));
-      setSelectedTime(floorToNearest30(transaction.date));
       setError(null);
+      form.reset({
+        amount: Math.abs(transaction.amount).toString(),
+        isLending: transaction.amount >= 0,
+        description: transaction.description ?? "",
+        dateMode: initDateMode(transaction.date),
+        otherDate: getDateString(transaction.date),
+        selectedTime: floorToNearest30(transaction.date),
+      });
     }
-  }, [transaction]);
+  }, [transaction, form]);
 
-  const handleUpdate = () => {
+  const handleUpdate = form.handleSubmit((data) => {
     if (!transaction) return;
-    const rawAmount = parseInt(amount, 10);
+    const rawAmount = parseInt(data.amount, 10);
     if (isNaN(rawAmount) || rawAmount <= 0) {
       setError("金額を正しく入力してください");
       return;
     }
-    const signedAmount = isLending ? rawAmount : -rawAmount;
-    const date = buildDateTime(dateMode, otherDate, selectedTime);
+    const signedAmount = data.isLending ? rawAmount : -rawAmount;
+    const date = buildDateTime(data.dateMode, data.otherDate, data.selectedTime);
 
     setError(null);
-    startUpdateTransition(async () => {
+    startTransition(async () => {
       const formData = new FormData();
       formData.set("transactionId", transaction.id);
       formData.set("partnerId", partnerId);
       formData.set("amount", signedAmount.toString());
-      formData.set("description", description);
+      formData.set("description", data.description);
       formData.set("date", date.toISOString());
 
       const result = await updateTransaction({}, formData);
@@ -111,11 +113,14 @@ export function TransactionEditModal({
       toast.success("取引を更新しました");
       onOpenChange(false);
     });
-  };
+  });
 
   if (!transaction) return null;
 
-  const isPending = isUpdatePending;
+  const currentInList = partners.some((p) => p.id === transaction.partnerId);
+  const displayPartners = currentInList
+    ? partners
+    : [...partners, { id: transaction.partnerId, name: transaction.partnerName }];
 
   return (
     <Dialog open={open} onOpenChange={(v) => !isPending && onOpenChange(v)}>
@@ -124,7 +129,8 @@ export function TransactionEditModal({
           <DialogTitle>取引を編集</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <FormProvider {...form}>
+          <div className="space-y-5">
             {error && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
                 {error}
@@ -134,75 +140,59 @@ export function TransactionEditModal({
             {/* Partner */}
             <div className="space-y-2">
               <Label>相手</Label>
-              {(() => {
-                const currentInList = partners.some(
-                  (p) => p.id === transaction.partnerId,
-                );
-                const displayPartners = currentInList
-                  ? partners
-                  : [
-                      ...partners,
-                      {
-                        id: transaction.partnerId,
-                        name: transaction.partnerName,
-                      },
-                    ];
-                return (
-                  <div
-                    className={`grid gap-1.5 ${displayPartners.length > 4 ? "grid-cols-3" : "grid-cols-2"}`}
-                  >
-                    {displayPartners.map((p) => {
-                      const isSelected = partnerId === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setPartnerId(p.id)}
-                          disabled={isPending}
-                          className={`px-3 py-2 rounded-xl border transition-all duration-150 active:scale-[0.98] text-sm font-medium truncate ${
-                            isSelected
-                              ? "bg-primary/10 border-primary/40 text-primary"
-                              : "bg-muted border-transparent text-foreground/80 hover:bg-muted/80"
-                          }`}
-                        >
-                          {p.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+              <div
+                className={`grid gap-1.5 ${displayPartners.length > 4 ? "grid-cols-3" : "grid-cols-2"}`}
+              >
+                {displayPartners.map((p) => {
+                  const isSelected = partnerId === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPartnerId(p.id)}
+                      disabled={isPending}
+                      className={`px-3 py-2 rounded-xl border transition-all duration-150 active:scale-[0.98] text-sm font-medium truncate ${
+                        isSelected
+                          ? "bg-primary/10 border-primary/40 text-primary"
+                          : "bg-muted border-transparent text-foreground/80 hover:bg-muted/80"
+                      }`}
+                    >
+                      {p.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <TransactionFormFields
-              amount={amount}
-              setAmount={setAmount}
-              isLending={isLending}
-              setIsLending={setIsLending}
-              description={description}
-              setDescription={setDescription}
-              dateMode={dateMode}
-              setDateMode={setDateMode}
-              otherDate={otherDate}
-              setOtherDate={setOtherDate}
-              selectedTime={selectedTime}
-              setSelectedTime={setSelectedTime}
               suggestions={suggestions}
               isPending={isPending}
               maxDate={formatDateToJST()}
             />
 
-            <LoadingButton
-              type="button"
-              onClick={handleUpdate}
-              className="w-full"
-              loading={isPending}
-              loadingText="更新中..."
-              disabled={!amount}
-            >
-              更新
-            </LoadingButton>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isPending}
+                className="flex-1"
+              >
+                キャンセル
+              </Button>
+              <LoadingButton
+                type="button"
+                onClick={handleUpdate}
+                className="flex-1"
+                loading={isPending}
+                loadingText="更新中..."
+                disabled={!form.watch("amount")}
+              >
+                更新
+              </LoadingButton>
+            </div>
           </div>
+        </FormProvider>
       </DialogContent>
     </Dialog>
   );

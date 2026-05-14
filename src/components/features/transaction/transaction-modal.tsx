@@ -1,25 +1,26 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useForm, FormProvider } from "react-hook-form";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { LoadingButton } from "@/components/ui/loading-button";
 import { Label } from "@/components/ui/label";
 import { FAB } from "@/components/layouts/fab";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { TransactionFormFields } from "./transaction-form-fields";
 import { createTransaction } from "@/actions/transaction";
 import {
   floorToNearest30,
   buildDateTime,
-  type DateMode,
 } from "@/lib/date-picker-utils";
 import { formatDateToJST } from "@/lib/date-utils";
 import { toast } from "sonner";
 import type { Partner } from "@/actions/partner";
+import type { TransactionFormValues } from "./transaction-form-schema";
 
 type Props = {
   partners: Partner[];
@@ -34,29 +35,33 @@ export function TransactionModal({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-
   const [partnerId, setPartnerId] = useState(defaultPartnerId ?? "");
-  const [isLending, setIsLending] = useState(true);
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [dateMode, setDateMode] = useState<DateMode>("today");
-  const [otherDate, setOtherDate] = useState(formatDateToJST());
-  const [selectedTime, setSelectedTime] = useState(() =>
-    floorToNearest30(new Date()),
-  );
   const [error, setError] = useState<string | null>(null);
+
+  const form = useForm<TransactionFormValues>({
+    defaultValues: {
+      amount: "",
+      isLending: true,
+      description: "",
+      dateMode: "today",
+      otherDate: formatDateToJST(),
+      selectedTime: floorToNearest30(new Date()),
+    },
+  });
 
   useEffect(() => {
     if (!open) return;
     setPartnerId(defaultPartnerId ?? "");
-    setIsLending(true);
-    setAmount("");
-    setDescription("");
-    setDateMode("today");
-    setOtherDate(formatDateToJST());
-    setSelectedTime(floorToNearest30(new Date()));
     setError(null);
-  }, [open, defaultPartnerId]);
+    form.reset({
+      amount: "",
+      isLending: true,
+      description: "",
+      dateMode: "today",
+      otherDate: formatDateToJST(),
+      selectedTime: floorToNearest30(new Date()),
+    });
+  }, [open, defaultPartnerId, form]);
 
   // Keyboard shortcut: N to open modal
   useEffect(() => {
@@ -70,34 +75,32 @@ export function TransactionModal({
         target.isContentEditable
       )
         return;
-      if (e.key === "n" || e.key === "N") {
-        setOpen(true);
-      }
+      if (e.key === "n" || e.key === "N") setOpen(true);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
-  const handleSubmit = () => {
+  const handleSubmit = form.handleSubmit((data) => {
     if (!partnerId) {
       setError("相手を選択してください");
       return;
     }
-    const rawAmount = parseInt(amount, 10);
+    const rawAmount = parseInt(data.amount, 10);
     if (isNaN(rawAmount) || rawAmount <= 0) {
       setError("金額を正しく入力してください");
       return;
     }
 
-    const signedAmount = isLending ? rawAmount : -rawAmount;
-    const date = buildDateTime(dateMode, otherDate, selectedTime);
+    const signedAmount = data.isLending ? rawAmount : -rawAmount;
+    const date = buildDateTime(data.dateMode, data.otherDate, data.selectedTime);
 
     setError(null);
     startTransition(async () => {
       const formData = new FormData();
       formData.set("partnerId", partnerId);
       formData.set("amount", signedAmount.toString());
-      formData.set("description", description);
+      formData.set("description", data.description);
       formData.set("date", date.toISOString());
 
       const result = await createTransaction({}, formData);
@@ -108,7 +111,7 @@ export function TransactionModal({
       toast.success("取引を登録しました");
       setOpen(false);
     });
-  };
+  });
 
   return (
     <>
@@ -119,69 +122,59 @@ export function TransactionModal({
             <DialogTitle>新しい取引</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-5">
-            {error && (
-              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-                {error}
-              </div>
-            )}
+          <FormProvider {...form}>
+            <div className="space-y-5">
+              {error && (
+                <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                  {error}
+                </div>
+              )}
 
-            {/* Partner */}
-            <div className="space-y-2">
-              <Label>相手</Label>
-              <div
-                className={`grid gap-1.5 ${partners.length > 4 ? "grid-cols-3" : "grid-cols-2"}`}
+              {/* Partner */}
+              <div className="space-y-2">
+                <Label>相手</Label>
+                <div
+                  className={`grid gap-1.5 ${partners.length > 4 ? "grid-cols-3" : "grid-cols-2"}`}
+                >
+                  {partners.map((p) => {
+                    const isSelected = partnerId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPartnerId(p.id)}
+                        disabled={isPending}
+                        className={`px-3 py-2 rounded-xl border transition-all duration-150 active:scale-[0.98] text-sm font-medium truncate ${
+                          isSelected
+                            ? "bg-primary/10 border-primary/40 text-primary"
+                            : "bg-muted border-transparent text-foreground/80 hover:bg-muted/80"
+                        }`}
+                      >
+                        {p.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <TransactionFormFields
+                suggestions={suggestions}
+                isPending={isPending}
+                maxDate={formatDateToJST()}
+              />
+
+              <LoadingButton
+                type="button"
+                onClick={handleSubmit}
+                className="w-full"
+                loading={isPending}
+                loadingText="登録中..."
+                disabled={!partnerId || !form.watch("amount")}
               >
-                {partners.map((p) => {
-                  const isSelected = partnerId === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setPartnerId(p.id)}
-                      disabled={isPending}
-                      className={`px-3 py-2 rounded-xl border transition-all duration-150 active:scale-[0.98] text-sm font-medium truncate ${
-                        isSelected
-                          ? "bg-primary/10 border-primary/40 text-primary"
-                          : "bg-muted border-transparent text-foreground/80 hover:bg-muted/80"
-                      }`}
-                    >
-                      {p.name}
-                    </button>
-                  );
-                })}
-              </div>
+                登録
+              </LoadingButton>
             </div>
-
-            <TransactionFormFields
-              amount={amount}
-              setAmount={setAmount}
-              isLending={isLending}
-              setIsLending={setIsLending}
-              description={description}
-              setDescription={setDescription}
-              dateMode={dateMode}
-              setDateMode={setDateMode}
-              otherDate={otherDate}
-              setOtherDate={setOtherDate}
-              selectedTime={selectedTime}
-              setSelectedTime={setSelectedTime}
-              suggestions={suggestions}
-              isPending={isPending}
-              maxDate={formatDateToJST()}
-            />
-
-            <LoadingButton
-              type="button"
-              onClick={handleSubmit}
-              className="w-full"
-              loading={isPending}
-              loadingText="登録中..."
-              disabled={!partnerId || !amount}
-            >
-              登録
-            </LoadingButton>
-          </div>
+          </FormProvider>
         </DialogContent>
       </Dialog>
     </>
