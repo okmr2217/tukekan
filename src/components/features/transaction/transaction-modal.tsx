@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, useWatch } from "react-hook-form";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -83,6 +83,8 @@ export function TransactionModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
+  const amount = useWatch({ control: form.control, name: "amount" });
+
   const handleSubmit = form.handleSubmit((data) => {
     if (!partnerId) {
       setError("相手を選択してください");
@@ -156,7 +158,7 @@ export function TransactionModal({
               className="w-full"
               loading={isPending}
               loadingText="登録中..."
-              disabled={!partnerId || !form.watch("amount")}
+              disabled={!partnerId || !amount}
             >
               登録
             </LoadingButton>

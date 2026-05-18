@@ -35,7 +35,7 @@ export function TransactionCardList({
   const [deleteTargetTransaction, setDeleteTargetTransaction] =
     useState<TransactionWithPartner | null>(null);
 
-  const [isArchivePending, startArchiveTransition] = useTransition();
+  const [, startArchiveTransition] = useTransition();
   const [isDeletePending, startDeleteTransition] = useTransition();
 
   const handleEdit = (transaction: TransactionWithPartner) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { updateTransaction } from "@/actions/transaction";
 import type { TransactionWithPartner } from "@/actions/transaction";
 import {
@@ -88,6 +88,8 @@ export function TransactionEditModal({
     }
   }, [transaction, form]);
 
+  const amount = useWatch({ control: form.control, name: "amount" });
+
   const handleUpdate = form.handleSubmit((data) => {
     if (!transaction) return;
     const rawAmount = parseInt(data.amount, 10);
@@ -173,7 +175,7 @@ export function TransactionEditModal({
               className="flex-1"
               loading={isPending}
               loadingText="更新中..."
-              disabled={!form.watch("amount")}
+              disabled={!amount}
             >
               更新
             </LoadingButton>
