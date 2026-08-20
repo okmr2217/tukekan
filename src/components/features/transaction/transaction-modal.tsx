@@ -29,12 +29,14 @@ type Props = {
   partners: Partner[];
   suggestions: string[];
   defaultPartnerId?: string;
+  defaultLedgerId?: string;
 };
 
 export function TransactionModal({
   partners,
   suggestions,
   defaultPartnerId,
+  defaultLedgerId,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -56,7 +58,7 @@ export function TransactionModal({
   useEffect(() => {
     if (!open) return;
     setPartnerId(defaultPartnerId ?? "");
-    setLedgerId("");
+    setLedgerId(defaultLedgerId ?? "");
     setError(null);
     form.reset({
       amount: "",
@@ -66,7 +68,7 @@ export function TransactionModal({
       otherDate: formatDateToJST(),
       selectedTime: floorToNearest30(new Date()),
     });
-  }, [open, defaultPartnerId, form]);
+  }, [open, defaultPartnerId, defaultLedgerId, form]);
 
   // Keyboard shortcut: N to open modal
   useEffect(() => {

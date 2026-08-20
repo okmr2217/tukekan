@@ -8,18 +8,20 @@ import type { Partner } from "@/actions/partner";
 type Props = {
   partners: Partner[];
   suggestions: string[];
+  ledgerPartnerMap: Record<string, string>;
 };
 
-export function FABController({ partners, suggestions }: Props) {
+export function FABController({ partners, suggestions, ledgerPartnerMap }: Props) {
   const pathname = usePathname();
 
   const isTransactions = pathname === "/transactions";
-  const isPartnerDetail = /^\/partners\/[^/]+$/.test(pathname);
+  const ledgerMatch = pathname.match(/^\/ledgers\/([^/]+)$/);
 
-  if (!isTransactions && !isPartnerDetail) return null;
+  if (!isTransactions && !ledgerMatch) return null;
 
-  const defaultPartnerId = isPartnerDetail
-    ? pathname.split("/").pop()
+  const defaultLedgerId = ledgerMatch?.[1];
+  const defaultPartnerId = defaultLedgerId
+    ? ledgerPartnerMap[defaultLedgerId]
     : undefined;
 
   return (
@@ -29,6 +31,7 @@ export function FABController({ partners, suggestions }: Props) {
         partners={partners}
         suggestions={suggestions}
         defaultPartnerId={defaultPartnerId}
+        defaultLedgerId={defaultLedgerId}
       />
     </>
   );

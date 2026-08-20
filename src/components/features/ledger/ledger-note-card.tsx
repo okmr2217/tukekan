@@ -9,18 +9,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
-import { deletePartnerNote } from "@/actions/partner-note";
-import type { PartnerNote } from "@/actions/partner";
-import { PartnerNoteFormDialog } from "./partner-note-form-dialog";
+import { deleteLedgerNote } from "@/actions/ledger-note";
+import type { LedgerNote } from "@/generated/prisma";
+import { LedgerNoteFormDialog } from "./ledger-note-form-dialog";
 import { formatDateTimeForDisplay } from "@/lib/date-utils";
 import { toast } from "sonner";
 
 type Props = {
-  note: PartnerNote;
+  note: LedgerNote;
   readOnly?: boolean;
 };
 
-export function PartnerNoteCard({ note, readOnly = false }: Props) {
+export function LedgerNoteCard({ note, readOnly = false }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeletePending, startDeleteTransition] = useTransition();
@@ -31,7 +31,7 @@ export function PartnerNoteCard({ note, readOnly = false }: Props) {
 
   const handleDeleteConfirm = () => {
     startDeleteTransition(async () => {
-      const result = await deletePartnerNote({ id: note.id });
+      const result = await deleteLedgerNote({ id: note.id });
       if (result.error) {
         toast.error(result.error);
         return;
@@ -88,8 +88,8 @@ export function PartnerNoteCard({ note, readOnly = false }: Props) {
 
       {!readOnly && (
         <>
-          <PartnerNoteFormDialog
-            partnerId={note.partnerId}
+          <LedgerNoteFormDialog
+            ledgerId={note.ledgerId}
             note={note}
             open={editOpen}
             onOpenChange={setEditOpen}

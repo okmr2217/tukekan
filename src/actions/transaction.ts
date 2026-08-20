@@ -24,6 +24,7 @@ export type SortOrder = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 
 type GetTransactionsParams = {
   partnerIds?: string[];
+  ledgerIds?: string[];
   showArchived?: boolean;
   showArchivedPartners?: boolean;
   q?: string;
@@ -38,6 +39,7 @@ export async function getTransactions(
 
   const {
     partnerIds,
+    ledgerIds,
     showArchived = false,
     showArchivedPartners = false,
     q,
@@ -54,6 +56,7 @@ export async function getTransactions(
       ownerId: session.userId,
       ...(showArchived ? {} : { isArchived: false }),
       ...(q ? { description: { contains: q } } : {}),
+      ...(ledgerIds && ledgerIds.length > 0 ? { ledgerId: { in: ledgerIds } } : {}),
       partner: {
         ...(showArchivedPartners ? {} : { isArchived: false }),
         ...(partnerIds && partnerIds.length > 0 ? { id: { in: partnerIds } } : {}),

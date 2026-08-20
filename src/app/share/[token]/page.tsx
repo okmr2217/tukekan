@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPartnerByShareToken } from "@/actions/partner";
+import { getLedgerByShareToken } from "@/actions/ledger";
 import { SharedBalanceCard } from "@/components/features/partner/balance-card";
-import { PartnerNoteSection } from "@/components/features/partner/partner-note-section";
+import { LedgerNoteSection } from "@/components/features/ledger/ledger-note-section";
 import { SharedTransactionCard } from "@/components/features/transaction/shared-transaction-card";
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params;
-  const result = await getPartnerByShareToken(token);
+  const result = await getLedgerByShareToken(token);
   if (result.data) {
     return {
       title: `${result.data.partnerName}さんとの取引状況 - ツケカン`,
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SharePage({ params }: Props) {
   const { token } = await params;
-  const result = await getPartnerByShareToken(token);
+  const result = await getLedgerByShareToken(token);
 
   if (result.error) {
     return (
@@ -40,7 +40,9 @@ export default async function SharePage({ params }: Props) {
     );
   }
 
-  const { partnerName, ownerName, balance, transactions, notes } = result.data!;
+  const { partnerName, ledgerTitle, ownerName, balance, transactions, notes } =
+    result.data!;
+  const isDefaultLedger = ledgerTitle === "通常";
 
   return (
     <div className="min-h-screen">
@@ -49,6 +51,12 @@ export default async function SharePage({ params }: Props) {
         <div className="mx-auto flex min-h-14 max-w-lg flex-col justify-center px-4 py-2">
           <h1 className="font-medium leading-tight mb-1.5">
             {partnerName}さんとの取引
+            {!isDefaultLedger && (
+              <span className="text-muted-foreground font-normal">
+                {" "}
+                （{ledgerTitle}）
+              </span>
+            )}
           </h1>
           <p className="text-xs text-muted-foreground">
             読み取り専用 · アクセス時点のデータを表示しています
@@ -71,11 +79,7 @@ export default async function SharePage({ params }: Props) {
 
         {/* Notes */}
         {notes.length > 0 && (
-          <PartnerNoteSection
-            partnerId=""
-            notes={notes}
-            readOnly
-          />
+          <LedgerNoteSection ledgerId="" notes={notes} readOnly />
         )}
 
         {/* Transaction list */}

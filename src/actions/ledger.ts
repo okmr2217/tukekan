@@ -1,10 +1,12 @@
 "use server";
 
 import { z } from "zod";
+import { createId } from "@paralleldrive/cuid2";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { findOwnedPartner } from "@/actions/partner/_helpers";
+import type { LedgerNote } from "@/generated/prisma";
 
 export type LedgerWithBalance = {
   id: string;
@@ -56,6 +58,112 @@ export async function getLedgersByPartner(
   });
 }
 
+export type LedgerForHome = {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  title: string;
+  weeklyInterestRate: number;
+  balance: number;
+  lastTransaction: {
+    amount: number;
+    description: string | null;
+    date: Date;
+  } | null;
+};
+
+export async function getLedgersForHome(): Promise<LedgerForHome[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const ledgers = await prisma.ledger.findMany({
+    where: { partner: { ownerId: session.userId, isArchived: false } },
+    select: {
+      id: true,
+      title: true,
+      weeklyInterestRate: true,
+      partnerId: true,
+      partner: { select: { name: true } },
+      transactions: {
+        where: { isArchived: false },
+        select: { amount: true, description: true, date: true, createdAt: true },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      },
+    },
+  });
+
+  return ledgers
+    .map((l) => ({
+      id: l.id,
+      partnerId: l.partnerId,
+      partnerName: l.partner.name,
+      title: l.title,
+      weeklyInterestRate: l.weeklyInterestRate ? Number(l.weeklyInterestRate) : 0,
+      balance: l.transactions.reduce((sum, t) => sum + t.amount, 0),
+      lastTransaction: l.transactions[0] ?? null,
+    }))
+    .sort((a, b) => {
+      if (!a.lastTransaction && !b.lastTransaction) return 0;
+      if (!a.lastTransaction) return 1;
+      if (!b.lastTransaction) return -1;
+      return (
+        new Date(b.lastTransaction.date).getTime() -
+        new Date(a.lastTransaction.date).getTime()
+      );
+    });
+}
+
+export type LedgerById = {
+  id: string;
+  title: string;
+  weeklyInterestRate: number;
+  balance: number;
+  partnerId: string;
+  partnerName: string;
+  partnerIsArchived: boolean;
+  shareToken: string | null;
+  shareTokenExpiresAt: Date | null;
+  notes: LedgerNote[];
+};
+
+export async function getLedgerById(ledgerId: string): Promise<LedgerById | null> {
+  const session = await getSession();
+  if (!session) return null;
+
+  const ledger = await prisma.ledger.findUnique({
+    where: { id: ledgerId },
+    select: {
+      id: true,
+      title: true,
+      weeklyInterestRate: true,
+      shareToken: true,
+      shareTokenExpiresAt: true,
+      partnerId: true,
+      partner: { select: { name: true, isArchived: true, ownerId: true } },
+      transactions: {
+        where: { isArchived: false },
+        select: { amount: true },
+      },
+      notes: { orderBy: { createdAt: "desc" } },
+    },
+  });
+
+  if (!ledger || ledger.partner.ownerId !== session.userId) return null;
+
+  return {
+    id: ledger.id,
+    title: ledger.title,
+    weeklyInterestRate: ledger.weeklyInterestRate ? Number(ledger.weeklyInterestRate) : 0,
+    balance: ledger.transactions.reduce((sum, t) => sum + t.amount, 0),
+    partnerId: ledger.partnerId,
+    partnerName: ledger.partner.name,
+    partnerIsArchived: ledger.partner.isArchived,
+    shareToken: ledger.shareToken,
+    shareTokenExpiresAt: ledger.shareTokenExpiresAt,
+    notes: ledger.notes,
+  };
+}
+
 const ledgerSchema = z.object({
   title: z
     .string()
@@ -87,6 +195,7 @@ export async function createLedger(
   });
 
   revalidatePath(`/partners/${partnerId}`);
+  revalidatePath("/");
   revalidatePath("/statistics/accounts");
   return { success: true };
 }
@@ -115,6 +224,8 @@ export async function updateLedger(
   });
 
   revalidatePath(`/partners/${ledger.partnerId}`);
+  revalidatePath(`/ledgers/${ledgerId}`);
+  revalidatePath("/");
   revalidatePath("/statistics/accounts");
   return { success: true };
 }
@@ -144,6 +255,138 @@ export async function deleteLedger(ledgerId: string): Promise<LedgerFormState> {
   await prisma.ledger.delete({ where: { id: ledgerId } });
 
   revalidatePath(`/partners/${ledger.partnerId}`);
+  revalidatePath("/");
   revalidatePath("/statistics/accounts");
   return { success: true };
+}
+
+// --- 共有リンク ---
+
+export type ShareTokenState = {
+  error?: string;
+  success?: boolean;
+  token?: string;
+};
+
+export async function generateLedgerShareToken(
+  ledgerId: string,
+): Promise<ShareTokenState> {
+  const session = await getSession();
+  if (!session) return { error: "ログインが必要です" };
+
+  const ledger = await prisma.ledger.findUnique({
+    where: { id: ledgerId },
+    include: { partner: true },
+  });
+  if (!ledger || ledger.partner.ownerId !== session.userId) {
+    return { error: "口座が見つかりません" };
+  }
+
+  const token = createId();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 90);
+
+  await prisma.ledger.update({
+    where: { id: ledgerId },
+    data: { shareToken: token, shareTokenExpiresAt: expiresAt },
+  });
+
+  revalidatePath(`/ledgers/${ledgerId}`);
+  return { success: true, token };
+}
+
+export async function revokeLedgerShareToken(
+  ledgerId: string,
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await getSession();
+  if (!session) return { error: "ログインが必要です" };
+
+  const ledger = await prisma.ledger.findUnique({
+    where: { id: ledgerId },
+    include: { partner: true },
+  });
+  if (!ledger || ledger.partner.ownerId !== session.userId) {
+    return { error: "口座が見つかりません" };
+  }
+
+  await prisma.ledger.update({
+    where: { id: ledgerId },
+    data: { shareToken: null, shareTokenExpiresAt: null },
+  });
+
+  revalidatePath(`/ledgers/${ledgerId}`);
+  return { success: true };
+}
+
+export type SharedLedgerData = {
+  partnerName: string;
+  ledgerTitle: string;
+  ownerName: string;
+  balance: number;
+  transactions: Array<{
+    id: string;
+    amount: number;
+    description: string | null;
+    date: Date;
+    runningBalance: number;
+  }>;
+  notes: LedgerNote[];
+};
+
+export async function getLedgerByShareToken(
+  token: string,
+): Promise<{ data?: SharedLedgerData; error?: string }> {
+  const ledger = await prisma.ledger.findUnique({
+    where: { shareToken: token },
+    select: {
+      title: true,
+      shareTokenExpiresAt: true,
+      partner: { select: { name: true, owner: { select: { name: true } } } },
+      transactions: {
+        where: { isArchived: false },
+        select: { id: true, amount: true, description: true, date: true },
+        orderBy: { date: "desc" },
+      },
+      notes: { orderBy: { createdAt: "desc" } },
+    },
+  });
+
+  if (!ledger) return { error: "invalid" };
+  if (!ledger.shareTokenExpiresAt || ledger.shareTokenExpiresAt < new Date()) {
+    return { error: "expired" };
+  }
+
+  const balance = ledger.transactions.reduce((sum, t) => sum + t.amount, 0);
+
+  let runningBalance = balance;
+  const transactionsWithBalance = ledger.transactions.map((t) => {
+    const entry = { ...t, runningBalance };
+    runningBalance -= t.amount;
+    return entry;
+  });
+
+  return {
+    data: {
+      partnerName: ledger.partner.name,
+      ledgerTitle: ledger.title,
+      ownerName: ledger.partner.owner.name,
+      balance,
+      transactions: transactionsWithBalance,
+      notes: ledger.notes,
+    },
+  };
+}
+
+// --- 相手ごとの Ledger↔Partner 対応（取引フォームでのデフォルト口座解決用） ---
+
+export async function getLedgerPartnerMap(): Promise<Record<string, string>> {
+  const session = await getSession();
+  if (!session) return {};
+
+  const ledgers = await prisma.ledger.findMany({
+    where: { partner: { ownerId: session.userId } },
+    select: { id: true, partnerId: true },
+  });
+
+  return Object.fromEntries(ledgers.map((l) => [l.id, l.partnerId]));
 }

@@ -13,12 +13,18 @@ import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createLedger, updateLedger, type LedgerWithBalance } from "@/actions/ledger";
+import { createLedger, updateLedger } from "@/actions/ledger";
 import { toast } from "sonner";
+
+type LedgerEditable = {
+  id: string;
+  title: string;
+  weeklyInterestRate: number;
+};
 
 type Props = {
   partnerId: string;
-  ledger?: LedgerWithBalance;
+  ledger?: LedgerEditable;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };

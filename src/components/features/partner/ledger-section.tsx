@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil } from "lucide-react";
+import Link from "next/link";
+import { Plus, Pencil, ChevronRight } from "lucide-react";
 import { LedgerFormDialog } from "./ledger-form-dialog";
 import type { LedgerWithBalance } from "@/actions/ledger";
 import { cn } from "@/lib/utils";
@@ -33,10 +34,10 @@ export function LedgerSection({ partnerId, ledgers }: Props) {
 
         <div className="space-y-2">
           {ledgers.map((ledger) => (
-            <button
+            <Link
               key={ledger.id}
-              onClick={() => setEditing(ledger)}
-              className="w-full text-left rounded-xl border bg-card px-3.5 py-3 hover:bg-muted/50 transition-colors"
+              href={`/ledgers/${ledger.id}`}
+              className="block w-full text-left rounded-xl border bg-card px-3.5 py-3 hover:bg-muted/50 transition-colors"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -54,7 +55,19 @@ export function LedgerSection({ partnerId, ledgers }: Props) {
                       : "無利子"}
                   </span>
                 </div>
-                <Pencil className="size-3.5 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setEditing(ledger);
+                    }}
+                    aria-label="口座を編集"
+                    className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <Pencil className="size-3.5" />
+                  </button>
+                  <ChevronRight className="size-4 text-muted-foreground" />
+                </div>
               </div>
               <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
@@ -70,7 +83,7 @@ export function LedgerSection({ partnerId, ledgers }: Props) {
                   {ledger.balance < 0 ? "-" : ""}¥{Math.abs(ledger.balance).toLocaleString()}
                 </span>
               </div>
-            </button>
+            </Link>
           ))}
         </div>
       </div>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import type { PartnerNote } from "@/generated/prisma";
+import type { LedgerNote } from "@/generated/prisma";
 
 function validateContent(content: string): string | null {
   const trimmed = content.trim();
@@ -13,82 +13,82 @@ function validateContent(content: string): string | null {
   return null;
 }
 
-export async function createPartnerNote(input: {
-  partnerId: string;
+export async function createLedgerNote(input: {
+  ledgerId: string;
   content: string;
-}): Promise<{ data?: PartnerNote; error?: string }> {
+}): Promise<{ data?: LedgerNote; error?: string }> {
   const session = await getSession();
   if (!session) return { error: "認証が必要です" };
 
   const contentError = validateContent(input.content);
   if (contentError) return { error: contentError };
 
-  const partner = await prisma.partner.findUnique({
-    where: { id: input.partnerId },
-    select: { ownerId: true },
+  const ledger = await prisma.ledger.findUnique({
+    where: { id: input.ledgerId },
+    select: { partner: { select: { ownerId: true } } },
   });
 
-  if (!partner || partner.ownerId !== session.userId) {
-    return { error: "相手が見つかりません" };
+  if (!ledger || ledger.partner.ownerId !== session.userId) {
+    return { error: "口座が見つかりません" };
   }
 
-  const note = await prisma.partnerNote.create({
+  const note = await prisma.ledgerNote.create({
     data: {
       content: input.content.trim(),
-      partnerId: input.partnerId,
+      ledgerId: input.ledgerId,
       ownerId: session.userId,
     },
   });
 
-  revalidatePath(`/partners/${input.partnerId}`);
+  revalidatePath(`/ledgers/${input.ledgerId}`);
   return { data: note };
 }
 
-export async function updatePartnerNote(input: {
+export async function updateLedgerNote(input: {
   id: string;
   content: string;
-}): Promise<{ data?: PartnerNote; error?: string }> {
+}): Promise<{ data?: LedgerNote; error?: string }> {
   const session = await getSession();
   if (!session) return { error: "認証が必要です" };
 
   const contentError = validateContent(input.content);
   if (contentError) return { error: contentError };
 
-  const existing = await prisma.partnerNote.findUnique({
+  const existing = await prisma.ledgerNote.findUnique({
     where: { id: input.id },
-    select: { ownerId: true, partnerId: true },
+    select: { ownerId: true, ledgerId: true },
   });
 
   if (!existing || existing.ownerId !== session.userId) {
     return { error: "メモが見つかりません" };
   }
 
-  const note = await prisma.partnerNote.update({
+  const note = await prisma.ledgerNote.update({
     where: { id: input.id },
     data: { content: input.content.trim() },
   });
 
-  revalidatePath(`/partners/${existing.partnerId}`);
+  revalidatePath(`/ledgers/${existing.ledgerId}`);
   return { data: note };
 }
 
-export async function deletePartnerNote(input: {
+export async function deleteLedgerNote(input: {
   id: string;
 }): Promise<{ data?: { id: string }; error?: string }> {
   const session = await getSession();
   if (!session) return { error: "認証が必要です" };
 
-  const existing = await prisma.partnerNote.findUnique({
+  const existing = await prisma.ledgerNote.findUnique({
     where: { id: input.id },
-    select: { ownerId: true, partnerId: true },
+    select: { ownerId: true, ledgerId: true },
   });
 
   if (!existing || existing.ownerId !== session.userId) {
     return { error: "メモが見つかりません" };
   }
 
-  await prisma.partnerNote.delete({ where: { id: input.id } });
+  await prisma.ledgerNote.delete({ where: { id: input.id } });
 
-  revalidatePath(`/partners/${existing.partnerId}`);
+  revalidatePath(`/ledgers/${existing.ledgerId}`);
   return { data: { id: input.id } };
 }
