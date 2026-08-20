@@ -44,8 +44,8 @@ export async function getTransactions(
 
   const dbOrderBy =
     sortOrder === "date_asc"
-      ? { date: "asc" as const }
-      : { date: "desc" as const };
+      ? [{ date: "asc" as const }, { createdAt: "desc" as const }]
+      : [{ date: "desc" as const }, { createdAt: "desc" as const }];
 
   const rows = await prisma.transaction.findMany({
     where: {
