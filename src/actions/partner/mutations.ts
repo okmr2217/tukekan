@@ -40,7 +40,13 @@ export async function createPartner(
   if (existing) return { error: "同じ名前の相手が既に登録されています" };
 
   const partner = await prisma.partner.create({
-    data: { name, ownerId: session.userId },
+    data: {
+      name,
+      ownerId: session.userId,
+      ledgers: {
+        create: { title: "通常", weeklyInterestRate: 0 },
+      },
+    },
   });
 
   revalidatePartnerScope();
