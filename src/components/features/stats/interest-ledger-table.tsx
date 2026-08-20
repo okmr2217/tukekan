@@ -47,7 +47,7 @@ export function InterestLedgerTable({ ledgers }: { ledgers: InterestLedgerStat[]
                 {l.title}
               </td>
               <td className="py-2.5 px-3 text-sm tabular-nums text-right whitespace-nowrap">
-                週{l.weeklyInterestRate}%
+                週{l.effectiveWeeklyInterestRate}%
               </td>
               <td className="py-2.5 px-3 text-sm tabular-nums text-right whitespace-nowrap">
                 ¥{l.balance.toLocaleString()}

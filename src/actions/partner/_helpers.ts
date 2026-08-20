@@ -15,6 +15,30 @@ export async function getOrCreateDefaultLedger(partnerId: string) {
   if (existing) return existing;
 
   return prisma.ledger.create({
-    data: { partnerId, title: "通常", weeklyInterestRate: 0 },
+    data: {
+      partnerId,
+      title: "通常",
+      weeklyInterestRateUnder5000: 0,
+      weeklyInterestRateFrom5000: 0,
+    },
   });
+}
+
+/**
+ * リクエストされた口座IDがその相手の口座として有効ならそのまま使い、
+ * 指定がなければデフォルト口座にフォールバックする。
+ * 無効な口座IDが指定された場合は null を返す。
+ */
+export async function resolveLedgerId(
+  partnerId: string,
+  requestedLedgerId?: string,
+): Promise<string | null> {
+  if (!requestedLedgerId) {
+    return (await getOrCreateDefaultLedger(partnerId)).id;
+  }
+  const ledger = await prisma.ledger.findUnique({
+    where: { id: requestedLedgerId },
+  });
+  if (!ledger || ledger.partnerId !== partnerId) return null;
+  return ledger.id;
 }

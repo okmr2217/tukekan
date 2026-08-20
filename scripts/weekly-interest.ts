@@ -1,16 +1,18 @@
 /**
  * 週次自動利子ジョブ
  *
- * 毎週水曜日に、週利率(weeklyInterestRate)が設定されている口座（Ledger）ごとに
+ * 毎週水曜日に、週利率が設定されている口座（Ledger）ごとに
  * 「残高 × 週利率」の利子 Transaction を自動作成する。
+ * 週利率は残高帯によって2段階（5000円未満 / 5000円以上）で適用する。
  *
- * - 対象: weeklyInterestRate > 0 の口座のうち、現在の残高がプラス（貸している側）のもの
+ * - 対象: いずれかの週利率 > 0 の口座のうち、現在の残高がプラス（貸している側）のもの
  * - 残高がマイナス・0円の口座は対象外（利子は発生させない）
  * - 実行方法: npx tsx scripts/weekly-interest.ts
  */
 
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { getEffectiveWeeklyRate } from "../src/lib/ledger-interest";
 import "dotenv/config";
 
 const adapter = new PrismaPg({
@@ -25,7 +27,12 @@ async function main() {
   console.log("Starting weekly interest job...");
 
   const ledgers = await prisma.ledger.findMany({
-    where: { weeklyInterestRate: { gt: 0 } },
+    where: {
+      OR: [
+        { weeklyInterestRateUnder5000: { gt: 0 } },
+        { weeklyInterestRateFrom5000: { gt: 0 } },
+      ],
+    },
     include: {
       partner: { select: { id: true, name: true, ownerId: true, isArchived: true } },
       transactions: {
@@ -49,7 +56,11 @@ async function main() {
       continue;
     }
 
-    const rate = Number(ledger.weeklyInterestRate);
+    const rate = getEffectiveWeeklyRate(
+      balance,
+      ledger.weeklyInterestRateUnder5000 ? Number(ledger.weeklyInterestRateUnder5000) : 0,
+      ledger.weeklyInterestRateFrom5000 ? Number(ledger.weeklyInterestRateFrom5000) : 0,
+    );
     const interest = Math.round(balance * (rate / 100));
     if (interest <= 0) continue;
 

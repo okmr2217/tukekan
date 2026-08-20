@@ -3,11 +3,14 @@
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { toJST } from "@/lib/date-utils";
+import { getEffectiveWeeklyRate } from "@/lib/ledger-interest";
 
 export type LedgerStat = {
   ledgerId: string;
   title: string;
-  weeklyInterestRate: number;
+  weeklyInterestRateUnder5000: number;
+  weeklyInterestRateFrom5000: number;
+  effectiveWeeklyInterestRate: number;
   balance: number;
   totalLent: number;
   totalBorrowed: number;
@@ -49,11 +52,17 @@ function elapsedDaysSince(date: Date): number {
 function buildLedgerStat(ledger: {
   id: string;
   title: string;
-  weeklyInterestRate: unknown;
+  weeklyInterestRateUnder5000: unknown;
+  weeklyInterestRateFrom5000: unknown;
   createdAt: Date;
   transactions: { amount: number; date: Date }[];
 }): LedgerStat {
-  const rate = ledger.weeklyInterestRate ? Number(ledger.weeklyInterestRate) : 0;
+  const rateUnder5000 = ledger.weeklyInterestRateUnder5000
+    ? Number(ledger.weeklyInterestRateUnder5000)
+    : 0;
+  const rateFrom5000 = ledger.weeklyInterestRateFrom5000
+    ? Number(ledger.weeklyInterestRateFrom5000)
+    : 0;
   const lent = ledger.transactions
     .filter((t) => t.amount > 0)
     .reduce((sum, t) => sum + t.amount, 0);
@@ -71,15 +80,18 @@ function buildLedgerStat(ledger: {
       : ledger.createdAt;
   const elapsedDays = elapsedDaysSince(lastDate);
 
+  const effectiveRate = getEffectiveWeeklyRate(balance, rateUnder5000, rateFrom5000);
   const estimatedInterest =
-    rate > 0 && balance > 0
-      ? Math.round(balance * (rate / 100) * (elapsedDays / 7))
+    effectiveRate > 0 && balance > 0
+      ? Math.round(balance * (effectiveRate / 100) * (elapsedDays / 7))
       : 0;
 
   return {
     ledgerId: ledger.id,
     title: ledger.title,
-    weeklyInterestRate: rate,
+    weeklyInterestRateUnder5000: rateUnder5000,
+    weeklyInterestRateFrom5000: rateFrom5000,
+    effectiveWeeklyInterestRate: effectiveRate,
     balance,
     totalLent: lent,
     totalBorrowed: Math.abs(borrowed),
@@ -104,7 +116,8 @@ export async function getPartnerLedgerStats(): Promise<PartnerLedgerStat[]> {
         select: {
           id: true,
           title: true,
-          weeklyInterestRate: true,
+          weeklyInterestRateUnder5000: true,
+          weeklyInterestRateFrom5000: true,
           createdAt: true,
           transactions: {
             where: { isArchived: false },
@@ -151,7 +164,9 @@ export async function getInterestBearingLedgers(): Promise<InterestLedgerStat[]>
 
   const rows = partnerStats.flatMap((p) =>
     p.ledgers
-      .filter((l) => l.weeklyInterestRate > 0)
+      .filter(
+        (l) => l.weeklyInterestRateUnder5000 > 0 || l.weeklyInterestRateFrom5000 > 0,
+      )
       .map((l) => ({ ...l, partnerId: p.partnerId, partnerName: p.partnerName })),
   );
 

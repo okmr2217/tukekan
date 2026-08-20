@@ -1,14 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { PartnerById } from "@/actions/partner";
 import type { TransactionWithPartner } from "@/actions/transaction";
-
-type Props = {
-  partner: PartnerById;
-  userName: string;
-  latestTransaction?: TransactionWithPartner;
-};
 
 function formatRelativeDate(date: Date): string {
   const now = new Date();
@@ -19,7 +12,7 @@ function formatRelativeDate(date: Date): string {
   return `${diffDays}日前`;
 }
 
-function buildLatestSummary(tx: TransactionWithPartner): string {
+export function buildLatestSummary(tx: TransactionWithPartner): string {
   const dateStr = formatRelativeDate(new Date(tx.date));
   const sign = tx.amount > 0 ? "+" : "-";
   const absAmount = Math.abs(tx.amount).toLocaleString();
@@ -34,7 +27,7 @@ type BalanceDisplayProps = {
   latestSummary?: string;
 };
 
-function BalanceDisplay({ balance, lenderName, borrowerName, latestSummary }: BalanceDisplayProps) {
+export function BalanceDisplay({ balance, lenderName, borrowerName, latestSummary }: BalanceDisplayProps) {
   const absBalance = Math.abs(balance);
 
   return (
@@ -74,24 +67,6 @@ function BalanceDisplay({ balance, lenderName, borrowerName, latestSummary }: Ba
         <p className="text-xs text-emerald-600 dark:text-emerald-400">{latestSummary}</p>
       )}
     </div>
-  );
-}
-
-export function BalanceCard({ partner, userName, latestTransaction }: Props) {
-  const latestSummary = latestTransaction ? buildLatestSummary(latestTransaction) : undefined;
-
-  // balance > 0: ユーザーが貸している（相手が借りている）
-  // balance < 0: 相手が貸している（ユーザーが借りている）
-  const lenderName = partner.balance >= 0 ? userName : partner.name;
-  const borrowerName = partner.balance >= 0 ? partner.name : userName;
-
-  return (
-    <BalanceDisplay
-      balance={partner.balance}
-      lenderName={lenderName}
-      borrowerName={borrowerName}
-      latestSummary={latestSummary}
-    />
   );
 }
 

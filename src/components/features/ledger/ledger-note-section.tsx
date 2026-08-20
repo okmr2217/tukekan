@@ -2,20 +2,20 @@
 
 import { useState } from "react";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
-import { PartnerNoteCard } from "./partner-note-card";
-import { PartnerNoteFormDialog } from "./partner-note-form-dialog";
-import type { PartnerNote } from "@/actions/partner";
+import { LedgerNoteCard } from "./ledger-note-card";
+import { LedgerNoteFormDialog } from "./ledger-note-form-dialog";
+import type { LedgerNote } from "@/generated/prisma";
 
 type Props = {
-  partnerId: string;
-  notes: PartnerNote[];
+  ledgerId: string;
+  notes: LedgerNote[];
   readOnly?: boolean;
 };
 
 const INITIAL_VISIBLE = 3;
 
-export function PartnerNoteSection({
-  partnerId,
+export function LedgerNoteSection({
+  ledgerId,
   notes,
   readOnly = false,
 }: Props) {
@@ -62,7 +62,7 @@ export function PartnerNoteSection({
           <>
             <div className="space-y-2">
               {visibleNotes.map((note) => (
-                <PartnerNoteCard key={note.id} note={note} readOnly={readOnly} />
+                <LedgerNoteCard key={note.id} note={note} readOnly={readOnly} />
               ))}
             </div>
             {hasMore && (
@@ -88,8 +88,8 @@ export function PartnerNoteSection({
       </div>
 
       {!readOnly && (
-        <PartnerNoteFormDialog
-          partnerId={partnerId}
+        <LedgerNoteFormDialog
+          ledgerId={ledgerId}
           open={addOpen}
           onOpenChange={setAddOpen}
         />
