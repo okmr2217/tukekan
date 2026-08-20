@@ -37,8 +37,24 @@ model Partner {
 
   transactions Transaction[]
   notes        PartnerNote[]
+  ledgers      Ledger[]
 
   @@unique([ownerId, name])
+}
+
+model Ledger {
+  id                 String   @id @default(cuid())
+  title              String // 自由記述（例: "通常", "5000円貸しパターン"）
+  weeklyInterestRate Decimal? @default(0) @db.Decimal(5, 2) // 週利率(%)。0 = 無利子
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  transactions Transaction[]
+
+  @@index([partnerId])
 }
 
 model Transaction {
@@ -56,8 +72,13 @@ model Transaction {
   partnerId String
   partner   Partner @relation(fields: [partnerId], references: [id])
 
+  // 口座（Ledger）への紐づけ。既存データの移行が済むまでは null を許容する。
+  ledgerId String?
+  ledger   Ledger? @relation(fields: [ledgerId], references: [id])
+
   @@index([ownerId])
   @@index([partnerId])
+  @@index([ledgerId])
   @@index([date])
 }
 

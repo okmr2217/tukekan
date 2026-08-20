@@ -13,13 +13,19 @@ const NAV_ITEMS = [
 ] as const;
 
 const MENU_TAB_PATHS = ["/menu", "/partners", "/settings", "/help"];
+const MENU_TAB_PREFIXES = ["/statistics/accounts"];
 
 export function BottomBar() {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
-    if (href === "/menu") return MENU_TAB_PATHS.includes(pathname);
+    if (href === "/menu") {
+      return (
+        MENU_TAB_PATHS.includes(pathname) ||
+        MENU_TAB_PREFIXES.some((p) => pathname.startsWith(p))
+      );
+    }
     return pathname === href;
   };
 
