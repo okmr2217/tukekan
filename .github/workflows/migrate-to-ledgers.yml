@@ -44,11 +44,15 @@ jobs:
         # Ubuntu 24.04's default postgresql-client is v16, but the Supabase
         # server runs PostgreSQL 17, and pg_dump refuses to run against a
         # newer major server version. Install the matching client from PGDG.
+        # postgresql-common's update-alternatives doesn't switch the active
+        # pg_dump automatically, so prepend the v17 bin dir to PATH instead.
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
           pg_dump --version
 
       - name: Diagnose DB connectivity
