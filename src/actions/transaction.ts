@@ -4,7 +4,7 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { revalidateTransactionScope } from "@/lib/revalidate";
-import { getOrCreateDefaultLedger } from "@/actions/partner/_helpers";
+import { resolveLedgerId } from "@/actions/partner/_helpers";
 
 export type TransactionWithPartner = {
   id: string;
@@ -15,6 +15,7 @@ export type TransactionWithPartner = {
   partnerId: string;
   partnerName: string;
   partnerIsArchived: boolean;
+  ledgerId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -23,6 +24,7 @@ export type SortOrder = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 
 type GetTransactionsParams = {
   partnerIds?: string[];
+  ledgerIds?: string[];
   showArchived?: boolean;
   showArchivedPartners?: boolean;
   q?: string;
@@ -37,6 +39,7 @@ export async function getTransactions(
 
   const {
     partnerIds,
+    ledgerIds,
     showArchived = false,
     showArchivedPartners = false,
     q,
@@ -53,6 +56,7 @@ export async function getTransactions(
       ownerId: session.userId,
       ...(showArchived ? {} : { isArchived: false }),
       ...(q ? { description: { contains: q } } : {}),
+      ...(ledgerIds && ledgerIds.length > 0 ? { ledgerId: { in: ledgerIds } } : {}),
       partner: {
         ...(showArchivedPartners ? {} : { isArchived: false }),
         ...(partnerIds && partnerIds.length > 0 ? { id: { in: partnerIds } } : {}),
@@ -71,6 +75,7 @@ export async function getTransactions(
     partnerId: t.partnerId,
     partnerName: t.partner.name,
     partnerIsArchived: t.partner.isArchived,
+    ledgerId: t.ledgerId,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
   }));
@@ -108,6 +113,7 @@ export async function getDescriptionSuggestions(): Promise<string[]> {
 
 const createTransactionSchema = z.object({
   partnerId: z.string().min(1, "相手を選択してください"),
+  ledgerId: z.string().optional(),
   amount: z
     .number()
     .int("整数で入力してください")
@@ -149,6 +155,7 @@ export async function createTransaction(
 
   const result = createTransactionSchema.safeParse({
     partnerId: formData.get("partnerId"),
+    ledgerId: formData.get("ledgerId") || undefined,
     amount: isNaN(amount) ? undefined : amount,
     description: formData.get("description") || undefined,
     date: date,
@@ -160,6 +167,7 @@ export async function createTransaction(
 
   const {
     partnerId,
+    ledgerId: requestedLedgerId,
     amount: validAmount,
     description,
     date: validDate,
@@ -178,7 +186,10 @@ export async function createTransaction(
     return { error: "この相手への取引を登録する権限がありません" };
   }
 
-  const ledger = await getOrCreateDefaultLedger(partnerId);
+  const ledgerId = await resolveLedgerId(partnerId, requestedLedgerId);
+  if (!ledgerId) {
+    return { error: "指定された口座が見つかりません" };
+  }
 
   await prisma.transaction.create({
     data: {
@@ -187,7 +198,7 @@ export async function createTransaction(
       date: validDate,
       ownerId: session.userId,
       partnerId: partnerId,
-      ledgerId: ledger.id,
+      ledgerId,
     },
   });
 
@@ -200,6 +211,7 @@ export async function createTransaction(
 const updateTransactionSchema = z.object({
   transactionId: z.string().min(1, "取引IDが必要です"),
   partnerId: z.string().optional(),
+  ledgerId: z.string().optional(),
   amount: z
     .number()
     .int("整数で入力してください")
@@ -234,6 +246,7 @@ export async function updateTransaction(
   const result = updateTransactionSchema.safeParse({
     transactionId: formData.get("transactionId"),
     partnerId: formData.get("partnerId") || undefined,
+    ledgerId: formData.get("ledgerId") || undefined,
     amount: isNaN(amount) ? undefined : amount,
     description: formData.get("description") || undefined,
     date: date,
@@ -246,6 +259,7 @@ export async function updateTransaction(
   const {
     transactionId,
     partnerId,
+    ledgerId: requestedLedgerId,
     amount: validAmount,
     description,
     date: validDate,
@@ -275,9 +289,16 @@ export async function updateTransaction(
   }
 
   const partnerChanged = !!partnerId && partnerId !== transaction.partnerId;
-  const ledgerId = partnerChanged
-    ? (await getOrCreateDefaultLedger(partnerId)).id
-    : undefined;
+  const effectivePartnerId = partnerId ?? transaction.partnerId;
+
+  let ledgerId: string | undefined;
+  if (requestedLedgerId || partnerChanged) {
+    const resolved = await resolveLedgerId(effectivePartnerId, requestedLedgerId);
+    if (!resolved) {
+      return { error: "指定された口座が見つかりません" };
+    }
+    ledgerId = resolved;
+  }
 
   await prisma.transaction.update({
     where: { id: transactionId },

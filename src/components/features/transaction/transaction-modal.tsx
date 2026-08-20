@@ -14,6 +14,7 @@ import { FAB } from "@/components/layouts/fab";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { TransactionFormFields } from "./transaction-form-fields";
 import { PartnerPickerField } from "./partner-picker-field";
+import { LedgerPickerField } from "./ledger-picker-field";
 import { createTransaction } from "@/actions/transaction";
 import {
   floorToNearest30,
@@ -28,16 +29,19 @@ type Props = {
   partners: Partner[];
   suggestions: string[];
   defaultPartnerId?: string;
+  defaultLedgerId?: string;
 };
 
 export function TransactionModal({
   partners,
   suggestions,
   defaultPartnerId,
+  defaultLedgerId,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [partnerId, setPartnerId] = useState(defaultPartnerId ?? "");
+  const [ledgerId, setLedgerId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<TransactionFormValues>({
@@ -54,6 +58,7 @@ export function TransactionModal({
   useEffect(() => {
     if (!open) return;
     setPartnerId(defaultPartnerId ?? "");
+    setLedgerId(defaultLedgerId ?? "");
     setError(null);
     form.reset({
       amount: "",
@@ -63,7 +68,7 @@ export function TransactionModal({
       otherDate: formatDateToJST(),
       selectedTime: floorToNearest30(new Date()),
     });
-  }, [open, defaultPartnerId, form]);
+  }, [open, defaultPartnerId, defaultLedgerId, form]);
 
   // Keyboard shortcut: N to open modal
   useEffect(() => {
@@ -103,6 +108,7 @@ export function TransactionModal({
     startTransition(async () => {
       const formData = new FormData();
       formData.set("partnerId", partnerId);
+      if (ledgerId) formData.set("ledgerId", ledgerId);
       formData.set("amount", signedAmount.toString());
       formData.set("description", data.description);
       formData.set("date", date.toISOString());
@@ -138,7 +144,17 @@ export function TransactionModal({
                 <PartnerPickerField
                   partners={partners}
                   selectedId={partnerId}
-                  onSelect={setPartnerId}
+                  onSelect={(id) => {
+                    setPartnerId(id);
+                    setLedgerId("");
+                  }}
+                  disabled={isPending}
+                />
+
+                <LedgerPickerField
+                  partnerId={partnerId}
+                  selectedId={ledgerId}
+                  onSelect={setLedgerId}
                   disabled={isPending}
                 />
 

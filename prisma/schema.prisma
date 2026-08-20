@@ -20,39 +20,39 @@ model Account {
 
   partners     Partner[]
   transactions Transaction[]
-  partnerNotes PartnerNote[]
+  ledgerNotes  LedgerNote[]
 }
 
 model Partner {
-  id                  String    @id @default(cuid())
-  name                String
-  isArchived          Boolean   @default(false)
-  shareToken          String?   @unique
-  shareTokenExpiresAt DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  name       String
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   ownerId String
   owner   Account @relation(fields: [ownerId], references: [id])
 
   transactions Transaction[]
-  notes        PartnerNote[]
   ledgers      Ledger[]
 
   @@unique([ownerId, name])
 }
 
 model Ledger {
-  id                 String   @id @default(cuid())
-  title              String // 自由記述（例: "通常", "5000円貸しパターン"）
-  weeklyInterestRate Decimal? @default(0) @db.Decimal(5, 2) // 週利率(%)。0 = 無利子
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  title               String // 自由記述（例: "通常", "5000円貸しパターン"）
+  weeklyInterestRate  Decimal?  @default(0) @db.Decimal(5, 2) // 週利率(%)。0 = 無利子
+  shareToken          String?   @unique
+  shareTokenExpiresAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   partnerId String
   partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   transactions Transaction[]
+  notes        LedgerNote[]
 
   @@index([partnerId])
 }
@@ -82,7 +82,7 @@ model Transaction {
   @@index([date])
 }
 
-model PartnerNote {
+model LedgerNote {
   id        String   @id @default(cuid())
   content   String
   createdAt DateTime @default(now())
@@ -91,9 +91,9 @@ model PartnerNote {
   ownerId String
   owner   Account @relation(fields: [ownerId], references: [id])
 
-  partnerId String
-  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  ledgerId String
+  ledger   Ledger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
 
-  @@index([partnerId])
+  @@index([ledgerId])
   @@index([ownerId])
 }

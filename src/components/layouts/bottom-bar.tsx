@@ -6,7 +6,7 @@ import { Users, List, BarChart2, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/", label: "相手", icon: Users },
+  { href: "/", label: "口座", icon: Users },
   { href: "/transactions", label: "すべての取引", icon: List },
   { href: "/statistics", label: "統計", icon: BarChart2 },
   { href: "/menu", label: "メニュー", icon: Menu },

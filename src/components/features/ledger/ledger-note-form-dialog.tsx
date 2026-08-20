@@ -11,20 +11,20 @@ import {
 } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { createPartnerNote, updatePartnerNote } from "@/actions/partner-note";
-import type { PartnerNote } from "@/actions/partner";
+import { createLedgerNote, updateLedgerNote } from "@/actions/ledger-note";
+import type { LedgerNote } from "@/generated/prisma";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
-  partnerId: string;
-  note?: PartnerNote;
+  ledgerId: string;
+  note?: LedgerNote;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-export function PartnerNoteFormDialog({
-  partnerId,
+export function LedgerNoteFormDialog({
+  ledgerId,
   note,
   open,
   onOpenChange,
@@ -46,8 +46,8 @@ export function PartnerNoteFormDialog({
     if (!isValid || isPending) return;
     startTransition(async () => {
       const result = note
-        ? await updatePartnerNote({ id: note.id, content })
-        : await createPartnerNote({ partnerId, content });
+        ? await updateLedgerNote({ id: note.id, content })
+        : await createLedgerNote({ ledgerId, content });
 
       if (result.error) {
         toast.error(result.error);

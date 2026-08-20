@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getPartnersForHome } from "@/actions/partner";
-import { PartnerHomeCard } from "@/components/features/partner/partner-home-card";
+import { getLedgersForHome } from "@/actions/ledger";
+import { LedgerHomeCard } from "@/components/features/ledger/ledger-home-card";
 import { MobileHeader } from "@/components/layouts/mobile-header";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
@@ -12,15 +12,15 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const partners = await getPartnersForHome();
+  const ledgers = await getLedgersForHome();
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title="相手" />
+      <MobileHeader title="口座" />
 
       <div className="px-4 pt-3 pb-4 max-w-lg mx-auto w-full">
-        <p className="text-xs text-muted-foreground mb-3">取引相手の残高と履歴</p>
-        {partners.length === 0 ? (
+        <p className="text-xs text-muted-foreground mb-3">相手ごとの口座と残高</p>
+        {ledgers.length === 0 ? (
           <div className="py-16 text-center space-y-3">
             <p className="text-muted-foreground text-sm">
               相手がまだ登録されていません
@@ -35,8 +35,8 @@ export default async function HomePage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {partners.map((partner) => (
-              <PartnerHomeCard key={partner.id} partner={partner} />
+            {ledgers.map((ledger) => (
+              <LedgerHomeCard key={ledger.id} ledger={ledger} />
             ))}
           </div>
         )}

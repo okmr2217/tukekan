@@ -2,16 +2,16 @@
 
 import { useTransition, useState, useEffect } from "react";
 import { Share2, Link2Off, RefreshCw, Copy, ExternalLink } from "lucide-react";
-import { generateShareToken, revokeShareToken } from "@/actions/partner";
+import { generateLedgerShareToken, revokeLedgerShareToken } from "@/actions/ledger";
 import { toast } from "sonner";
-import type { PartnerById } from "@/actions/partner";
+import type { LedgerById } from "@/actions/ledger";
 import { toJST } from "@/lib/date-utils";
 
 type Props = {
-  partner: PartnerById;
+  ledger: LedgerById;
 };
 
-export function ShareLinkSection({ partner }: Props) {
+export function LedgerShareLinkSection({ ledger }: Props) {
   const [isPending, startTransition] = useTransition();
   const [origin, setOrigin] = useState("");
 
@@ -20,18 +20,18 @@ export function ShareLinkSection({ partner }: Props) {
   }, []);
 
   const hasActiveToken =
-    partner.shareToken !== null &&
-    partner.shareTokenExpiresAt !== null &&
-    new Date(partner.shareTokenExpiresAt) > new Date();
+    ledger.shareToken !== null &&
+    ledger.shareTokenExpiresAt !== null &&
+    new Date(ledger.shareTokenExpiresAt) > new Date();
 
   const shareUrl =
-    hasActiveToken && partner.shareToken
-      ? `${origin}/share/${partner.shareToken}`
+    hasActiveToken && ledger.shareToken
+      ? `${origin}/share/${ledger.shareToken}`
       : null;
 
   const handleGenerate = () => {
     startTransition(async () => {
-      const result = await generateShareToken(partner.id);
+      const result = await generateLedgerShareToken(ledger.id);
       if (result.error) {
         toast.error(result.error);
         return;
@@ -57,7 +57,7 @@ export function ShareLinkSection({ partner }: Props) {
 
   const handleRevoke = () => {
     startTransition(async () => {
-      const result = await revokeShareToken(partner.id);
+      const result = await revokeLedgerShareToken(ledger.id);
       if (result.error) {
         toast.error(result.error);
       } else {
@@ -66,8 +66,8 @@ export function ShareLinkSection({ partner }: Props) {
     });
   };
 
-  const expiresAt = partner.shareTokenExpiresAt
-    ? new Date(partner.shareTokenExpiresAt)
+  const expiresAt = ledger.shareTokenExpiresAt
+    ? new Date(ledger.shareTokenExpiresAt)
     : null;
 
   const formatExpiry = (date: Date) => {
@@ -82,7 +82,9 @@ export function ShareLinkSection({ partner }: Props) {
         <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0">
           <Share2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
         </div>
-        <p className="text-sm font-medium">{partner.name}との取引を共有</p>
+        <p className="text-sm font-medium">
+          {ledger.partnerName}との取引（{ledger.title}）を共有
+        </p>
       </div>
 
       {hasActiveToken && expiresAt && shareUrl ? (
