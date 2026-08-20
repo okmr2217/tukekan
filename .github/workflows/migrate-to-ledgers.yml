@@ -47,14 +47,21 @@ jobs:
           fi
           pg_dump --version
 
+      - name: Diagnose DB connectivity
+        run: |
+          echo "--- DATABASE_URL (pooler, expected port 6543) ---"
+          timeout 15 pg_isready -d "$DATABASE_URL" || echo "DATABASE_URL: pg_isready failed or timed out (exit $?)"
+          echo "--- DIRECT_URL (expected port 5432) ---"
+          timeout 15 pg_isready -d "$DIRECT_URL" || echo "DIRECT_URL: pg_isready failed or timed out (exit $?)"
+
       - name: Check migration status (pre)
-        run: npx prisma migrate status || true
+        run: timeout 60 npx prisma migrate status || echo "::warning::migrate status (pre) failed or timed out (exit $?)"
 
       - name: Backup production database
         id: backup
         run: |
           filename="backup_$(date -u +%Y%m%d_%H%M%S).dump"
-          pg_dump "$DIRECT_URL" -Fc -f "$filename"
+          timeout 120 pg_dump "$DIRECT_URL" -Fc -f "$filename"
           ls -lh "$filename"
           echo "filename=$filename" >> "$GITHUB_OUTPUT"
 
@@ -66,13 +73,13 @@ jobs:
           retention-days: 14
 
       - name: Apply pending migrations
-        run: npx prisma migrate deploy
+        run: timeout 120 npx prisma migrate deploy
 
       - name: Run ledger migration script
-        run: npx tsx prisma/migrations/migrate-to-ledgers.ts
+        run: timeout 120 npx tsx prisma/migrations/migrate-to-ledgers.ts
 
       - name: Check migration status (post)
-        run: npx prisma migrate status
+        run: timeout 60 npx prisma migrate status
 
       - name: Write job summary
         run: |
