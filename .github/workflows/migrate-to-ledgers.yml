@@ -17,8 +17,15 @@ on:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    # DATABASE_URL normally points at the transaction-mode pooler (6543),
+    # which the app uses at runtime. But Prisma's migrate CLI (schema-engine)
+    # hangs indefinitely against that pooler from this runner, regardless of
+    # directUrl being configured in prisma.config.ts. For this one-shot job,
+    # point DATABASE_URL at the session-mode pooler (same as DIRECT_URL) so
+    # every step -- npm ci/prisma generate, migrate status/deploy, and the
+    # ledger script -- uses a connection that's actually reachable.
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DIRECT_URL }}
       DIRECT_URL: ${{ secrets.DIRECT_URL }}
     steps:
       - name: Confirm intent
