@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { getLedgersByPartner } from "@/actions/ledger";
 import { cn } from "@/lib/utils";
 
-type LedgerOption = { id: string; title: string; weeklyInterestRate: number };
+type LedgerOption = { id: string; title: string; effectiveWeeklyInterestRate: number };
 
 type Props = {
   partnerId: string;
@@ -65,7 +65,7 @@ export function LedgerPickerField({
               )}
             >
               {l.title}
-              {l.weeklyInterestRate > 0 && (
+              {l.effectiveWeeklyInterestRate > 0 && (
                 <span
                   className={cn(
                     "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
@@ -74,7 +74,7 @@ export function LedgerPickerField({
                       : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
                   )}
                 >
-                  週{l.weeklyInterestRate}%
+                  週{l.effectiveWeeklyInterestRate}%
                 </span>
               )}
             </button>

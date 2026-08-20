@@ -3,7 +3,9 @@ import Link from "next/link";
 import { getLedgerByShareToken } from "@/actions/ledger";
 import { SharedBalanceCard } from "@/components/features/partner/balance-card";
 import { LedgerNoteSection } from "@/components/features/ledger/ledger-note-section";
+import { NextInterestNotice } from "@/components/features/ledger/next-interest-notice";
 import { SharedTransactionCard } from "@/components/features/transaction/shared-transaction-card";
+import { INTEREST_TIER_THRESHOLD } from "@/lib/ledger-interest";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -40,9 +42,19 @@ export default async function SharePage({ params }: Props) {
     );
   }
 
-  const { partnerName, ledgerTitle, ownerName, balance, transactions, notes } =
-    result.data!;
+  const {
+    partnerName,
+    ledgerTitle,
+    ownerName,
+    balance,
+    weeklyInterestRateUnder5000,
+    weeklyInterestRateFrom5000,
+    nextInterest,
+    transactions,
+    notes,
+  } = result.data!;
   const isDefaultLedger = ledgerTitle === "通常";
+  const hasInterest = weeklyInterestRateUnder5000 > 0 || weeklyInterestRateFrom5000 > 0;
 
   return (
     <div className="min-h-screen">
@@ -75,6 +87,32 @@ export default async function SharePage({ params }: Props) {
             ownerName={ownerName}
             partnerName={partnerName}
           />
+        </div>
+
+        {/* 口座情報 */}
+        <div>
+          <p className="text-xs font-medium tracking-widest text-emerald-600 uppercase mb-2">
+            口座について
+          </p>
+          <div className="rounded-xl border bg-card px-4 py-3.5 space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">口座名</span>
+              <span className="font-medium">{ledgerTitle}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">週利率</span>
+              {hasInterest ? (
+                <span className="font-medium tabular-nums">
+                  {INTEREST_TIER_THRESHOLD.toLocaleString()}円未満 週
+                  {weeklyInterestRateUnder5000}% ・ {INTEREST_TIER_THRESHOLD.toLocaleString()}
+                  円以上 週{weeklyInterestRateFrom5000}%
+                </span>
+              ) : (
+                <span className="font-medium">無利子</span>
+              )}
+            </div>
+            <NextInterestNotice nextInterest={nextInterest} />
+          </div>
         </div>
 
         {/* Notes */}

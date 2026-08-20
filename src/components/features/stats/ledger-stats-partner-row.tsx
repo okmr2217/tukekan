@@ -64,12 +64,12 @@ export function LedgerStatsPartnerRow({ stat }: { stat: PartnerLedgerStat }) {
                 <span
                   className={cn(
                     "inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full",
-                    ledger.weeklyInterestRate > 0
+                    ledger.effectiveWeeklyInterestRate > 0
                       ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
                       : "bg-muted text-muted-foreground",
                   )}
                 >
-                  {ledger.weeklyInterestRate > 0 ? `週${ledger.weeklyInterestRate}%` : "無利子"}
+                  {ledger.effectiveWeeklyInterestRate > 0 ? `週${ledger.effectiveWeeklyInterestRate}%` : "無利子"}
                 </span>
               </div>
               <div className="text-muted-foreground md:text-foreground">

@@ -14,12 +14,14 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createLedger, updateLedger } from "@/actions/ledger";
+import { INTEREST_TIER_THRESHOLD } from "@/lib/ledger-interest";
 import { toast } from "sonner";
 
 type LedgerEditable = {
   id: string;
   title: string;
-  weeklyInterestRate: number;
+  weeklyInterestRateUnder5000: number;
+  weeklyInterestRateFrom5000: number;
 };
 
 type Props = {
@@ -30,38 +32,53 @@ type Props = {
 };
 
 const RATE_PRESETS = [
-  { label: "無利子", value: 0 },
-  { label: "週4%（5,000円/7日=200円相当）", value: 4 },
-  { label: "週5%（1,000円/7日=50円相当）", value: 5 },
+  { label: "無利子", under5000: 0, from5000: 0 },
+  {
+    label: "標準（5,000円未満は週5%・5,000円以上は週4%）",
+    under5000: 5,
+    from5000: 4,
+  },
 ] as const;
 
 export function LedgerFormDialog({ partnerId, ledger, open, onOpenChange }: Props) {
   const [title, setTitle] = useState(ledger?.title ?? "");
-  const [rate, setRate] = useState(String(ledger?.weeklyInterestRate ?? 0));
+  const [rateUnder5000, setRateUnder5000] = useState(
+    String(ledger?.weeklyInterestRateUnder5000 ?? 0),
+  );
+  const [rateFrom5000, setRateFrom5000] = useState(
+    String(ledger?.weeklyInterestRateFrom5000 ?? 0),
+  );
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (open) {
       setTitle(ledger?.title ?? "");
-      setRate(String(ledger?.weeklyInterestRate ?? 0));
+      setRateUnder5000(String(ledger?.weeklyInterestRateUnder5000 ?? 0));
+      setRateFrom5000(String(ledger?.weeklyInterestRateFrom5000 ?? 0));
     }
   }, [open, ledger]);
 
   const trimmedTitle = title.trim();
-  const parsedRate = Number(rate);
+  const parsedRateUnder5000 = Number(rateUnder5000);
+  const parsedRateFrom5000 = Number(rateFrom5000);
+  const isRateValid = (v: number) => !Number.isNaN(v) && v >= 0 && v <= 100;
   const isValid =
     trimmedTitle.length >= 1 &&
     trimmedTitle.length <= 30 &&
-    !Number.isNaN(parsedRate) &&
-    parsedRate >= 0 &&
-    parsedRate <= 100;
+    isRateValid(parsedRateUnder5000) &&
+    isRateValid(parsedRateFrom5000);
 
   const handleSubmit = () => {
     if (!isValid || isPending) return;
     startTransition(async () => {
+      const input = {
+        title: trimmedTitle,
+        weeklyInterestRateUnder5000: parsedRateUnder5000,
+        weeklyInterestRateFrom5000: parsedRateFrom5000,
+      };
       const result = ledger
-        ? await updateLedger(ledger.id, { title: trimmedTitle, weeklyInterestRate: parsedRate })
-        : await createLedger(partnerId, { title: trimmedTitle, weeklyInterestRate: parsedRate });
+        ? await updateLedger(ledger.id, input)
+        : await createLedger(partnerId, input);
 
       if (result.error) {
         toast.error(result.error);
@@ -92,30 +109,59 @@ export function LedgerFormDialog({ partnerId, ledger, open, onOpenChange }: Prop
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="ledger-rate">週利率（%）</Label>
-              <Input
-                id="ledger-rate"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                max={100}
-                step={0.1}
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-                disabled={isPending}
-              />
-              <p className="text-xs text-muted-foreground">
-                0 = 無利子。残高に対して毎週水曜日に自動計算される。
-              </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ledger-rate-under">
+                  週利率（%）
+                  <span className="block text-[11px] font-normal text-muted-foreground">
+                    残高{INTEREST_TIER_THRESHOLD.toLocaleString()}円未満
+                  </span>
+                </Label>
+                <Input
+                  id="ledger-rate-under"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={rateUnder5000}
+                  onChange={(e) => setRateUnder5000(e.target.value)}
+                  disabled={isPending}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ledger-rate-from">
+                  週利率（%）
+                  <span className="block text-[11px] font-normal text-muted-foreground">
+                    残高{INTEREST_TIER_THRESHOLD.toLocaleString()}円以上
+                  </span>
+                </Label>
+                <Input
+                  id="ledger-rate-from"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={rateFrom5000}
+                  onChange={(e) => setRateFrom5000(e.target.value)}
+                  disabled={isPending}
+                />
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              いずれも0 = 無利子。残高帯に応じて自動で切り替わり、毎週水曜日に計算される。
+            </p>
 
             <div className="flex flex-wrap gap-1.5">
               {RATE_PRESETS.map((preset) => (
                 <button
                   key={preset.label}
                   type="button"
-                  onClick={() => setRate(String(preset.value))}
+                  onClick={() => {
+                    setRateUnder5000(String(preset.under5000));
+                    setRateFrom5000(String(preset.from5000));
+                  }}
                   className="text-xs px-2.5 py-1 rounded-full border border-border hover:bg-muted transition-colors"
                   disabled={isPending}
                 >

@@ -44,7 +44,11 @@ export async function createPartner(
       name,
       ownerId: session.userId,
       ledgers: {
-        create: { title: "通常", weeklyInterestRate: 0 },
+        create: {
+          title: "通常",
+          weeklyInterestRateUnder5000: 0,
+          weeklyInterestRateFrom5000: 0,
+        },
       },
     },
   });

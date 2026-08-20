@@ -15,7 +15,12 @@ export async function getOrCreateDefaultLedger(partnerId: string) {
   if (existing) return existing;
 
   return prisma.ledger.create({
-    data: { partnerId, title: "通常", weeklyInterestRate: 0 },
+    data: {
+      partnerId,
+      title: "通常",
+      weeklyInterestRateUnder5000: 0,
+      weeklyInterestRateFrom5000: 0,
+    },
   });
 }
 

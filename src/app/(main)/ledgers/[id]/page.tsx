@@ -12,6 +12,7 @@ import { LedgerBalanceCard } from "@/components/features/ledger/ledger-balance-c
 import { LedgerShareLinkSection } from "@/components/features/ledger/ledger-share-link-section";
 import { LedgerNoteSection } from "@/components/features/ledger/ledger-note-section";
 import { LedgerSettingsLink } from "@/components/features/ledger/ledger-settings-link";
+import { NextInterestNotice } from "@/components/features/ledger/next-interest-notice";
 import { MobileHeader } from "@/components/layouts/mobile-header";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -78,6 +79,9 @@ export default async function LedgerDetailPage({
 
         {/* 口座設定（利率・名前） */}
         <LedgerSettingsLink ledger={ledger} />
+
+        {/* 次回の利子予定 */}
+        <NextInterestNotice nextInterest={ledger.nextInterest} />
 
         {/* 共有リンクセクション */}
         <div>

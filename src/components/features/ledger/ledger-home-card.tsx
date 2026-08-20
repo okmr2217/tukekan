@@ -34,9 +34,9 @@ export function LedgerHomeCard({ ledger }: Props) {
               {ledger.title}
             </span>
           )}
-          {ledger.weeklyInterestRate > 0 && (
+          {ledger.effectiveWeeklyInterestRate > 0 && (
             <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
-              週{ledger.weeklyInterestRate}%
+              週{ledger.effectiveWeeklyInterestRate}%
             </span>
           )}
         </p>

@@ -40,9 +40,13 @@ model Partner {
 }
 
 model Ledger {
-  id                  String    @id @default(cuid())
-  title               String // 自由記述（例: "通常", "5000円貸しパターン"）
-  weeklyInterestRate  Decimal?  @default(0) @db.Decimal(5, 2) // 週利率(%)。0 = 無利子
+  id    String @id @default(cuid())
+  title String // 自由記述（例: "通常", "5000円貸しパターン"）
+
+  // 週利率(%)。残高帯によって2段階で指定できる。0 = 無利子
+  weeklyInterestRateUnder5000 Decimal? @default(0) @db.Decimal(5, 2) // 残高5000円未満に適用
+  weeklyInterestRateFrom5000  Decimal? @default(0) @db.Decimal(5, 2) // 残高5000円以上に適用
+
   shareToken          String?   @unique
   shareTokenExpiresAt DateTime?
   createdAt           DateTime  @default(now())

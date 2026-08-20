@@ -7,11 +7,18 @@ import { getSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { findOwnedPartner } from "@/actions/partner/_helpers";
 import type { LedgerNote } from "@/generated/prisma";
+import {
+  getEffectiveWeeklyRate,
+  getNextInterestPreview,
+  type NextInterestPreview,
+} from "@/lib/ledger-interest";
 
 export type LedgerWithBalance = {
   id: string;
   title: string;
-  weeklyInterestRate: number;
+  weeklyInterestRateUnder5000: number;
+  weeklyInterestRateFrom5000: number;
+  effectiveWeeklyInterestRate: number;
   balance: number;
   totalLent: number;
   totalBorrowed: number;
@@ -44,12 +51,25 @@ export async function getLedgersByPartner(
     const borrowed = l.transactions
       .filter((t) => t.amount < 0)
       .reduce((sum, t) => sum + t.amount, 0);
+    const balance = lent + borrowed;
+    const rateUnder5000 = l.weeklyInterestRateUnder5000
+      ? Number(l.weeklyInterestRateUnder5000)
+      : 0;
+    const rateFrom5000 = l.weeklyInterestRateFrom5000
+      ? Number(l.weeklyInterestRateFrom5000)
+      : 0;
 
     return {
       id: l.id,
       title: l.title,
-      weeklyInterestRate: l.weeklyInterestRate ? Number(l.weeklyInterestRate) : 0,
-      balance: lent + borrowed,
+      weeklyInterestRateUnder5000: rateUnder5000,
+      weeklyInterestRateFrom5000: rateFrom5000,
+      effectiveWeeklyInterestRate: getEffectiveWeeklyRate(
+        balance,
+        rateUnder5000,
+        rateFrom5000,
+      ),
+      balance,
       totalLent: lent,
       totalBorrowed: Math.abs(borrowed),
       transactionCount: l.transactions.length,
@@ -63,7 +83,7 @@ export type LedgerForHome = {
   partnerId: string;
   partnerName: string;
   title: string;
-  weeklyInterestRate: number;
+  effectiveWeeklyInterestRate: number;
   balance: number;
   lastTransaction: {
     amount: number;
@@ -81,7 +101,8 @@ export async function getLedgersForHome(): Promise<LedgerForHome[]> {
     select: {
       id: true,
       title: true,
-      weeklyInterestRate: true,
+      weeklyInterestRateUnder5000: true,
+      weeklyInterestRateFrom5000: true,
       partnerId: true,
       partner: { select: { name: true } },
       transactions: {
@@ -93,15 +114,22 @@ export async function getLedgersForHome(): Promise<LedgerForHome[]> {
   });
 
   return ledgers
-    .map((l) => ({
-      id: l.id,
-      partnerId: l.partnerId,
-      partnerName: l.partner.name,
-      title: l.title,
-      weeklyInterestRate: l.weeklyInterestRate ? Number(l.weeklyInterestRate) : 0,
-      balance: l.transactions.reduce((sum, t) => sum + t.amount, 0),
-      lastTransaction: l.transactions[0] ?? null,
-    }))
+    .map((l) => {
+      const balance = l.transactions.reduce((sum, t) => sum + t.amount, 0);
+      return {
+        id: l.id,
+        partnerId: l.partnerId,
+        partnerName: l.partner.name,
+        title: l.title,
+        effectiveWeeklyInterestRate: getEffectiveWeeklyRate(
+          balance,
+          l.weeklyInterestRateUnder5000 ? Number(l.weeklyInterestRateUnder5000) : 0,
+          l.weeklyInterestRateFrom5000 ? Number(l.weeklyInterestRateFrom5000) : 0,
+        ),
+        balance,
+        lastTransaction: l.transactions[0] ?? null,
+      };
+    })
     .sort((a, b) => {
       if (!a.lastTransaction && !b.lastTransaction) return 0;
       if (!a.lastTransaction) return 1;
@@ -116,7 +144,9 @@ export async function getLedgersForHome(): Promise<LedgerForHome[]> {
 export type LedgerById = {
   id: string;
   title: string;
-  weeklyInterestRate: number;
+  weeklyInterestRateUnder5000: number;
+  weeklyInterestRateFrom5000: number;
+  effectiveWeeklyInterestRate: number;
   balance: number;
   partnerId: string;
   partnerName: string;
@@ -124,6 +154,7 @@ export type LedgerById = {
   shareToken: string | null;
   shareTokenExpiresAt: Date | null;
   notes: LedgerNote[];
+  nextInterest: NextInterestPreview;
 };
 
 export async function getLedgerById(ledgerId: string): Promise<LedgerById | null> {
@@ -135,7 +166,8 @@ export async function getLedgerById(ledgerId: string): Promise<LedgerById | null
     select: {
       id: true,
       title: true,
-      weeklyInterestRate: true,
+      weeklyInterestRateUnder5000: true,
+      weeklyInterestRateFrom5000: true,
       shareToken: true,
       shareTokenExpiresAt: true,
       partnerId: true,
@@ -150,17 +182,28 @@ export async function getLedgerById(ledgerId: string): Promise<LedgerById | null
 
   if (!ledger || ledger.partner.ownerId !== session.userId) return null;
 
+  const balance = ledger.transactions.reduce((sum, t) => sum + t.amount, 0);
+  const rateUnder5000 = ledger.weeklyInterestRateUnder5000
+    ? Number(ledger.weeklyInterestRateUnder5000)
+    : 0;
+  const rateFrom5000 = ledger.weeklyInterestRateFrom5000
+    ? Number(ledger.weeklyInterestRateFrom5000)
+    : 0;
+
   return {
     id: ledger.id,
     title: ledger.title,
-    weeklyInterestRate: ledger.weeklyInterestRate ? Number(ledger.weeklyInterestRate) : 0,
-    balance: ledger.transactions.reduce((sum, t) => sum + t.amount, 0),
+    weeklyInterestRateUnder5000: rateUnder5000,
+    weeklyInterestRateFrom5000: rateFrom5000,
+    effectiveWeeklyInterestRate: getEffectiveWeeklyRate(balance, rateUnder5000, rateFrom5000),
+    balance,
     partnerId: ledger.partnerId,
     partnerName: ledger.partner.name,
     partnerIsArchived: ledger.partner.isArchived,
     shareToken: ledger.shareToken,
     shareTokenExpiresAt: ledger.shareTokenExpiresAt,
     notes: ledger.notes,
+    nextInterest: getNextInterestPreview(balance, rateUnder5000, rateFrom5000),
   };
 }
 
@@ -169,17 +212,23 @@ const ledgerSchema = z.object({
     .string()
     .min(1, "口座名を入力してください")
     .max(30, "口座名は30文字以内で入力してください"),
-  weeklyInterestRate: z
+  weeklyInterestRateUnder5000: z
+    .number()
+    .min(0, "週利率は0%以上で入力してください")
+    .max(100, "週利率は100%以下で入力してください"),
+  weeklyInterestRateFrom5000: z
     .number()
     .min(0, "週利率は0%以上で入力してください")
     .max(100, "週利率は100%以下で入力してください"),
 });
 
+export type LedgerInput = z.infer<typeof ledgerSchema>;
+
 export type LedgerFormState = { error?: string; success?: boolean };
 
 export async function createLedger(
   partnerId: string,
-  input: { title: string; weeklyInterestRate: number },
+  input: LedgerInput,
 ): Promise<LedgerFormState> {
   const session = await getSession();
   if (!session) return { error: "ログインが必要です" };
@@ -202,7 +251,7 @@ export async function createLedger(
 
 export async function updateLedger(
   ledgerId: string,
-  input: { title: string; weeklyInterestRate: number },
+  input: LedgerInput,
 ): Promise<LedgerFormState> {
   const session = await getSession();
   if (!session) return { error: "ログインが必要です" };
@@ -323,6 +372,10 @@ export type SharedLedgerData = {
   ledgerTitle: string;
   ownerName: string;
   balance: number;
+  weeklyInterestRateUnder5000: number;
+  weeklyInterestRateFrom5000: number;
+  effectiveWeeklyInterestRate: number;
+  nextInterest: NextInterestPreview;
   transactions: Array<{
     id: string;
     amount: number;
@@ -341,6 +394,8 @@ export async function getLedgerByShareToken(
     select: {
       title: true,
       shareTokenExpiresAt: true,
+      weeklyInterestRateUnder5000: true,
+      weeklyInterestRateFrom5000: true,
       partner: { select: { name: true, owner: { select: { name: true } } } },
       transactions: {
         where: { isArchived: false },
@@ -357,6 +412,12 @@ export async function getLedgerByShareToken(
   }
 
   const balance = ledger.transactions.reduce((sum, t) => sum + t.amount, 0);
+  const rateUnder5000 = ledger.weeklyInterestRateUnder5000
+    ? Number(ledger.weeklyInterestRateUnder5000)
+    : 0;
+  const rateFrom5000 = ledger.weeklyInterestRateFrom5000
+    ? Number(ledger.weeklyInterestRateFrom5000)
+    : 0;
 
   let runningBalance = balance;
   const transactionsWithBalance = ledger.transactions.map((t) => {
@@ -371,6 +432,10 @@ export async function getLedgerByShareToken(
       ledgerTitle: ledger.title,
       ownerName: ledger.partner.owner.name,
       balance,
+      weeklyInterestRateUnder5000: rateUnder5000,
+      weeklyInterestRateFrom5000: rateFrom5000,
+      effectiveWeeklyInterestRate: getEffectiveWeeklyRate(balance, rateUnder5000, rateFrom5000),
+      nextInterest: getNextInterestPreview(balance, rateUnder5000, rateFrom5000),
       transactions: transactionsWithBalance,
       notes: ledger.notes,
     },

@@ -45,13 +45,13 @@ export function LedgerSection({ partnerId, ledgers }: Props) {
                   <span
                     className={cn(
                       "shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full",
-                      ledger.weeklyInterestRate > 0
+                      ledger.effectiveWeeklyInterestRate > 0
                         ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
                         : "bg-muted text-muted-foreground",
                     )}
                   >
-                    {ledger.weeklyInterestRate > 0
-                      ? `週${ledger.weeklyInterestRate}%`
+                    {ledger.effectiveWeeklyInterestRate > 0
+                      ? `週${ledger.effectiveWeeklyInterestRate}%`
                       : "無利子"}
                   </span>
                 </div>
