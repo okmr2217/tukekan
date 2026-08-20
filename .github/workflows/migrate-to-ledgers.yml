@@ -1,0 +1,115 @@
+name: Migrate to Ledgers (one-shot)
+
+# 本番DBに対して「バックアップ → マイグレーション適用 → 口座(Ledger)移行スクリプト」を
+# 実行するワンショットの手動ワークフロー。定期実行はしない。
+#
+# 実行前に GitHub Secrets に以下が設定されていることを確認すること:
+#   - DATABASE_URL: pgbouncer 経由 (6543番ポート)
+#   - DIRECT_URL:   直接接続 (5432番ポート、pg_dump 用)
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: '本番DBへの実行を確認するため "migrate-production" と入力してください'
+        required: true
+        type: string
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm intent
+        run: |
+          if [ "${{ inputs.confirm }}" != "migrate-production" ]; then
+            echo "confirm 入力が一致しません。実行を中止します。" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure pg_dump is available
+        run: |
+          if ! command -v pg_dump >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y postgresql-client
+          fi
+          pg_dump --version
+
+      - name: Check migration status (pre)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma migrate status || true
+
+      - name: Backup production database
+        id: backup
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          filename="backup_$(date -u +%Y%m%d_%H%M%S).dump"
+          pg_dump "$DIRECT_URL" -Fc -f "$filename"
+          ls -lh "$filename"
+          echo "filename=$filename" >> "$GITHUB_OUTPUT"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: ${{ steps.backup.outputs.filename }}
+          retention-days: 14
+
+      - name: Apply pending migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma migrate deploy
+
+      - name: Run ledger migration script
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx prisma/migrations/migrate-to-ledgers.ts
+
+      - name: Check migration status (post)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma migrate status
+
+      - name: Write job summary
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          {
+            echo "## DB migration summary"
+            echo ""
+            echo "- Backup file: \`${{ steps.backup.outputs.filename }}\` (see workflow artifacts, retained 14 days)"
+            echo ""
+            echo "### Row counts"
+            echo '```'
+            npx tsx -e "
+              import { PrismaClient } from './src/generated/prisma/client';
+              import { PrismaPg } from '@prisma/adapter-pg';
+              const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+              const prisma = new PrismaClient({ adapter });
+              (async () => {
+                const [partners, ledgers, transactions] = await Promise.all([
+                  prisma.partner.count(),
+                  prisma.ledger.count(),
+                  prisma.transaction.count(),
+                ]);
+                console.log('Partner:', partners);
+                console.log('Ledger:', ledgers);
+                console.log('Transaction:', transactions);
+              })().finally(() => prisma.\$disconnect());
+            "
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
