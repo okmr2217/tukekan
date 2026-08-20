@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { revalidateTransactionScope } from "@/lib/revalidate";
+import { getOrCreateDefaultLedger } from "@/actions/partner/_helpers";
 
 export type TransactionWithPartner = {
   id: string;
@@ -177,6 +178,8 @@ export async function createTransaction(
     return { error: "この相手への取引を登録する権限がありません" };
   }
 
+  const ledger = await getOrCreateDefaultLedger(partnerId);
+
   await prisma.transaction.create({
     data: {
       amount: validAmount,
@@ -184,6 +187,7 @@ export async function createTransaction(
       date: validDate,
       ownerId: session.userId,
       partnerId: partnerId,
+      ledgerId: ledger.id,
     },
   });
 
@@ -270,10 +274,16 @@ export async function updateTransaction(
     }
   }
 
+  const partnerChanged = !!partnerId && partnerId !== transaction.partnerId;
+  const ledgerId = partnerChanged
+    ? (await getOrCreateDefaultLedger(partnerId)).id
+    : undefined;
+
   await prisma.transaction.update({
     where: { id: transactionId },
     data: {
       ...(partnerId ? { partnerId } : {}),
+      ...(ledgerId ? { ledgerId } : {}),
       amount: validAmount,
       description: description || null,
       date: validDate,

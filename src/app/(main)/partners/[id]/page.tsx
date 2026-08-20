@@ -6,11 +6,13 @@ import {
   getDescriptionSuggestions,
   getTransactions,
 } from "@/actions/transaction";
+import { getLedgersByPartner } from "@/actions/ledger";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
 import { ShareLinkSection } from "@/components/features/partner/share-link-section";
 import { BalanceCard } from "@/components/features/partner/balance-card";
 import { PartnerDetailClient } from "@/components/features/partner/partner-detail-client";
 import { PartnerNoteSection } from "@/components/features/partner/partner-note-section";
+import { LedgerSection } from "@/components/features/partner/ledger-section";
 import { MobileHeader } from "@/components/layouts/mobile-header";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -36,13 +38,15 @@ export default async function PartnerDetailPage({
   const sp = await searchParams;
   const showArchived = parseBool(sp.showArchived);
 
-  const [partner, suggestions, transactions, partners, currentUser] = await Promise.all([
-    getPartnerById(id),
-    getDescriptionSuggestions(),
-    getTransactions({ partnerIds: [id], showArchived }),
-    getPartners(),
-    getCurrentUser(),
-  ]);
+  const [partner, suggestions, transactions, partners, currentUser, ledgers] =
+    await Promise.all([
+      getPartnerById(id),
+      getDescriptionSuggestions(),
+      getTransactions({ partnerIds: [id], showArchived }),
+      getPartners(),
+      getCurrentUser(),
+      getLedgersByPartner(id),
+    ]);
 
   if (!partner) {
     notFound();
@@ -69,6 +73,9 @@ export default async function PartnerDetailPage({
           </p>
           <ShareLinkSection partner={partner} />
         </div>
+
+        {/* 口座セクション */}
+        <LedgerSection partnerId={partner.id} ledgers={ledgers} />
 
         {/* メモセクション */}
         <PartnerNoteSection partnerId={partner.id} notes={partner.notes} />

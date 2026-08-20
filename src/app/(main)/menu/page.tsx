@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import Link from "next/link";
-import { Users, Settings, HelpCircle, ChevronRight } from "lucide-react";
+import { Users, Settings, HelpCircle, ChevronRight, LineChart } from "lucide-react";
 import { MobileHeader } from "@/components/layouts/mobile-header";
 
 const MENU_ITEMS = [
@@ -10,6 +10,12 @@ const MENU_ITEMS = [
     label: "相手の管理",
     description: "取引相手の追加・編集・削除",
     icon: Users,
+  },
+  {
+    href: "/statistics/accounts",
+    label: "統計（口座別・PC対応）",
+    description: "口座ごとの残高・利率・見込み利子",
+    icon: LineChart,
   },
   {
     href: "/settings",
