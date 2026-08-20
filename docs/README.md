@@ -16,6 +16,8 @@
 | [05-tech-stack.md](./05-tech-stack.md)   | 技術スタック、ディレクトリ構成              |
 | [06-security.md](./06-security.md)       | セキュリティ、非機能要件                    |
 | [07-phases.md](./07-phases.md)           | 開発フェーズ                                |
+| [08-group-feature-design.md](./08-group-feature-design.md) | グループ機能設計                 |
+| [09-github-actions.md](./09-github-actions.md) | GitHub Actions ワークフロー一覧・詳細  |
 
 ## 用語定義
 
