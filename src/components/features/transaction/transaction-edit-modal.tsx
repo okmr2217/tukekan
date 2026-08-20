@@ -18,6 +18,7 @@ import type { Partner } from "@/actions/partner";
 import { toast } from "sonner";
 import { TransactionFormFields } from "./transaction-form-fields";
 import { PartnerPickerField } from "./partner-picker-field";
+import { LedgerPickerField } from "./ledger-picker-field";
 import {
   floorToNearest30,
   buildDateTime,
@@ -60,6 +61,7 @@ export function TransactionEditModal({
 }: Props) {
   const [isPending, startTransition] = useTransition();
   const [partnerId, setPartnerId] = useState("");
+  const [ledgerId, setLedgerId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<TransactionFormValues>({
@@ -76,6 +78,7 @@ export function TransactionEditModal({
   useEffect(() => {
     if (transaction) {
       setPartnerId(transaction.partnerId);
+      setLedgerId(transaction.ledgerId ?? "");
       setError(null);
       form.reset({
         amount: Math.abs(transaction.amount).toString(),
@@ -105,6 +108,7 @@ export function TransactionEditModal({
       const formData = new FormData();
       formData.set("transactionId", transaction.id);
       formData.set("partnerId", partnerId);
+      if (ledgerId) formData.set("ledgerId", ledgerId);
       formData.set("amount", signedAmount.toString());
       formData.set("description", data.description);
       formData.set("date", date.toISOString());
@@ -145,7 +149,17 @@ export function TransactionEditModal({
               <PartnerPickerField
                 partners={displayPartners}
                 selectedId={partnerId}
-                onSelect={setPartnerId}
+                onSelect={(id) => {
+                  setPartnerId(id);
+                  setLedgerId("");
+                }}
+                disabled={isPending}
+              />
+
+              <LedgerPickerField
+                partnerId={partnerId}
+                selectedId={ledgerId}
+                onSelect={setLedgerId}
                 disabled={isPending}
               />
 
