@@ -31,8 +31,8 @@ export async function getPartnersForHome(): Promise<PartnerForHome[]> {
       name: true,
       transactions: {
         where: { isArchived: false },
-        select: { amount: true, description: true, date: true },
-        orderBy: { date: "desc" },
+        select: { amount: true, description: true, date: true, createdAt: true },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       },
     },
   });
