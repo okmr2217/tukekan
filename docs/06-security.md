@@ -17,8 +17,7 @@
 
 ```typescript
 // Server Actions/Server Componentsで認証チェック
-// 書き込み操作は自分のデータのみ許可
-// 読み取り操作は全ユーザーのデータを許可
+// 読み書きともに自分のデータのみ許可
 
 // 例: Server Action での認証チェック
 export async function createTransaction(formData: FormData) {

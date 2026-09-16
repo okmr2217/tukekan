@@ -21,16 +21,14 @@ Server Components と Server Actions のみで実装。API Routesは使用しな
 ```
 src/
 ├── app/                          # Next.js App Router
-│   ├── (auth)/                   # 認証グループ（未ログイン）
-│   │   └── login/
+│   ├── (auth)/                   # 認証ルートグループ（未ログイン）
+│   │   ├── login/
+│   │   │   └── page.tsx
+│   │   └── register/
 │   │       └── page.tsx
-│   ├── (main)/                   # メイン機能グループ（ログイン必須）
+│   ├── (main)/                   # メイン機能ルートグループ（ログイン必須）
 │   │   ├── layout.tsx            # 共通レイアウト（ヘッダー、ボトムバー、FAB）
 │   │   ├── page.tsx              # ホーム（残高 + 履歴タブ）
-│   │   ├── members/
-│   │   │   ├── page.tsx          # メンバー一覧
-│   │   │   └── [id]/
-│   │   │       └── page.tsx      # 他ユーザーダッシュボード
 │   │   ├── partners/
 │   │   │   └── [id]/
 │   │   │       └── page.tsx      # 取引履歴
@@ -40,8 +38,7 @@ src/
 ├── actions/                      # Server Actions
 │   ├── auth.ts                   # ログイン、ログアウト、セッション取得
 │   ├── transaction.ts            # 取引の作成
-│   ├── partner.ts                # 相手の作成
-│   └── member.ts                 # メンバー取得
+│   └── partner.ts                # 相手の作成
 ├── components/
 │   ├── ui/                       # shadcn/ui コンポーネント
 │   │   ├── button.tsx
@@ -54,11 +51,9 @@ src/
 │   │   │   ├── transaction-form.tsx      # 取引登録フォーム
 │   │   │   ├── transaction-list.tsx      # 取引一覧
 │   │   │   └── transaction-item.tsx      # 取引アイテム
-│   │   ├── partner/
-│   │   │   ├── partner-select.tsx        # 相手選択コンボボックス
-│   │   │   └── partner-balance-list.tsx  # 残高一覧
-│   │   └── member/
-│   │       └── member-list.tsx           # メンバー一覧
+│   │   └── partner/
+│   │       ├── partner-select.tsx        # 相手選択コンボボックス
+│   │       └── partner-balance-list.tsx  # 残高一覧
 │   └── layouts/
 │       ├── header.tsx
 │       ├── bottom-bar.tsx                # ボトムバーナビゲーション
@@ -162,7 +157,7 @@ export default async function HomePage() {
 
 ## 5.5 初期ユーザーの作成
 
-MVPでは新規登録画面がないため、seedスクリプトで初期ユーザーを作成する。
+開発・検証用の初期ユーザーは seedスクリプトで作成する。
 
 ```typescript
 // prisma/seed.ts
