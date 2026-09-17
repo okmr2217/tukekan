@@ -143,16 +143,33 @@ const createTransactionSchema = z.object({
     .string()
     .max(1000, "メモは1000文字以内で入力してください")
     .optional(),
-  date: z
-    .date()
-    .refine((date) => date <= new Date(), "未来の日付は選択できません"),
+  date: z.date().refine(isWithinAllowedDate, "未来の日付は選択できません"),
 });
+
+/**
+ * クライアントとサーバーの時計ずれの許容幅。
+ * 「現在」で登録した取引は端末時刻で作った ISO 文字列が届くため、
+ * サーバー時刻より少し未来になることがある。その分は未来扱いにしない。
+ */
+const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000;
+
+function isWithinAllowedDate(date: Date): boolean {
+  return date.getTime() <= Date.now() + CLOCK_SKEW_TOLERANCE_MS;
+}
 
 function parseAmountAndDate(formData: FormData): { amount: number; date: Date } {
   const amountStr = formData.get("amount");
   const amount = amountStr ? parseInt(amountStr.toString(), 10) : NaN;
   const dateStr = formData.get("date");
-  const date = dateStr ? new Date(dateStr.toString()) : new Date();
+  const parsed = dateStr ? new Date(dateStr.toString()) : new Date();
+  // 時計ずれ分の未来日時はサーバー時刻に丸めて保存する
+  const now = new Date();
+  const date =
+    !Number.isNaN(parsed.getTime()) &&
+    parsed > now &&
+    isWithinAllowedDate(parsed)
+      ? now
+      : parsed;
   return { amount, date };
 }
 
@@ -249,9 +266,7 @@ const updateTransactionSchema = z.object({
     .string()
     .max(1000, "メモは1000文字以内で入力してください")
     .optional(),
-  date: z
-    .date()
-    .refine((date) => date <= new Date(), "未来の日付は選択できません"),
+  date: z.date().refine(isWithinAllowedDate, "未来の日付は選択できません"),
 });
 
 export type UpdateTransactionState = {
