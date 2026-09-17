@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Resolver } from "react-hook-form";
-import type { DateMode } from "@/lib/date-picker-utils";
+import { parseDateTimeLocal, type DateMode } from "@/lib/date-picker-utils";
 
 export const MAX_AMOUNT = 10_000_000;
 export const MAX_PURPOSE_LENGTH = 100;
@@ -14,9 +14,8 @@ export const transactionFormSchema = z
     isLending: z.boolean(),
     purpose: z.string().max(100, "100文字以内で入力してください"),
     description: z.string().max(1000, "1000文字以内で入力してください"),
-    dateMode: z.enum(["today", "yesterday", "other"]) as z.ZodType<DateMode>,
-    otherDate: z.string(),
-    selectedTime: z.string(),
+    dateMode: z.enum(["now", "custom"]) as z.ZodType<DateMode>,
+    customDateTime: z.string(),
   })
   .superRefine((values, ctx) => {
     if (values.amount !== "") {
@@ -36,12 +35,21 @@ export const transactionFormSchema = z
       }
     }
 
-    if (values.dateMode === "other" && values.otherDate === "") {
-      ctx.addIssue({
-        code: "custom",
-        path: ["otherDate"],
-        message: "日付を選択してください",
-      });
+    if (values.dateMode === "custom") {
+      const date = parseDateTimeLocal(values.customDateTime);
+      if (!date) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["customDateTime"],
+          message: "日時を入力してください",
+        });
+      } else if (date.getTime() > Date.now()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["customDateTime"],
+          message: "未来の日時は選択できません",
+        });
+      }
     }
   });
 
