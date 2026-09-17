@@ -74,6 +74,7 @@ export function TransactionEditModal({
       ledgerId: "",
       amount: "",
       isLending: true,
+      purpose: "",
       description: "",
       dateMode: "today",
       otherDate: formatDateToJST(),
@@ -89,6 +90,7 @@ export function TransactionEditModal({
         ledgerId: transaction.ledgerId ?? "",
         amount: Math.abs(transaction.amount).toString(),
         isLending: transaction.amount >= 0,
+        purpose: transaction.purpose ?? "",
         description: transaction.description ?? "",
         dateMode: initDateMode(transaction.date),
         otherDate: getDateString(transaction.date),
@@ -126,6 +128,7 @@ export function TransactionEditModal({
       formData.set("partnerId", data.partnerId);
       if (data.ledgerId) formData.set("ledgerId", data.ledgerId);
       formData.set("amount", signedAmount.toString());
+      formData.set("purpose", data.purpose);
       formData.set("description", data.description);
       formData.set("date", date.toISOString());
 

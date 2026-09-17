@@ -97,7 +97,7 @@ function FilterForm({
     <div className="flex flex-col gap-5 pt-2">
       {/* テキスト検索 */}
       <div className="space-y-1.5">
-        <Label>メモで検索</Label>
+        <Label>用途・メモで検索</Label>
         <Input
           placeholder="キーワードを入力"
           value={draft.q}

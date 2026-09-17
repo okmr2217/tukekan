@@ -16,7 +16,7 @@ export function buildLatestSummary(tx: TransactionWithPartner): string {
   const dateStr = formatRelativeDate(new Date(tx.date));
   const sign = tx.amount > 0 ? "+" : "-";
   const absAmount = Math.abs(tx.amount).toLocaleString();
-  const desc = tx.description ? ` · ${tx.description}` : "";
+  const desc = tx.purpose ? ` · ${tx.purpose}` : "";
   return `${dateStr}${desc} ${sign}¥${absAmount}`;
 }
 

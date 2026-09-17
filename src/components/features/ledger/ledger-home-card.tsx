@@ -43,9 +43,7 @@ export function LedgerHomeCard({ ledger }: Props) {
         {lastTransaction ? (
           <p className="text-xs text-muted-foreground mt-0.5 truncate">
             {formatRelativeDay(new Date(lastTransaction.date))}
-            {lastTransaction.description
-              ? ` · ${lastTransaction.description}`
-              : ""}
+            {lastTransaction.purpose ? ` · ${lastTransaction.purpose}` : ""}
             {" "}
             <span
               className={cn(

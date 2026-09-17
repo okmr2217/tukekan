@@ -125,7 +125,7 @@ async function main() {
       data: {
         id: createId(),
         amount: row.amount,
-        description: row.description || null,
+        purpose: row.description || null,
         date: row.date,
         ownerId: daichi.id,
         partnerId,
@@ -139,7 +139,7 @@ async function main() {
         data: {
           id: createId(),
           amount: -row.amount,
-          description: "返済",
+          purpose: "返済",
           date: row.repaymentDate,
           ownerId: daichi.id,
           partnerId,

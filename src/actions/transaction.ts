@@ -9,6 +9,7 @@ import { resolveLedgerId } from "@/actions/partner/_helpers";
 export type TransactionWithPartner = {
   id: string;
   amount: number;
+  purpose: string | null;
   description: string | null;
   date: Date;
   isArchived: boolean;
@@ -55,7 +56,14 @@ export async function getTransactions(
     where: {
       ownerId: session.userId,
       ...(showArchived ? {} : { isArchived: false }),
-      ...(q ? { description: { contains: q } } : {}),
+      ...(q
+        ? {
+            OR: [
+              { purpose: { contains: q } },
+              { description: { contains: q } },
+            ],
+          }
+        : {}),
       ...(ledgerIds && ledgerIds.length > 0 ? { ledgerId: { in: ledgerIds } } : {}),
       partner: {
         ...(showArchivedPartners ? {} : { isArchived: false }),
@@ -69,6 +77,7 @@ export async function getTransactions(
   const mapped = rows.map((t) => ({
     id: t.id,
     amount: t.amount,
+    purpose: t.purpose,
     description: t.description,
     date: t.date,
     isArchived: t.isArchived,
@@ -89,25 +98,25 @@ export async function getTransactions(
   return mapped;
 }
 
-export async function getDescriptionSuggestions(): Promise<string[]> {
+export async function getPurposeSuggestions(): Promise<string[]> {
   const session = await getSession();
   if (!session) {
     return [];
   }
 
   const suggestions = await prisma.transaction.groupBy({
-    by: ["description"],
+    by: ["purpose"],
     where: {
       ownerId: session.userId,
-      description: { not: null },
+      purpose: { not: null },
     },
-    _count: { description: true },
-    orderBy: { _count: { description: "desc" } },
+    _count: { purpose: true },
+    orderBy: { _count: { purpose: "desc" } },
     take: 10,
   });
 
   return suggestions
-    .map((s) => s.description)
+    .map((s) => s.purpose)
     .filter((d): d is string => d !== null);
 }
 
@@ -120,9 +129,13 @@ const createTransactionSchema = z.object({
     .min(-10000000, "金額は-1,000万円以上で入力してください")
     .max(10000000, "金額は1,000万円以下で入力してください")
     .refine((val) => val !== 0, "金額を入力してください"),
+  purpose: z
+    .string()
+    .max(100, "用途は100文字以内で入力してください")
+    .optional(),
   description: z
     .string()
-    .max(100, "説明は100文字以内で入力してください")
+    .max(1000, "メモは1000文字以内で入力してください")
     .optional(),
   date: z
     .date()
@@ -157,6 +170,7 @@ export async function createTransaction(
     partnerId: formData.get("partnerId"),
     ledgerId: formData.get("ledgerId") || undefined,
     amount: isNaN(amount) ? undefined : amount,
+    purpose: formData.get("purpose") || undefined,
     description: formData.get("description") || undefined,
     date: date,
   });
@@ -169,6 +183,7 @@ export async function createTransaction(
     partnerId,
     ledgerId: requestedLedgerId,
     amount: validAmount,
+    purpose,
     description,
     date: validDate,
   } = result.data;
@@ -194,6 +209,7 @@ export async function createTransaction(
   await prisma.transaction.create({
     data: {
       amount: validAmount,
+      purpose: purpose || null,
       description: description || null,
       date: validDate,
       ownerId: session.userId,
@@ -218,9 +234,13 @@ const updateTransactionSchema = z.object({
     .min(-10000000, "金額は-1,000万円以上で入力してください")
     .max(10000000, "金額は1,000万円以下で入力してください")
     .refine((val) => val !== 0, "金額を入力してください"),
+  purpose: z
+    .string()
+    .max(100, "用途は100文字以内で入力してください")
+    .optional(),
   description: z
     .string()
-    .max(100, "説明は100文字以内で入力してください")
+    .max(1000, "メモは1000文字以内で入力してください")
     .optional(),
   date: z
     .date()
@@ -248,6 +268,7 @@ export async function updateTransaction(
     partnerId: formData.get("partnerId") || undefined,
     ledgerId: formData.get("ledgerId") || undefined,
     amount: isNaN(amount) ? undefined : amount,
+    purpose: formData.get("purpose") || undefined,
     description: formData.get("description") || undefined,
     date: date,
   });
@@ -261,6 +282,7 @@ export async function updateTransaction(
     partnerId,
     ledgerId: requestedLedgerId,
     amount: validAmount,
+    purpose,
     description,
     date: validDate,
   } = result.data;
@@ -306,6 +328,7 @@ export async function updateTransaction(
       ...(partnerId ? { partnerId } : {}),
       ...(ledgerId ? { ledgerId } : {}),
       amount: validAmount,
+      purpose: purpose || null,
       description: description || null,
       date: validDate,
     },

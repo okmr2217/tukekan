@@ -87,7 +87,7 @@ export type LedgerForHome = {
   balance: number;
   lastTransaction: {
     amount: number;
-    description: string | null;
+    purpose: string | null;
     date: Date;
   } | null;
 };
@@ -107,7 +107,7 @@ export async function getLedgersForHome(): Promise<LedgerForHome[]> {
       partner: { select: { name: true } },
       transactions: {
         where: { isArchived: false },
-        select: { amount: true, description: true, date: true, createdAt: true },
+        select: { amount: true, purpose: true, date: true, createdAt: true },
         orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       },
     },
@@ -379,6 +379,7 @@ export type SharedLedgerData = {
   transactions: Array<{
     id: string;
     amount: number;
+    purpose: string | null;
     description: string | null;
     date: Date;
     runningBalance: number;
@@ -399,7 +400,7 @@ export async function getLedgerByShareToken(
       partner: { select: { name: true, owner: { select: { name: true } } } },
       transactions: {
         where: { isArchived: false },
-        select: { id: true, amount: true, description: true, date: true },
+        select: { id: true, amount: true, purpose: true, description: true, date: true },
         orderBy: { date: "desc" },
       },
       notes: { orderBy: { createdAt: "desc" } },

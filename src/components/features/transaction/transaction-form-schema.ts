@@ -3,6 +3,8 @@ import type { Resolver } from "react-hook-form";
 import type { DateMode } from "@/lib/date-picker-utils";
 
 export const MAX_AMOUNT = 10_000_000;
+export const MAX_PURPOSE_LENGTH = 100;
+export const MAX_DESCRIPTION_LENGTH = 1000;
 
 export const transactionFormSchema = z
   .object({
@@ -10,7 +12,8 @@ export const transactionFormSchema = z
     ledgerId: z.string(),
     amount: z.string().min(1, "入力してください"),
     isLending: z.boolean(),
-    description: z.string().max(100, "100文字以内で入力してください"),
+    purpose: z.string().max(100, "100文字以内で入力してください"),
+    description: z.string().max(1000, "1000文字以内で入力してください"),
     dateMode: z.enum(["today", "yesterday", "other"]) as z.ZodType<DateMode>,
     otherDate: z.string(),
     selectedTime: z.string(),

@@ -67,7 +67,7 @@ async function main() {
     await prisma.transaction.create({
       data: {
         amount: interest,
-        description: `利子（週利${rate}%）`,
+        purpose: `利子（週利${rate}%）`,
         date: new Date(),
         ownerId: ledger.partner.ownerId,
         partnerId: ledger.partner.id,

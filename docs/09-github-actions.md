@@ -9,6 +9,9 @@
 | [`keep-supabase-alive.yml`](../.github/workflows/keep-supabase-alive.yml) | Ping Supabase to Prevent Pausing | 定期実行 (`0 0 * * 0,3`) + 手動 | Supabase の無料枠プロジェクトが一定期間アクセスなしで自動一時停止されるのを防ぐため、DBに軽いクエリを打つ |
 | [`weekly-interest.yml`](../.github/workflows/weekly-interest.yml) | Weekly Interest Job | 定期実行 (`0 0 * * 3`, 毎週水曜 09:00 JST) + 手動 | `scripts/weekly-interest.ts` を実行し、週次の利息計算バッチを本番DBに対して走らせる |
 | [`migrate-to-ledgers.yml`](../.github/workflows/migrate-to-ledgers.yml) | Migrate to Ledgers (one-shot) | 手動のみ | 本番DBに対する「バックアップ → マイグレーション適用 → Ledger移行スクリプト」のワンショット移行作業。定期実行はしない |
+| [`migrate-ledger-share-and-notes.yml`](../.github/workflows/migrate-ledger-share-and-notes.yml) | Migrate Ledger Share and Notes (one-shot) | 手動のみ | 共有トークン・口座メモ追加のワンショット移行作業 |
+| [`migrate-ledger-tiered-rate.yml`](../.github/workflows/migrate-ledger-tiered-rate.yml) | Migrate Ledger Tiered Interest Rate (one-shot) | 手動のみ | 週利率の2段階化のワンショット移行作業。バックフィルはマイグレーションSQLに含まれる |
+| [`migrate-transaction-purpose.yml`](../.github/workflows/migrate-transaction-purpose.yml) | Migrate Transaction Purpose (one-shot) | 手動のみ | 取引への「用途」追加と、既存メモ（description）の用途への移植のワンショット移行作業。移植はマイグレーションSQLに含まれる |
 
 ---
 
@@ -49,6 +52,16 @@
   9. マイグレーション適用後の状態確認
   10. `GITHUB_STEP_SUMMARY` に Partner / Ledger / Transaction の件数サマリーを出力
 - 実行後は必ずジョブサマリーとバックアップアーティファクトを確認すること
+
+## migrate-transaction-purpose.yml
+
+- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
+- `migrate-ledger-tiered-rate.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
+- `prisma/migrations/20260917000000_add_transaction_purpose/migration.sql` が以下を実行する:
+  - `Transaction` に `purpose` カラムを追加
+  - 既存の `description` の値を `purpose` へコピーし、`description` を `NULL` にリセット
+- **不可逆な操作**であり、`description` の内容は移植後に消える。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
+- ジョブサマリーに取引件数・`purpose` ありの件数・`description` ありの件数（移行後は0件になるはず）が出力される
 
 ---
 

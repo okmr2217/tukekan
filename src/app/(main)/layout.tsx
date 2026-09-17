@@ -1,5 +1,5 @@
 import { getPartners } from "@/actions/partner";
-import { getDescriptionSuggestions } from "@/actions/transaction";
+import { getPurposeSuggestions } from "@/actions/transaction";
 import { getLedgerPartnerMap } from "@/actions/ledger";
 import { FABController } from "@/components/layouts/fab-controller";
 import { BottomBar } from "@/components/layouts/bottom-bar";
@@ -11,7 +11,7 @@ export default async function MainLayout({
 }) {
   const [partners, suggestions, ledgerPartnerMap] = await Promise.all([
     getPartners(),
-    getDescriptionSuggestions(),
+    getPurposeSuggestions(),
     getLedgerPartnerMap(),
   ]);
 
