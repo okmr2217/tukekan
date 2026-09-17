@@ -11,6 +11,10 @@ on:
 jobs:
   apply-interest:
     runs-on: ubuntu-latest
+    # postinstall の `prisma generate` が prisma.config.ts 経由で DATABASE_URL を要求するため、
+    # 実行ステップだけでなくジョブ全体に渡す（ステップ単位だと `npm ci` が失敗する）。
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,6 +29,4 @@ jobs:
         run: npm ci
 
       - name: Run weekly interest job
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx tsx scripts/weekly-interest.ts

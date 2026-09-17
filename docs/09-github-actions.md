@@ -38,7 +38,9 @@
   0以下の口座はスキップする
 - 作成される取引は `kind = "INTEREST"` で、元本には足されず未払利息としてたまる
 - 必要な Secrets:
-  - `DATABASE_URL`（本番DB接続用）
+  - `DATABASE_URL`（本番DB接続用）。**ジョブ全体の `env` に設定する**。
+    `npm ci` の postinstall で走る `prisma generate` が `prisma.config.ts` 経由で `DATABASE_URL` を要求するため、
+    実行ステップだけに渡すと `npm ci` の時点で `PrismaConfigEnvError` で失敗する
 - ロジックの詳細は `scripts/weekly-interest.ts` を参照
 
 ## migrate-to-ledgers.yml
