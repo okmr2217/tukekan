@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { useForm, FormProvider, useWatch } from "react-hook-form";
 import {
   ResponsiveDialog,
@@ -23,7 +23,10 @@ import {
 import { formatDateToJST } from "@/lib/date-utils";
 import { toast } from "sonner";
 import type { Partner } from "@/actions/partner";
-import type { TransactionFormValues } from "./transaction-form-schema";
+import {
+  transactionFormResolver,
+  type TransactionFormValues,
+} from "./transaction-form-schema";
 
 type Props = {
   partners: Partner[];
@@ -40,12 +43,15 @@ export function TransactionModal({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [partnerId, setPartnerId] = useState(defaultPartnerId ?? "");
-  const [ledgerId, setLedgerId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<TransactionFormValues>({
+    resolver: transactionFormResolver,
+    mode: "onSubmit",
+    reValidateMode: "onChange",
     defaultValues: {
+      partnerId: defaultPartnerId ?? "",
+      ledgerId: defaultLedgerId ?? "",
       amount: "",
       isLending: true,
       description: "",
@@ -57,10 +63,10 @@ export function TransactionModal({
 
   useEffect(() => {
     if (!open) return;
-    setPartnerId(defaultPartnerId ?? "");
-    setLedgerId(defaultLedgerId ?? "");
     setError(null);
     form.reset({
+      partnerId: defaultPartnerId ?? "",
+      ledgerId: defaultLedgerId ?? "",
       amount: "",
       isLending: true,
       description: "",
@@ -88,27 +94,32 @@ export function TransactionModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
-  const amount = useWatch({ control: form.control, name: "amount" });
+  const partnerId = useWatch({ control: form.control, name: "partnerId" });
+  const ledgerId = useWatch({ control: form.control, name: "ledgerId" });
+  const { setValue } = form;
+
+  const handleSelectPartner = useCallback(
+    (id: string) => {
+      setValue("partnerId", id, { shouldValidate: true });
+      setValue("ledgerId", "");
+    },
+    [setValue],
+  );
+  const handleSelectLedger = useCallback(
+    (id: string) => setValue("ledgerId", id),
+    [setValue],
+  );
 
   const handleSubmit = form.handleSubmit((data) => {
-    if (!partnerId) {
-      setError("相手を選択してください");
-      return;
-    }
     const rawAmount = parseInt(data.amount, 10);
-    if (isNaN(rawAmount) || rawAmount <= 0) {
-      setError("金額を正しく入力してください");
-      return;
-    }
-
     const signedAmount = data.isLending ? rawAmount : -rawAmount;
     const date = buildDateTime(data.dateMode, data.otherDate, data.selectedTime);
 
     setError(null);
     startTransition(async () => {
       const formData = new FormData();
-      formData.set("partnerId", partnerId);
-      if (ledgerId) formData.set("ledgerId", ledgerId);
+      formData.set("partnerId", data.partnerId);
+      if (data.ledgerId) formData.set("ledgerId", data.ledgerId);
       formData.set("amount", signedAmount.toString());
       formData.set("description", data.description);
       formData.set("date", date.toISOString());
@@ -144,17 +155,14 @@ export function TransactionModal({
                 <PartnerPickerField
                   partners={partners}
                   selectedId={partnerId}
-                  onSelect={(id) => {
-                    setPartnerId(id);
-                    setLedgerId("");
-                  }}
+                  onSelect={handleSelectPartner}
                   disabled={isPending}
                 />
 
                 <LedgerPickerField
                   partnerId={partnerId}
                   selectedId={ledgerId}
-                  onSelect={setLedgerId}
+                  onSelect={handleSelectLedger}
                   disabled={isPending}
                 />
 
@@ -174,7 +182,6 @@ export function TransactionModal({
               className="w-full"
               loading={isPending}
               loadingText="登録中..."
-              disabled={!partnerId || !amount}
             >
               登録
             </LoadingButton>

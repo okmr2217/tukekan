@@ -5,6 +5,7 @@ import { useFormContext, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/ui/field-label";
 import {
   Select,
   SelectContent,
@@ -13,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TIME_OPTIONS, type DateMode } from "@/lib/date-picker-utils";
-import type { TransactionFormValues } from "./transaction-form-schema";
+import { MAX_AMOUNT, type TransactionFormValues } from "./transaction-form-schema";
 
 type Props = {
   suggestions: string[];
@@ -28,7 +29,12 @@ const DATE_MODE_LABELS: Record<DateMode, string> = {
 };
 
 export function TransactionFormFields({ suggestions, isPending, maxDate }: Props) {
-  const { register, watch, control } = useFormContext<TransactionFormValues>();
+  const {
+    register,
+    watch,
+    control,
+    formState: { errors },
+  } = useFormContext<TransactionFormValues>();
   const [showDropdown, setShowDropdown] = useState(false);
   const memoWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -61,20 +67,23 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
     <div className="space-y-5">
       {/* Amount */}
       <div className="space-y-1.5">
-        <Label>金額</Label>
+        <FieldLabel htmlFor="transaction-amount" required error={errors.amount?.message}>
+          金額
+        </FieldLabel>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
             ¥
           </span>
           <Input
+            id="transaction-amount"
             type="number"
             inputMode="numeric"
             className="pl-7"
             placeholder="0"
             min={1}
-            max={10000000}
-            required
+            max={MAX_AMOUNT}
             disabled={isPending}
+            aria-invalid={!!errors.amount}
             {...register("amount")}
           />
         </div>
@@ -110,9 +119,10 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
 
       {/* Memo */}
       <div className="space-y-1.5">
-        <Label>メモ（任意）</Label>
+        <Label htmlFor="transaction-description">メモ</Label>
         <div ref={memoWrapperRef} className="relative">
           <Input
+            id="transaction-description"
             placeholder="例: 麻雀、ランチ、返済"
             maxLength={100}
             disabled={isPending}
@@ -151,7 +161,7 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
 
       {/* Date + Time */}
       <div className="space-y-1.5">
-        <Label>日時</Label>
+        <FieldLabel error={errors.otherDate?.message}>日時</FieldLabel>
 
         {/* Date mode pills */}
         <Controller
@@ -184,6 +194,7 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
             type="date"
             max={maxDate}
             disabled={isPending}
+            aria-invalid={!!errors.otherDate}
             {...register("otherDate")}
           />
         )}

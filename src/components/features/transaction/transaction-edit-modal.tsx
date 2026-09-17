@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { updateTransaction } from "@/actions/transaction";
 import type { TransactionWithPartner } from "@/actions/transaction";
@@ -25,7 +25,10 @@ import {
   type DateMode,
 } from "@/lib/date-picker-utils";
 import { formatDateToJST, toJST } from "@/lib/date-utils";
-import type { TransactionFormValues } from "./transaction-form-schema";
+import {
+  transactionFormResolver,
+  type TransactionFormValues,
+} from "./transaction-form-schema";
 
 type Props = {
   transaction: TransactionWithPartner | null;
@@ -60,12 +63,15 @@ export function TransactionEditModal({
   partners = [],
 }: Props) {
   const [isPending, startTransition] = useTransition();
-  const [partnerId, setPartnerId] = useState("");
-  const [ledgerId, setLedgerId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<TransactionFormValues>({
+    resolver: transactionFormResolver,
+    mode: "onSubmit",
+    reValidateMode: "onChange",
     defaultValues: {
+      partnerId: "",
+      ledgerId: "",
       amount: "",
       isLending: true,
       description: "",
@@ -77,10 +83,10 @@ export function TransactionEditModal({
 
   useEffect(() => {
     if (transaction) {
-      setPartnerId(transaction.partnerId);
-      setLedgerId(transaction.ledgerId ?? "");
       setError(null);
       form.reset({
+        partnerId: transaction.partnerId,
+        ledgerId: transaction.ledgerId ?? "",
         amount: Math.abs(transaction.amount).toString(),
         isLending: transaction.amount >= 0,
         description: transaction.description ?? "",
@@ -91,15 +97,25 @@ export function TransactionEditModal({
     }
   }, [transaction, form]);
 
-  const amount = useWatch({ control: form.control, name: "amount" });
+  const partnerId = useWatch({ control: form.control, name: "partnerId" });
+  const ledgerId = useWatch({ control: form.control, name: "ledgerId" });
+  const { setValue } = form;
+
+  const handleSelectPartner = useCallback(
+    (id: string) => {
+      setValue("partnerId", id, { shouldValidate: true });
+      setValue("ledgerId", "");
+    },
+    [setValue],
+  );
+  const handleSelectLedger = useCallback(
+    (id: string) => setValue("ledgerId", id),
+    [setValue],
+  );
 
   const handleUpdate = form.handleSubmit((data) => {
     if (!transaction) return;
     const rawAmount = parseInt(data.amount, 10);
-    if (isNaN(rawAmount) || rawAmount <= 0) {
-      setError("金額を正しく入力してください");
-      return;
-    }
     const signedAmount = data.isLending ? rawAmount : -rawAmount;
     const date = buildDateTime(data.dateMode, data.otherDate, data.selectedTime);
 
@@ -107,8 +123,8 @@ export function TransactionEditModal({
     startTransition(async () => {
       const formData = new FormData();
       formData.set("transactionId", transaction.id);
-      formData.set("partnerId", partnerId);
-      if (ledgerId) formData.set("ledgerId", ledgerId);
+      formData.set("partnerId", data.partnerId);
+      if (data.ledgerId) formData.set("ledgerId", data.ledgerId);
       formData.set("amount", signedAmount.toString());
       formData.set("description", data.description);
       formData.set("date", date.toISOString());
@@ -149,17 +165,14 @@ export function TransactionEditModal({
               <PartnerPickerField
                 partners={displayPartners}
                 selectedId={partnerId}
-                onSelect={(id) => {
-                  setPartnerId(id);
-                  setLedgerId("");
-                }}
+                onSelect={handleSelectPartner}
                 disabled={isPending}
               />
 
               <LedgerPickerField
                 partnerId={partnerId}
                 selectedId={ledgerId}
-                onSelect={setLedgerId}
+                onSelect={handleSelectLedger}
                 disabled={isPending}
               />
 
@@ -189,7 +202,6 @@ export function TransactionEditModal({
               className="flex-1"
               loading={isPending}
               loadingText="更新中..."
-              disabled={!amount}
             >
               更新
             </LoadingButton>
