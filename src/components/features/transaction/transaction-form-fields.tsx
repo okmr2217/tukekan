@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useFormContext, Controller } from "react-hook-form";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TIME_OPTIONS, type DateMode } from "@/lib/date-picker-utils";
+import { cn } from "@/lib/utils";
+import { useTransactionLabels } from "./transaction-label-preset-context";
 import {
   MAX_AMOUNT,
   MAX_PURPOSE_LENGTH,
@@ -34,6 +35,29 @@ const DATE_MODE_LABELS: Record<DateMode, string> = {
   other: "他の日",
 };
 
+/**
+ * 金額ボタンの色はアプリ共通の債権軸に揃える。
+ *   + （自分の債権が増える / 貸した・返済した）= 緑
+ *   - （自分の債務が増える / 借りた・返済された）= 赤
+ * 取引カードや残高表示と同じ意味になるので、登録時と一覧で色が反転しない。
+ */
+const AMOUNT_SIDE_CLASSES = {
+  lending: {
+    selected:
+      "bg-emerald-600 text-white border-emerald-600 dark:bg-emerald-600 dark:border-emerald-600",
+    unselected:
+      "bg-transparent border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950",
+  },
+  borrowing: {
+    selected: "bg-red-600 text-white border-red-600 dark:bg-red-700 dark:border-red-700",
+    unselected:
+      "bg-transparent border-red-300 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950",
+  },
+} as const;
+
+const AMOUNT_SIDE_BASE =
+  "flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-50";
+
 export function TransactionFormFields({ suggestions, isPending, maxDate }: Props) {
   const {
     register,
@@ -41,6 +65,7 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
     control,
     formState: { errors },
   } = useFormContext<TransactionFormValues>();
+  const labels = useTransactionLabels();
   const [showDropdown, setShowDropdown] = useState(false);
   const purposeWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -100,24 +125,34 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
             control={control}
             render={({ field }) => (
               <>
-                <Button
+                <button
                   type="button"
-                  variant={isLending ? "default" : "outline"}
                   onClick={() => field.onChange(true)}
-                  className="flex-1"
+                  aria-pressed={isLending}
+                  className={cn(
+                    AMOUNT_SIDE_BASE,
+                    isLending
+                      ? AMOUNT_SIDE_CLASSES.lending.selected
+                      : AMOUNT_SIDE_CLASSES.lending.unselected,
+                  )}
                   disabled={isPending}
                 >
-                  貸した
-                </Button>
-                <Button
+                  {labels.lendingLabel}
+                </button>
+                <button
                   type="button"
-                  variant={!isLending ? "default" : "outline"}
                   onClick={() => field.onChange(false)}
-                  className="flex-1"
+                  aria-pressed={!isLending}
+                  className={cn(
+                    AMOUNT_SIDE_BASE,
+                    !isLending
+                      ? AMOUNT_SIDE_CLASSES.borrowing.selected
+                      : AMOUNT_SIDE_CLASSES.borrowing.unselected,
+                  )}
                   disabled={isPending}
                 >
-                  借りた・返済
-                </Button>
+                  {labels.borrowingLabel}
+                </button>
               </>
             )}
           />

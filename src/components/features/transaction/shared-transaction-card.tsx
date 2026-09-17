@@ -14,10 +14,19 @@ type Props = {
   transaction: SharedTransaction;
 };
 
+/**
+ * 公開URL用の取引カード。
+ *
+ * amount / runningBalance は記録者（オーナー）視点で保存されているが、
+ * このページを見ているのは相手なので符号を反転して「相手視点」で表示する。
+ * これにより残高カードと色の意味（緑 = 見ている人の債権 / 赤 = 債務）が揃う。
+ */
 export function SharedTransactionCard({ transaction }: Props) {
-  const isLending = transaction.amount > 0;
-  const absAmount = Math.abs(transaction.amount);
-  const absBalance = Math.abs(transaction.runningBalance);
+  const viewerAmount = -transaction.amount;
+  const viewerBalance = -transaction.runningBalance;
+  const isLending = viewerAmount > 0;
+  const absAmount = Math.abs(viewerAmount);
+  const absBalance = Math.abs(viewerBalance);
 
   return (
     <div className="rounded-xl border bg-card px-3 py-2 shadow-sm">
@@ -63,14 +72,14 @@ export function SharedTransactionCard({ transaction }: Props) {
         <span
           className={cn(
             "text-xs tabular-nums",
-            transaction.runningBalance > 0
+            viewerBalance > 0
               ? "text-emerald-600 dark:text-emerald-400"
-              : transaction.runningBalance < 0
+              : viewerBalance < 0
                 ? "text-destructive"
                 : "text-muted-foreground",
           )}
         >
-          {transaction.runningBalance < 0 ? "-" : ""}¥{absBalance.toLocaleString()}
+          {viewerBalance < 0 ? "-" : ""}¥{absBalance.toLocaleString()}
         </span>
       </div>
     </div>

@@ -40,6 +40,7 @@ Account
 ├── email         ログインID（unique）
 ├── name          表示名
 ├── passwordHash
+├── transactionLabelPreset  取引ボタンの名目ラベル（BOTH / LENDER / BORROWER）
 ├── partners[]      自分が管理するパートナー
 ├── transactions[]  自分が記録した取引
 └── ledgerNotes[]   自分が書いたメモ
@@ -118,7 +119,7 @@ LedgerNote
   /partners/[id]              相手の詳細（口座一覧）
   /partners/[id]/edit         相手の編集
   /menu                       メニュー
-  /settings                   設定（プロフィール・外観）
+  /settings                   設定（プロフィール・取引ボタン表示・外観）
   /help                       ヘルプ
 ```
 
@@ -140,6 +141,7 @@ BottomBar（固定フッター）に4タブ:
 ### 取引管理
 - 取引の作成・編集・アーカイブ・削除（Server Actions）
 - 相手・口座・金額・用途・メモ・日付を入力
+- 金額の符号は「名目ラベル」の2ボタンで選ぶ。ラベルの言い方は設定から3プリセットで切替（`src/lib/transaction-labels.ts`）
 - 用途は1行、メモは複数行（1000文字以内）の詳細テキスト
 - 過去の用途からサジェスト機能（使用頻度順上位10件）
 - 口座ごとの残高 + 累計残高表示
@@ -164,7 +166,7 @@ BottomBar（固定フッター）に4タブ:
 
 | ファイル | アクション |
 |---------|-----------|
-| `actions/auth.ts` | `login`, `register`, `logout`, `getCurrentUser`, `updateProfile` |
+| `actions/auth.ts` | `login`, `register`, `logout`, `getCurrentUser`, `updateProfile`, `getTransactionLabelPreset`, `updateTransactionLabelPreset` |
 | `actions/partner/queries.ts` | `getPartners`, `getPartnerById`, `getPartnersWithBalance` |
 | `actions/partner/mutations.ts` | `createPartner`, `updatePartner`, `archivePartner`, `unarchivePartner`, `deletePartner` |
 | `actions/ledger.ts` | `getLedgersByPartner`, `getLedgersForHome`, `getLedgerById`, `createLedger`, `updateLedger`, `deleteLedger`, `generateLedgerShareToken`, `revokeLedgerShareToken`, `getLedgerByShareToken`, `getLedgerPartnerMap` |
@@ -213,7 +215,10 @@ src/
 ## 既知の設計上の特徴・制約
 
 1. **単一ユーザー視点**: データは全て記録者本人にスコープされ、ユーザー間でのデータ共有は共有リンク経由の読み取りのみ
-2. **amount符号の意味**: `+` = 貸し（相手が借りている）、`-` = 借り・返済（自分が返す側）
-3. **`Transaction.ledgerId` は nullable**: 既存データの口座移行が完了するまで null を許容している
-4. **利子付与はGitHub Actionsの定期実行**: 詳細は [09-github-actions.md](./09-github-actions.md) を参照
-5. **テストなし**: 現状テストコードは存在しない（Playwrightはスクリーンショット生成用）
+2. **amount符号の意味**: `+` = 自分の債権が増える（貸した／返済した）、`-` = 自分の債務が増える（借りた／返済された）。
+   実質は2択だが名目は4通りあるため、ボタンのラベルは `Account.transactionLabelPreset` で切り替える（符号の意味は不変）
+3. **色は「見ている人」の視点で一貫**: 緑 = 見ている人の債権 / 赤 = 見ている人の債務。
+   アプリ内はユーザー視点、公開URL（`/share/[token]`）は相手視点に符号を反転して表示する（`src/lib/balance-wording.ts`）
+4. **`Transaction.ledgerId` は nullable**: 既存データの口座移行が完了するまで null を許容している
+5. **利子付与はGitHub Actionsの定期実行**: 詳細は [09-github-actions.md](./09-github-actions.md) を参照
+6. **テストなし**: 現状テストコードは存在しない（Playwrightはスクリーンショット生成用）

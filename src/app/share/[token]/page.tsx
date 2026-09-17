@@ -71,7 +71,7 @@ export default async function SharePage({ params }: Props) {
             )}
           </h1>
           <p className="text-xs text-muted-foreground">
-            読み取り専用 · アクセス時点のデータを表示しています
+            読み取り専用 · {partnerName}さんから見た表示 · アクセス時点のデータ
           </p>
         </div>
       </div>
@@ -79,7 +79,7 @@ export default async function SharePage({ params }: Props) {
       <main className="mx-auto w-full max-w-lg px-4 py-6 space-y-6">
         {/* Balance card */}
         <div>
-          <p className="text-xs font-medium tracking-widest text-emerald-600 uppercase mb-2">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
             現在の残高
           </p>
           <SharedBalanceCard
@@ -91,7 +91,7 @@ export default async function SharePage({ params }: Props) {
 
         {/* 口座情報 */}
         <div>
-          <p className="text-xs font-medium tracking-widest text-emerald-600 uppercase mb-2">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
             口座について
           </p>
           <div className="rounded-xl border bg-card px-4 py-3.5 space-y-3">

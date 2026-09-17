@@ -1,6 +1,5 @@
 import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getCurrentUser } from "@/actions/auth";
 import { getLedgerById } from "@/actions/ledger";
 import { getPartners } from "@/actions/partner";
 import {
@@ -38,14 +37,12 @@ export default async function LedgerDetailPage({
   const sp = await searchParams;
   const showArchived = parseBool(sp.showArchived);
 
-  const [ledger, suggestions, transactions, partners, currentUser] =
-    await Promise.all([
-      getLedgerById(id),
-      getPurposeSuggestions(),
-      getTransactions({ ledgerIds: [id], showArchived }),
-      getPartners(),
-      getCurrentUser(),
-    ]);
+  const [ledger, suggestions, transactions, partners] = await Promise.all([
+    getLedgerById(id),
+    getPurposeSuggestions(),
+    getTransactions({ ledgerIds: [id], showArchived }),
+    getPartners(),
+  ]);
 
   if (!ledger) {
     notFound();
@@ -67,14 +64,10 @@ export default async function LedgerDetailPage({
 
         {/* 残高カード */}
         <div>
-          <p className="text-xs font-medium tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-2">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
             現在の残高
           </p>
-          <LedgerBalanceCard
-            ledger={ledger}
-            userName={currentUser?.name ?? "あなた"}
-            latestTransaction={transactions[0]}
-          />
+          <LedgerBalanceCard ledger={ledger} latestTransaction={transactions[0]} />
         </div>
 
         {/* 口座設定（利率・名前） */}
@@ -85,7 +78,7 @@ export default async function LedgerDetailPage({
 
         {/* 共有リンクセクション */}
         <div>
-          <p className="text-xs font-medium tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-2">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
             共有リンク
           </p>
           <LedgerShareLinkSection ledger={ledger} />

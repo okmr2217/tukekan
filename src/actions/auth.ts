@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
@@ -10,6 +11,12 @@ import {
   deleteSessionCookie,
   getSession,
 } from "@/lib/auth";
+import {
+  DEFAULT_TRANSACTION_LABEL_PRESET,
+  TRANSACTION_LABEL_PRESETS,
+  toTransactionLabelPreset,
+  type TransactionLabelPreset,
+} from "@/lib/transaction-labels";
 
 const loginSchema = z.object({
   email: z.string().email("メールアドレスの形式が正しくありません"),
@@ -124,10 +131,63 @@ export async function getCurrentUser() {
       email: true,
       name: true,
       createdAt: true,
+      transactionLabelPreset: true,
     },
   });
 
-  return account;
+  if (!account) return null;
+
+  return {
+    ...account,
+    transactionLabelPreset: toTransactionLabelPreset(
+      account.transactionLabelPreset,
+    ),
+  };
+}
+
+// 取引フォームの名目ラベルプリセットを取得（未ログイン時は既定値）
+export async function getTransactionLabelPreset(): Promise<TransactionLabelPreset> {
+  const session = await getSession();
+  if (!session) return DEFAULT_TRANSACTION_LABEL_PRESET;
+
+  const account = await prisma.account.findUnique({
+    where: { id: session.userId },
+    select: { transactionLabelPreset: true },
+  });
+
+  return toTransactionLabelPreset(account?.transactionLabelPreset);
+}
+
+// 取引フォームの名目ラベルプリセットを更新
+const transactionLabelPresetSchema = z.enum(TRANSACTION_LABEL_PRESETS);
+
+export type UpdateTransactionLabelPresetState = {
+  success?: boolean;
+  error?: string;
+};
+
+export async function updateTransactionLabelPreset(
+  preset: string,
+): Promise<UpdateTransactionLabelPresetState> {
+  const session = await getSession();
+  if (!session) {
+    return { error: "ログインが必要です" };
+  }
+
+  const result = transactionLabelPresetSchema.safeParse(preset);
+  if (!result.success) {
+    return { error: "不正な選択肢です" };
+  }
+
+  await prisma.account.update({
+    where: { id: session.userId },
+    data: { transactionLabelPreset: result.data },
+  });
+
+  // 取引フォームは (main) レイアウトでプリセットを読んでいるので全体を無効化する
+  revalidatePath("/", "layout");
+
+  return { success: true };
 }
 
 // プロフィール更新

@@ -12,6 +12,7 @@
 | [`migrate-ledger-share-and-notes.yml`](../.github/workflows/migrate-ledger-share-and-notes.yml) | Migrate Ledger Share and Notes (one-shot) | 手動のみ | 共有トークン・口座メモ追加のワンショット移行作業 |
 | [`migrate-ledger-tiered-rate.yml`](../.github/workflows/migrate-ledger-tiered-rate.yml) | Migrate Ledger Tiered Interest Rate (one-shot) | 手動のみ | 週利率の2段階化のワンショット移行作業。バックフィルはマイグレーションSQLに含まれる |
 | [`migrate-transaction-purpose.yml`](../.github/workflows/migrate-transaction-purpose.yml) | Migrate Transaction Purpose (one-shot) | 手動のみ | 取引への「用途」追加と、既存メモ（description）の用途への移植のワンショット移行作業。移植はマイグレーションSQLに含まれる |
+| [`migrate-transaction-label-preset.yml`](../.github/workflows/migrate-transaction-label-preset.yml) | Migrate Transaction Label Preset (one-shot) | 手動のみ | `Account.transactionLabelPreset`（取引ボタンの名目ラベルのプリセット）追加のワンショット移行作業。既存行は既定値 `BOTH` で埋まる |
 
 ---
 
@@ -62,6 +63,14 @@
   - 既存の `description` の値を `purpose` へコピーし、`description` を `NULL` にリセット
 - **不可逆な操作**であり、`description` の内容は移植後に消える。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
 - ジョブサマリーに取引件数・`purpose` ありの件数・`description` ありの件数（移行後は0件になるはず）が出力される
+
+## migrate-transaction-label-preset.yml
+
+- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
+- `migrate-transaction-purpose.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
+- `prisma/migrations/20260918000000_add_transaction_label_preset/migration.sql` が `Account` に `transactionLabelPreset TEXT NOT NULL DEFAULT 'BOTH'` を追加する
+- 既存データの書き換えはなく、既存アカウントはすべて既定の `BOTH`（貸した・返済した / 借りた・返済された）になる。**他の移行ワークフローと違い不可逆なデータ変換は含まない**
+- ジョブサマリーにアカウント件数とプリセットの分布が出力される
 
 ---
 

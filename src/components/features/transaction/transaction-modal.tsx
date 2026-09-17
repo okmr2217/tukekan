@@ -13,6 +13,7 @@ import {
 import { FAB } from "@/components/layouts/fab";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { TransactionFormFields } from "./transaction-form-fields";
+import { useTransactionLabels } from "./transaction-label-preset-context";
 import { PartnerPickerField } from "./partner-picker-field";
 import { LedgerPickerField } from "./ledger-picker-field";
 import { createTransaction } from "@/actions/transaction";
@@ -44,6 +45,8 @@ export function TransactionModal({
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // 初期選択はプリセット次第（よく借りる人は「借りた」側から始まる）
+  const { defaultIsLending } = useTransactionLabels();
 
   const form = useForm<TransactionFormValues>({
     resolver: transactionFormResolver,
@@ -53,7 +56,7 @@ export function TransactionModal({
       partnerId: defaultPartnerId ?? "",
       ledgerId: defaultLedgerId ?? "",
       amount: "",
-      isLending: true,
+      isLending: defaultIsLending,
       purpose: "",
       description: "",
       dateMode: "today",
@@ -69,14 +72,14 @@ export function TransactionModal({
       partnerId: defaultPartnerId ?? "",
       ledgerId: defaultLedgerId ?? "",
       amount: "",
-      isLending: true,
+      isLending: defaultIsLending,
       purpose: "",
       description: "",
       dateMode: "today",
       otherDate: formatDateToJST(),
       selectedTime: floorToNearest30(new Date()),
     });
-  }, [open, defaultPartnerId, defaultLedgerId, form]);
+  }, [open, defaultPartnerId, defaultLedgerId, defaultIsLending, form]);
 
   // Keyboard shortcut: N to open modal
   useEffect(() => {
