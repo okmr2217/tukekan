@@ -16,11 +16,7 @@ import { TransactionFormFields } from "./transaction-form-fields";
 import { PartnerPickerField } from "./partner-picker-field";
 import { LedgerPickerField } from "./ledger-picker-field";
 import { createTransaction } from "@/actions/transaction";
-import {
-  floorToNearest30,
-  buildDateTime,
-} from "@/lib/date-picker-utils";
-import { formatDateToJST } from "@/lib/date-utils";
+import { buildDateTime } from "@/lib/date-picker-utils";
 import { toast } from "sonner";
 import type { Partner } from "@/actions/partner";
 import {
@@ -56,9 +52,8 @@ export function TransactionModal({
       isLending: true,
       purpose: "",
       description: "",
-      dateMode: "today",
-      otherDate: formatDateToJST(),
-      selectedTime: floorToNearest30(new Date()),
+      dateMode: "now",
+      customDateTime: "",
     },
   });
 
@@ -72,9 +67,8 @@ export function TransactionModal({
       isLending: true,
       purpose: "",
       description: "",
-      dateMode: "today",
-      otherDate: formatDateToJST(),
-      selectedTime: floorToNearest30(new Date()),
+      dateMode: "now",
+      customDateTime: "",
     });
   }, [open, defaultPartnerId, defaultLedgerId, form]);
 
@@ -115,7 +109,7 @@ export function TransactionModal({
   const handleSubmit = form.handleSubmit((data) => {
     const rawAmount = parseInt(data.amount, 10);
     const signedAmount = data.isLending ? rawAmount : -rawAmount;
-    const date = buildDateTime(data.dateMode, data.otherDate, data.selectedTime);
+    const date = buildDateTime(data.dateMode, data.customDateTime);
 
     setError(null);
     startTransition(async () => {
@@ -172,7 +166,6 @@ export function TransactionModal({
                 <TransactionFormFields
                   suggestions={suggestions}
                   isPending={isPending}
-                  maxDate={formatDateToJST()}
                 />
               </div>
             </FormProvider>
