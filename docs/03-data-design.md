@@ -18,12 +18,9 @@
 ├─────────────┤  │
 │ id (PK)     │──┘
 │ name        │
-│ linkedAccountId (FK, nullable) ──> Account
 │ ownerId (FK)│──> Account
 │ createdAt   │
 └─────────────┘
-
-※ 将来拡張: Groupテーブルを追加し、Account・Transactionに紐付け
 ```
 
 ---
@@ -43,13 +40,12 @@
 
 ユーザーが管理する「貸借相手」。アプリ未登録の友人も登録可能。
 
-| カラム          | 型            | 説明                          |
-| --------------- | ------------- | ----------------------------- |
-| id              | String (cuid) | 一意のID                      |
-| name            | String        | 相手の名前                    |
-| linkedAccountId | String?       | 紐付いたAccountのID（任意）   |
-| ownerId         | String        | この相手を登録したAccountのID |
-| createdAt       | DateTime      | 作成日時                      |
+| カラム    | 型            | 説明                          |
+| --------- | ------------- | ----------------------------- |
+| id        | String (cuid) | 一意のID                      |
+| name      | String        | 相手の名前                    |
+| ownerId   | String        | この相手を登録したAccountのID |
+| createdAt | DateTime      | 作成日時                      |
 
 ### Transaction（取引）
 
@@ -78,8 +74,7 @@ model Account {
 
   // Relations
   transactions Transaction[]
-  partners     Partner[]     @relation("OwnerPartners")
-  linkedFrom   Partner[]     @relation("LinkedAccount")
+  partners     Partner[]
 }
 
 model Partner {
@@ -89,10 +84,7 @@ model Partner {
 
   // Relations
   ownerId         String
-  owner           Account  @relation("OwnerPartners", fields: [ownerId], references: [id])
-
-  linkedAccountId String?
-  linkedAccount   Account? @relation("LinkedAccount", fields: [linkedAccountId], references: [id])
+  owner           Account  @relation(fields: [ownerId], references: [id])
 
   transactions    Transaction[]
 
@@ -167,27 +159,6 @@ const allTransactions = await prisma.transaction.findMany({
   orderBy: { date: "desc" },
   include: { partner: true },
 });
-```
-
-### メンバー一覧（各ユーザーの総残高付き）を取得
-
-```typescript
-const members = await prisma.account.findMany({
-  where: { id: { not: currentUserId } },
-  select: {
-    id: true,
-    name: true,
-    transactions: {
-      select: { amount: true },
-    },
-  },
-});
-
-const membersWithBalance = members.map((m) => ({
-  id: m.id,
-  name: m.name,
-  totalBalance: m.transactions.reduce((sum, t) => sum + t.amount, 0),
-}));
 ```
 
 ### 説明のサジェスト（過去履歴から頻度順）

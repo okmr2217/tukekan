@@ -4,7 +4,7 @@
 
 ## プロジェクト概要
 
-ツケカン — グループ（家族・友人など）内でのお金の貸し借りを管理するWebアプリ。
+ツケカン — 友人・家族などとのお金の貸し借りを管理するWebアプリ。
 技術スタックやデータモデルの詳細は [`docs/summary.md`](./docs/summary.md) を参照。
 
 ## ドキュメント
@@ -20,7 +20,6 @@
 | [docs/05-tech-stack.md](./docs/05-tech-stack.md) | 技術スタック、ディレクトリ構成 |
 | [docs/06-security.md](./docs/06-security.md) | セキュリティ、非機能要件 |
 | [docs/07-phases.md](./docs/07-phases.md) | 開発フェーズ |
-| [docs/08-group-feature-design.md](./docs/08-group-feature-design.md) | グループ機能設計 |
 | [docs/09-github-actions.md](./docs/09-github-actions.md) | GitHub Actions ワークフロー一覧・詳細 |
 | [docs/summary.md](./docs/summary.md) | アプリ全体のサマリー（技術スタック・データモデル・画面構成など） |
 

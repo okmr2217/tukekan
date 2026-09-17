@@ -16,7 +16,6 @@
 | [05-tech-stack.md](./05-tech-stack.md)   | 技術スタック、ディレクトリ構成              |
 | [06-security.md](./06-security.md)       | セキュリティ、非機能要件                    |
 | [07-phases.md](./07-phases.md)           | 開発フェーズ                                |
-| [08-group-feature-design.md](./08-group-feature-design.md) | グループ機能設計                 |
 | [09-github-actions.md](./09-github-actions.md) | GitHub Actions ワークフロー一覧・詳細  |
 
 ## 用語定義
@@ -28,8 +27,7 @@
 | Transaction   | 1件の貸し借り記録                                        |
 | 貸し          | 自分が相手にお金を渡した（+金額）                        |
 | 借り/返済     | 自分が相手からお金を受け取った（-金額）                  |
-| linkedAccount | Partnerに紐付いた、アプリ登録済みのAccount               |
-| Group         | （将来）ユーザーをまとめる単位、グループ内のみデータ共有 |
+| Ledger        | Partnerごとの「口座」。取引はこの口座に紐づく            |
 
 ## バイブコーディング時の参照ガイド
 
@@ -51,7 +49,7 @@
 
 【要件】
 - ヘッダー: 右に設定アイコン
-- ボトムバー: ホーム、メンバーの2項目
+- ボトムバー: 口座、すべての取引、統計、メニューの4項目
 - FAB: 右下固定、+アイコン
 ```
 
