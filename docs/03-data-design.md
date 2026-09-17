@@ -8,9 +8,10 @@
 ├─────────────┤       ├─────────────────┤
 │ id (PK)     │──┐    │ id (PK)         │
 │ name        │  │    │ amount          │
-│ passwordHash│  │    │ description     │
-│ createdAt   │  │    │ date            │
-└─────────────┘  │    │ createdAt       │
+│ passwordHash│  │    │ purpose         │
+│ createdAt   │  │    │ description     │
+└─────────────┘  │    │ date            │
+                 │    │ createdAt       │
                  │    │                 │
                  │    │ ownerId (FK)    │──> Account
 ┌─────────────┐  │    │ partnerId (FK)  │──> Partner
@@ -49,13 +50,14 @@
 
 ### Transaction（取引）
 
-金額の正負で貸し借りを区別。返済も借りもマイナス金額で記録（descriptionで区別可能）。
+金額の正負で貸し借りを区別。返済も借りもマイナス金額で記録（purposeで区別可能）。
 
 | カラム      | 型            | 説明                            |
 | ----------- | ------------- | ------------------------------- |
 | id          | String (cuid) | 一意のID                        |
 | amount      | Int           | 金額（+は貸し、-は借り/返済）   |
-| description | String?       | 備考（麻雀、ドライブ、返済 等） |
+| purpose     | String?       | 用途（麻雀、ドライブ、返済 等）。1行・100文字以内 |
+| description | String?       | メモ（詳細テキスト）。複数行可・1000文字以内 |
 | date        | DateTime      | 取引発生日                      |
 | ownerId     | String        | 取引を登録したAccountのID       |
 | partnerId   | String        | 相手（Partner）のID             |
@@ -94,6 +96,7 @@ model Partner {
 model Transaction {
   id          String   @id @default(cuid())
   amount      Int      // +は貸し、-は借り/返済
+  purpose     String?
   description String?
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
@@ -165,13 +168,13 @@ const allTransactions = await prisma.transaction.findMany({
 
 ```typescript
 const suggestions = await prisma.transaction.groupBy({
-  by: ["description"],
+  by: ["purpose"],
   where: {
     ownerId: currentUserId,
-    description: { not: null },
+    purpose: { not: null },
   },
-  _count: { description: true },
-  orderBy: { _count: { description: "desc" } },
+  _count: { purpose: true },
+  orderBy: { _count: { purpose: "desc" } },
   take: 10,
 });
 // → ["麻雀", "ドライブ", "ランチ", ...]

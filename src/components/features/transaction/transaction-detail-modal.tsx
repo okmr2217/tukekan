@@ -95,6 +95,20 @@ export function TransactionDetailModal({
             </div>
           </div>
 
+          {/* 用途（存在する時のみ） */}
+          {transaction.purpose && (
+            <div className="pb-3">
+              <div className="rounded-md bg-muted/50 px-3.5 py-3">
+                <div className="mb-1 text-[11px] text-muted-foreground">
+                  用途
+                </div>
+                <div className="text-sm leading-relaxed break-words">
+                  {transaction.purpose}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* メモ（存在する時のみ） */}
           {transaction.description && (
             <div className="pb-3">

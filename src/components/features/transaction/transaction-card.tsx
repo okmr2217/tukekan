@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCompactTime, formatShortDate } from "@/lib/date-utils";
 import type { TransactionWithPartner } from "@/actions/transaction";
@@ -66,13 +67,19 @@ export function TransactionCard({
         )}
       </div>
 
-      {/* 中段: メモ ／ 金額 */}
+      {/* 中段: 用途 ／ 金額 */}
       <div className="flex items-baseline justify-between gap-3 mt-0.5">
-        <span className="font-medium text-sm text-foreground min-w-0">
-          {transaction.description ? (
-            transaction.description
+        <span className="font-medium text-sm text-foreground min-w-0 flex items-baseline gap-1">
+          {transaction.purpose ? (
+            <span className="truncate">{transaction.purpose}</span>
           ) : (
-            <span className="text-muted-foreground/60 text-xs">メモなし</span>
+            <span className="text-muted-foreground/60 text-xs">用途なし</span>
+          )}
+          {transaction.description && (
+            <StickyNote
+              className="size-3 shrink-0 self-center text-muted-foreground/60"
+              aria-label="メモあり"
+            />
           )}
         </span>
         <span

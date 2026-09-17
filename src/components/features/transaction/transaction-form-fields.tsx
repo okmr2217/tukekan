@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { FieldLabel } from "@/components/ui/field-label";
 import {
@@ -14,7 +15,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TIME_OPTIONS, type DateMode } from "@/lib/date-picker-utils";
-import { MAX_AMOUNT, type TransactionFormValues } from "./transaction-form-schema";
+import {
+  MAX_AMOUNT,
+  MAX_PURPOSE_LENGTH,
+  MAX_DESCRIPTION_LENGTH,
+  type TransactionFormValues,
+} from "./transaction-form-schema";
 
 type Props = {
   suggestions: string[];
@@ -36,25 +42,26 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
     formState: { errors },
   } = useFormContext<TransactionFormValues>();
   const [showDropdown, setShowDropdown] = useState(false);
-  const memoWrapperRef = useRef<HTMLDivElement>(null);
+  const purposeWrapperRef = useRef<HTMLDivElement>(null);
 
+  const purpose = watch("purpose");
   const description = watch("description");
   const isLending = watch("isLending");
   const dateMode = watch("dateMode");
 
   const filteredSuggestions =
-    description.trim() === ""
+    purpose.trim() === ""
       ? suggestions
       : suggestions.filter((s) =>
-          s.toLowerCase().startsWith(description.toLowerCase()),
+          s.toLowerCase().startsWith(purpose.toLowerCase()),
         );
   const visibleSuggestions = showDropdown ? filteredSuggestions : [];
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
-        memoWrapperRef.current &&
-        !memoWrapperRef.current.contains(e.target as Node)
+        purposeWrapperRef.current &&
+        !purposeWrapperRef.current.contains(e.target as Node)
       ) {
         setShowDropdown(false);
       }
@@ -117,16 +124,16 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
         </div>
       </div>
 
-      {/* Memo */}
+      {/* Purpose */}
       <div className="space-y-1.5">
-        <Label htmlFor="transaction-description">メモ</Label>
-        <div ref={memoWrapperRef} className="relative">
+        <Label htmlFor="transaction-purpose">用途</Label>
+        <div ref={purposeWrapperRef} className="relative">
           <Input
-            id="transaction-description"
+            id="transaction-purpose"
             placeholder="例: 麻雀、ランチ、返済"
-            maxLength={100}
+            maxLength={MAX_PURPOSE_LENGTH}
             disabled={isPending}
-            {...register("description", {
+            {...register("purpose", {
               onChange: () => setShowDropdown(true),
             })}
             onFocus={() => setShowDropdown(true)}
@@ -140,7 +147,7 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
                     onMouseDown={(e) => {
                       e.preventDefault();
                       const event = { target: { value: s } } as React.ChangeEvent<HTMLInputElement>;
-                      register("description").onChange(event);
+                      register("purpose").onChange(event);
                       setShowDropdown(false);
                     }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -154,7 +161,27 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
         </div>
         <div className="flex justify-end">
           <span className="text-xs text-muted-foreground/60">
-            {description.length}/100
+            {purpose.length}/{MAX_PURPOSE_LENGTH}
+          </span>
+        </div>
+      </div>
+
+      {/* Memo（詳細・複数行） */}
+      <div className="space-y-1.5">
+        <Label htmlFor="transaction-description">メモ</Label>
+        <Textarea
+          id="transaction-description"
+          placeholder="詳細な内容を自由に記録できます（改行可）"
+          rows={4}
+          maxLength={MAX_DESCRIPTION_LENGTH}
+          disabled={isPending}
+          aria-invalid={!!errors.description}
+          className="min-h-24 resize-y"
+          {...register("description")}
+        />
+        <div className="flex justify-end">
+          <span className="text-xs text-muted-foreground/60">
+            {description.length}/{MAX_DESCRIPTION_LENGTH}
           </span>
         </div>
       </div>

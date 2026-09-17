@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getPartnersWithBalance } from "@/actions/partner";
-import { getDescriptionSuggestions, getTransactions, type SortOrder } from "@/actions/transaction";
+import { getPurposeSuggestions, getTransactions, type SortOrder } from "@/actions/transaction";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
 import { MobileHeader } from "@/components/layouts/mobile-header";
 
@@ -41,7 +41,7 @@ export default async function TransactionsPage({
 
   const [partnersWithBalance, suggestions, transactions] = await Promise.all([
     getPartnersWithBalance(),
-    getDescriptionSuggestions(),
+    getPurposeSuggestions(),
     getTransactions({ partnerIds, q, sortOrder }),
   ]);
 

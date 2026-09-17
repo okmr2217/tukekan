@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/actions/auth";
 import { getLedgerById } from "@/actions/ledger";
 import { getPartners } from "@/actions/partner";
 import {
-  getDescriptionSuggestions,
+  getPurposeSuggestions,
   getTransactions,
 } from "@/actions/transaction";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
@@ -41,7 +41,7 @@ export default async function LedgerDetailPage({
   const [ledger, suggestions, transactions, partners, currentUser] =
     await Promise.all([
       getLedgerById(id),
-      getDescriptionSuggestions(),
+      getPurposeSuggestions(),
       getTransactions({ ledgerIds: [id], showArchived }),
       getPartners(),
       getCurrentUser(),

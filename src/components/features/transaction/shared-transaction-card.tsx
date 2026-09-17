@@ -4,6 +4,7 @@ import { formatDateTimeForDisplay } from "@/lib/date-utils";
 type SharedTransaction = {
   id: string;
   amount: number;
+  purpose: string | null;
   description: string | null;
   date: Date;
   runningBalance: number;
@@ -37,8 +38,8 @@ export function SharedTransactionCard({ transaction }: Props) {
       </div>
       <div className="flex items-baseline justify-between gap-3 mt-0.5">
         <span className="font-medium text-sm text-foreground truncate min-w-0">
-          {transaction.description ?? (
-            <span className="text-muted-foreground/60 text-xs">メモなし</span>
+          {transaction.purpose ?? (
+            <span className="text-muted-foreground/60 text-xs">用途なし</span>
           )}
         </span>
         <span
@@ -52,6 +53,11 @@ export function SharedTransactionCard({ transaction }: Props) {
           {isLending ? "+" : "-"}¥{absAmount.toLocaleString()}
         </span>
       </div>
+      {transaction.description && (
+        <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words">
+          {transaction.description}
+        </p>
+      )}
       <div className="flex justify-end mt-0.75">
         <span className="text-xs text-muted-foreground mr-1">残高</span>
         <span

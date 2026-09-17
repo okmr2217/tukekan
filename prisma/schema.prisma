@@ -64,7 +64,8 @@ model Ledger {
 model Transaction {
   id          String   @id @default(cuid())
   amount      Int // +は貸し、-は借り
-  description String? // 100文字以内
+  purpose     String? // 用途（例: 麻雀、ランチ、返済）。1行・100文字以内
+  description String? // メモ（詳細テキスト）。複数行可・1000文字以内
   date        DateTime // UTCで保存、クライアント側でJST変換
   isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
