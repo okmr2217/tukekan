@@ -81,7 +81,7 @@ export function PartnerDetailClient({ partner }: Props) {
         return;
       }
       toast.success(`${partner.name}を削除しました`);
-      router.push("/partners");
+      router.push("/");
     });
   };
 

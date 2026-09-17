@@ -14,6 +14,7 @@
 | [`migrate-transaction-purpose.yml`](../.github/workflows/migrate-transaction-purpose.yml) | Migrate Transaction Purpose (one-shot) | 手動のみ | 取引への「用途」追加と、既存メモ（description）の用途への移植のワンショット移行作業。移植はマイグレーションSQLに含まれる |
 | [`migrate-transaction-label-preset.yml`](../.github/workflows/migrate-transaction-label-preset.yml) | Migrate Transaction Label Preset (one-shot) | 手動のみ | `Account.transactionLabelPreset`（取引ボタンの名目ラベルのプリセット）追加のワンショット移行作業。既存行は既定値 `BOTH` で埋まる |
 | [`migrate-ledger-annual-interest.yml`](../.github/workflows/migrate-ledger-annual-interest.yml) | Migrate Ledger Annual Interest (one-shot) | 手動のみ | 利子システム改修（年利への一本化・発生曜日/単複利の追加・`Transaction.kind` 追加）のワンショット移行作業。**不可逆なデータ変換を含む** |
+| [`migrate-partner-share-token.yml`](../.github/workflows/migrate-partner-share-token.yml) | Migrate Partner Share Token (one-shot) | 手動のみ | 公開ページを口座単位から相手単位へ移すワンショット移行作業。**不可逆なデータ変換を含む** |
 
 ---
 
@@ -98,6 +99,20 @@
   遡って分離したい場合は `UPDATE "Transaction" SET "kind" = 'INTEREST' WHERE "purpose" LIKE '利子%'` 相当のバックフィルを別途検討する
   （合計残高は変わらず、元本と未払利息の内訳だけが変わる）
 - ジョブサマリーに各口座の年利・発生曜日・単複利の一覧も出力される
+
+## migrate-partner-share-token.yml
+
+- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
+- `migrate-ledger-annual-interest.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
+- `prisma/migrations/20260920000000_partner_share_token/migration.sql` が以下を実行する:
+  - `Partner` の `shareToken` / `shareTokenExpiresAt` を（無ければ）追加する。
+    この2列はベースラインから残ったままになっていた（口座へ移したときに削除マイグレーションが書かれなかった）ため、`IF NOT EXISTS` で扱う
+  - `Partner` に残っていた**古い共有トークンを破棄する**。そのままにすると、失効させたつもりの古いURLが相手ページとして復活してしまう
+  - 生きている口座のトークンを相手へ引き継ぐ（トークンの値はそのまま。配布済みのURLは相手ページとして使える）。
+    1人の相手が複数の口座でリンクを発行していた場合は**有効期限がいちばん先のものだけが残り、他は失効する**
+  - `Ledger` から `shareToken` / `shareTokenExpiresAt` を削除する
+- **不可逆な操作**。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
+- ジョブサマリーに移行後に共有リンクを持つ相手の一覧（名前・有効期限・口座数）が出力される
 
 ---
 

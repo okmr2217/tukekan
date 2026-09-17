@@ -10,6 +10,8 @@ type Props = {
   ledgerId: string;
   notes: LedgerNote[];
   readOnly?: boolean;
+  /** 相手ページのように複数の口座のメモが並ぶときに、どの口座のメモかを示す */
+  ledgerTitle?: string;
 };
 
 const INITIAL_VISIBLE = 3;
@@ -18,6 +20,7 @@ export function LedgerNoteSection({
   ledgerId,
   notes,
   readOnly = false,
+  ledgerTitle,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -33,6 +36,11 @@ export function LedgerNoteSection({
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
             メモ
+            {ledgerTitle && (
+              <span className="ml-1.5 normal-case tracking-normal">
+                ・{ledgerTitle}
+              </span>
+            )}
           </p>
           {!readOnly && (
             <button

@@ -14,6 +14,8 @@ type SharedTransaction = {
 
 type Props = {
   transaction: SharedTransaction;
+  /** 複数の口座をまとめて出しているときに、どの口座の取引かを示す */
+  ledgerTitle?: string;
 };
 
 /**
@@ -23,7 +25,7 @@ type Props = {
  * このページを見ているのは相手なので符号を反転して「相手視点」で表示する。
  * これにより残高カードと色の意味（緑 = 見ている人の債権 / 赤 = 債務）が揃う。
  */
-export function SharedTransactionCard({ transaction }: Props) {
+export function SharedTransactionCard({ transaction, ledgerTitle }: Props) {
   const viewerAmount = -transaction.amount;
   const viewerBalance = -transaction.runningBalance;
   const isLending = viewerAmount > 0;
@@ -51,6 +53,11 @@ export function SharedTransactionCard({ transaction }: Props) {
         <span className="text-xs font-medium text-muted-foreground">
           {formatDateTimeForDisplay(transaction.date)}
         </span>
+        {ledgerTitle && (
+          <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+            {ledgerTitle}
+          </span>
+        )}
       </div>
       <div className="flex items-baseline justify-between gap-3 mt-0.5">
         <span className="font-medium text-sm text-foreground truncate min-w-0">

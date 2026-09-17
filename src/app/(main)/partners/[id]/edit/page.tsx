@@ -23,7 +23,7 @@ export default async function PartnerEditPage({
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title={partner.name} backHref="/partners" />
+      <MobileHeader title={partner.name} backHref={`/partners/${partner.id}`} />
 
       <div className="px-4 pt-3 pb-4 max-w-lg mx-auto w-full">
         <p className="text-xs text-muted-foreground mb-3">相手の管理</p>

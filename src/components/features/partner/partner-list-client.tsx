@@ -13,7 +13,8 @@ type Props = {
   partners: PartnerWithBalance[];
 };
 
-export function PartnersPageClient({ partners }: Props) {
+/** ホーム（相手の一覧）。相手ごとの合計残高と、直近の取引を出す */
+export function PartnerListClient({ partners }: Props) {
   const [showArchived, setShowArchived] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -24,8 +25,7 @@ export function PartnersPageClient({ partners }: Props) {
   return (
     <>
       <MobileHeader
-        title="相手の管理"
-        backHref="/menu"
+        title="相手"
         action={
           <Button size="sm" onClick={() => setIsAddOpen(true)}>
             <UserPlus className="size-4 mr-1" />
@@ -34,13 +34,26 @@ export function PartnersPageClient({ partners }: Props) {
         }
       />
 
-      <div className="max-w-lg mx-auto w-full">
+      <div className="max-w-lg mx-auto w-full px-4 pt-3 pb-4">
+        <p className="text-xs text-muted-foreground mb-3">相手ごとの残高</p>
+
         {displayedPartners.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground">
-            {showArchived ? "相手がいません" : "相手がまだ登録されていません"}
+          <div className="py-16 text-center space-y-3">
+            <p className="text-muted-foreground text-sm">
+              {showArchived
+                ? "相手がいません"
+                : "相手がまだ登録されていません"}
+            </p>
+            <button
+              onClick={() => setIsAddOpen(true)}
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              <UserPlus className="h-4 w-4" />
+              相手を追加する
+            </button>
           </div>
         ) : (
-          <div className="py-3 px-4 space-y-2">
+          <div className="space-y-2">
             {displayedPartners.map((partner) => (
               <PartnerCard key={partner.id} partner={partner} />
             ))}
@@ -48,7 +61,7 @@ export function PartnersPageClient({ partners }: Props) {
         )}
 
         {archivedPartners.length > 0 && (
-          <div className="flex items-center gap-2 px-4 py-3 mt-2">
+          <div className="flex items-center gap-2 py-3 mt-2">
             <input
               id="show-archived"
               type="checkbox"

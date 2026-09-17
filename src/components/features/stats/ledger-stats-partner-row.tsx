@@ -98,7 +98,7 @@ export function LedgerStatsPartnerRow({ stat }: { stat: PartnerLedgerStat }) {
                   <span className="text-muted-foreground">—</span>
                 )}
                 <Link
-                  href={`/partners/${stat.partnerId}`}
+                  href={`/partners/${stat.partnerId}?ledger=${ledger.ledgerId}`}
                   className="text-[11px] text-primary hover:underline shrink-0"
                 >
                   口座を開く

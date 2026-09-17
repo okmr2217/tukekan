@@ -49,6 +49,8 @@ Partner
 ├── id
 ├── name          相手の表示名（オーナー内でunique）
 ├── isArchived    アーカイブ済みフラグ
+├── shareToken           公開ページ用トークン（unique・任意）
+├── shareTokenExpiresAt  公開リンクの有効期限
 ├── ownerId       このPartnerを所有するAccount
 ├── ledgers[]
 └── transactions[]
@@ -60,8 +62,6 @@ Ledger（口座）
 ├── interestAccrualWeekday   利息が発生する曜日（JST。0=日 〜 6=土。既定 3=水）
 ├── interestCompounding      true = 複利（元本+未払利息に課金） / false = 単利
 ├── lastInterestAccruedAt    最後に利息を発生させた日時（同日二重発生の防止）
-├── shareToken               共有リンク用トークン（unique・任意）
-├── shareTokenExpiresAt      共有リンクの有効期限
 ├── partnerId
 ├── transactions[]
 └── notes[]
@@ -103,7 +103,7 @@ LedgerNote
 - セッション情報: `{ userId, email, name }`
 - ログイン: email + パスワードで認証
 - データは全て `ownerId`（セッションのuserId）でスコープされ、他ユーザーのデータは参照できない
-- 口座の共有リンク（`/share/[token]`）のみ、未認証で読み取り専用の閲覧が可能
+- 相手ごとの共有リンク（`/share/[token]`）のみ、未認証で読み取り専用の閲覧が可能
 
 ---
 
@@ -116,15 +116,14 @@ LedgerNote
 /share/[token]                共有リンク（未認証・読み取り専用）
 
 /(main)                       認証済みレイアウト（Header + BottomBar + FAB）
-  /                           ホーム（口座ごとの残高一覧）
+  /                           ホーム（相手ごとの残高一覧）
   /transactions               すべての取引
   /statistics                 統計
   /statistics/accounts        口座別の統計
-  /ledgers/[id]               口座の詳細（取引履歴・メモ・共有設定）
+  /partners/[id]              相手の詳細（合計残高・口座一覧・共有リンク・メモ・全口座の取引）
+  /partners/[id]/edit         相手の編集（名前・アーカイブ・削除）
+  /partners                   `/` へのリダイレクト（旧URL互換）
   /ledgers/[id]/settings      口座の設定（口座名・年利・利息の発生曜日・単利/複利・削除）
-  /partners                   相手の一覧
-  /partners/[id]              相手の詳細（口座一覧）
-  /partners/[id]/edit         相手の編集
   /menu                       メニュー
   /settings                   設定（プロフィール・取引ボタン表示・外観）
   /help                       ヘルプ
@@ -136,10 +135,10 @@ LedgerNote
 
 BottomBar（固定フッター）に4タブ:
 
-1. **口座** (`/`) — 口座ごとの残高・取引
+1. **相手** (`/`) — 相手ごとの残高・相手の追加
 2. **すべての取引** (`/transactions`) — 全取引の一覧・絞り込み
 3. **統計** (`/statistics`) — 相手別・口座別の集計
-4. **メニュー** (`/menu`) — 相手管理・設定・ヘルプ
+4. **メニュー** (`/menu`) — 統計（口座別）・設定・ヘルプ
 
 ---
 
@@ -153,16 +152,22 @@ BottomBar（固定フッター）に4タブ:
 - 過去の用途からサジェスト機能（使用頻度順上位10件）
 - 口座ごとの残高 + 累計残高表示
 
+### 相手（Partner）管理
+- 相手の追加・編集・アーカイブ・削除
+- 相手ページに「合計残高」「口座ごとの残高（利子ありの口座は元本／未払利息の内訳）」「全口座の取引履歴」をまとめて表示
+- 取引履歴は口座ごとに絞り込める（口座カードをタップ。状態はURLの `?ledger=` に持つ）
+
 ### 口座（Ledger）管理
-- Partnerごとに複数の口座を作成・削除。設定は口座の設定ページ（`/ledgers/[id]/settings`）
+- Partnerごとに複数の口座を作成・削除。基本は相手ごとに1口座。設定は口座の設定ページ（`/ledgers/[id]/settings`）
 - 口座単位で 年利(%)・利息の発生曜日・単利/複利 を設定
 - 利息は選んだ曜日に週1回（9:00 JST）発生し、未払利息として元本と分けて積まれる
 - 次回の利子発生日・見込み額のプレビュー表示
 - 口座ごとのメモ（LedgerNote）
 
 ### 共有リンク
-- 口座ごとに共有トークンを発行・失効
-- `/share/[token]` で相手に残高・取引履歴・メモを読み取り専用で共有
+- 相手ごとに共有トークンを発行・失効
+- `/share/[token]` で相手にすべての口座の残高・取引履歴・メモを読み取り専用で共有
+- 公開ページでも口座ごとに絞り込める
 - 有効期限切れ・失効後はアクセス不可
 
 ### 統計
@@ -175,9 +180,10 @@ BottomBar（固定フッター）に4タブ:
 | ファイル | アクション |
 |---------|-----------|
 | `actions/auth.ts` | `login`, `register`, `logout`, `getCurrentUser`, `updateProfile`, `getTransactionLabelPreset`, `updateTransactionLabelPreset` |
-| `actions/partner/queries.ts` | `getPartners`, `getPartnerById`, `getPartnersWithBalance` |
+| `actions/partner/queries.ts` | `getPartners`, `getPartnerById`, `getPartnersWithBalance`, `getPartnerBalance` |
 | `actions/partner/mutations.ts` | `createPartner`, `updatePartner`, `archivePartner`, `unarchivePartner`, `deletePartner` |
-| `actions/ledger.ts` | `getLedgersByPartner`, `getLedgersForHome`, `getLedgerById`, `createLedger`, `updateLedger`, `deleteLedger`, `generateLedgerShareToken`, `revokeLedgerShareToken`, `getLedgerByShareToken`, `getLedgerPartnerMap` |
+| `actions/partner/share.ts` | `generatePartnerShareToken`, `revokePartnerShareToken`, `getPartnerByShareToken` |
+| `actions/ledger.ts` | `getLedgersByPartner`, `getLedgerOptions`, `getLedgerById`, `createLedger`, `updateLedger`, `deleteLedger` |
 | `actions/ledger-note.ts` | `createLedgerNote`, `updateLedgerNote`, `deleteLedgerNote` |
 | `actions/transaction.ts` | `getTransactions`, `getDescriptionSuggestions`, `createTransaction`, `updateTransaction`, `archiveTransaction`, `unarchiveTransaction`, `deleteTransaction` |
 | `actions/stats.ts` | `getPartnerStats`, `getOverallStats`, `getMonthlyStats` |
@@ -210,7 +216,7 @@ src/
 │   ├── password.ts         bcrypt
 │   ├── prisma.ts           Prismaクライアントシングルトン
 │   ├── ledger-interest.ts  年利⇄週利の換算・次回利子日の算出・説明文の生成
-│   ├── ledger-balance.ts   元本／未払利息の内訳計算（返済の利息充当）
+│   ├── ledger-balance.ts   元本／未払利息の内訳計算（返済の利息充当・相手単位の合算）
 │   ├── transaction-kind.ts 取引種別（NORMAL / INTEREST）
 │   ├── calc-running-balance.ts
 │   ├── date-utils.ts / date-picker-utils.ts
@@ -229,6 +235,7 @@ src/
    実質は2択だが名目は4通りあるため、ボタンのラベルは `Account.transactionLabelPreset` で切り替える（符号の意味は不変）
 3. **色は「見ている人」の視点で一貫**: 緑 = 見ている人の債権 / 赤 = 見ている人の債務。
    アプリ内はユーザー視点、公開URL（`/share/[token]`）は相手視点に符号を反転して表示する（`src/lib/balance-wording.ts`）
+   口座カードの符号の反転は `LedgerCard` の `viewpoint` プロパティが担当する
 4. **`Transaction.ledgerId` は nullable**: 既存データの口座移行が完了するまで null を許容している
 5. **利子付与はGitHub Actionsの定期実行**: 毎日 9:00 JST に起動し、その日が発生曜日の口座だけを処理する。
    詳細は [09-github-actions.md](./09-github-actions.md) を参照

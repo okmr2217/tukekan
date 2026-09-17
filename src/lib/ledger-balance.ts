@@ -101,3 +101,32 @@ export function shouldShowBreakdown(
 ): boolean {
   return annualInterestRate > 0 || breakdown.unpaidInterest !== 0;
 }
+
+/**
+ * 複数の口座にまたがる取引をまとめた内訳。
+ *
+ * 返済を未払利息に充当するルールは口座ごとの概念なので、
+ * 口座（ledgerId）ごとに内訳を出してから合算する。
+ * 口座に紐づいていない取引（移行前のデータ）は1つのまとまりとして扱う。
+ */
+export function calcPartnerBreakdown(
+  transactions: Array<BreakdownInput & { ledgerId?: string | null }>,
+): LedgerBalanceBreakdown {
+  const groups = new Map<string, BreakdownInput[]>();
+  for (const t of transactions) {
+    const key = t.ledgerId ?? "";
+    const rows = groups.get(key);
+    if (rows) rows.push(t);
+    else groups.set(key, [t]);
+  }
+
+  let principal = 0;
+  let unpaidInterest = 0;
+  for (const rows of groups.values()) {
+    const breakdown = calcLedgerBreakdown(rows);
+    principal += breakdown.principal;
+    unpaidInterest += breakdown.unpaidInterest;
+  }
+
+  return { principal, unpaidInterest, total: principal + unpaidInterest };
+}

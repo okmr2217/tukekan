@@ -34,6 +34,11 @@ model Partner {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  // 相手ごとの公開ページ（/share/[token]）用のトークン。
+  // 以前は口座（Ledger）ごとに持っていたが、公開は相手単位に一本化した。
+  shareToken          String?   @unique
+  shareTokenExpiresAt DateTime?
+
   ownerId String
   owner   Account @relation(fields: [ownerId], references: [id])
 
@@ -59,10 +64,8 @@ model Ledger {
   // 同じ日に二重で利息を発生させないための最終発生日時
   lastInterestAccruedAt DateTime?
 
-  shareToken          String?   @unique
-  shareTokenExpiresAt DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   partnerId String
   partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)

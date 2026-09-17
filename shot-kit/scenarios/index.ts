@@ -7,7 +7,7 @@ const scenarios: Scenario[] = [
     device: "mobile",
   },
   {
-    name: "取引履歴と残高 はると",
+    name: "相手 はると",
     path: "/partners/cmou1m80j0004wp8qffywyw5r",
     device: "mobile",
   },
@@ -31,11 +31,6 @@ const scenarios: Scenario[] = [
         .click({ timeout: 5000 });
       await page.waitForTimeout(300);
     },
-  },
-  {
-    name: "相手の管理",
-    path: "/partners",
-    device: "mobile",
   },
   {
     name: "設定",

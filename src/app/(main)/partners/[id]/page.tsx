@@ -1,16 +1,28 @@
 import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getPartnerById } from "@/actions/partner";
+import {
+  getPartnerById,
+  getPartnerBalance,
+  getPartners,
+} from "@/actions/partner";
 import { getLedgersByPartner } from "@/actions/ledger";
-import { LedgerSection } from "@/components/features/partner/ledger-section";
+import { getPurposeSuggestions, getTransactions } from "@/actions/transaction";
+import { PartnerDetailView } from "@/components/features/partner/partner-detail-view";
 import { MobileHeader } from "@/components/layouts/mobile-header";
-import { Settings, ChevronRight } from "lucide-react";
-import Link from "next/link";
+
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+function parseBool(raw: string | string[] | undefined): boolean {
+  const str = Array.isArray(raw) ? raw[0] : raw;
+  return str === "true";
+}
 
 export default async function PartnerDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: SearchParams;
 }) {
   const session = await getSession();
   if (!session) {
@@ -18,11 +30,22 @@ export default async function PartnerDetailPage({
   }
 
   const { id } = await params;
+  const sp = await searchParams;
+  const showArchived = parseBool(sp.showArchived);
 
-  const [partner, ledgers] = await Promise.all([
-    getPartnerById(id),
-    getLedgersByPartner(id),
-  ]);
+  const [partner, ledgers, transactions, breakdown, suggestions, partners] =
+    await Promise.all([
+      getPartnerById(id),
+      getLedgersByPartner(id),
+      getTransactions({
+        partnerIds: [id],
+        showArchived,
+        showArchivedPartners: true,
+      }),
+      getPartnerBalance(id),
+      getPurposeSuggestions(),
+      getPartners(),
+    ]);
 
   if (!partner) {
     notFound();
@@ -32,27 +55,14 @@ export default async function PartnerDetailPage({
     <div className="flex flex-col">
       <MobileHeader title={partner.name} backHref="/" />
 
-      <div className="px-4 pt-3 pb-4 space-y-4 max-w-lg mx-auto w-full">
-        <p className="text-xs text-muted-foreground mb-1">口座一覧</p>
-
-        <LedgerSection partnerId={partner.id} ledgers={ledgers} />
-
-        <Link
-          href={`/partners/${partner.id}/edit`}
-          className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3.5 shadow-sm hover:bg-muted transition-colors"
-        >
-          <div className="size-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-            <Settings className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">相手の設定</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              名前の変更・アーカイブ・削除
-            </p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-        </Link>
-      </div>
+      <PartnerDetailView
+        partner={partner}
+        ledgers={ledgers}
+        transactions={transactions}
+        breakdown={breakdown}
+        suggestions={suggestions}
+        partners={partners}
+      />
     </div>
   );
 }

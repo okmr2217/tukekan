@@ -41,12 +41,14 @@
 
 ユーザーが管理する「貸借相手」。アプリ未登録の友人も登録可能。
 
-| カラム    | 型            | 説明                          |
-| --------- | ------------- | ----------------------------- |
-| id        | String (cuid) | 一意のID                      |
-| name      | String        | 相手の名前                    |
-| ownerId   | String        | この相手を登録したAccountのID |
-| createdAt | DateTime      | 作成日時                      |
+| カラム              | 型            | 説明                          |
+| ------------------- | ------------- | ----------------------------- |
+| id                  | String (cuid) | 一意のID                      |
+| name                | String        | 相手の名前                    |
+| ownerId             | String        | この相手を登録したAccountのID |
+| shareToken          | String?       | 公開ページ（`/share/[token]`）用トークン（unique） |
+| shareTokenExpiresAt | DateTime?     | 公開リンクの有効期限          |
+| createdAt           | DateTime      | 作成日時                      |
 
 ### Ledger（口座）
 
@@ -60,9 +62,10 @@ Partner ごとに複数持てる「貸し借りのまとまり」。利子のル
 | interestAccrualWeekday | Int           | 利息が発生する曜日（JST。0=日 〜 6=土）。既定は 3（水）        |
 | interestCompounding    | Boolean       | true = 複利（元本＋未払利息に課金） / false = 単利（元本のみ） |
 | lastInterestAccruedAt  | DateTime?     | 最後に利息を発生させた日時。同じ日の二重発生を防ぐために使う  |
-| shareToken             | String?       | 共有リンク用トークン（unique）                               |
-| shareTokenExpiresAt    | DateTime?     | 共有リンクの有効期限                                         |
 | partnerId              | String        | 相手（Partner）のID                                          |
+
+> 公開リンクは相手（Partner）単位。口座ごとの `shareToken` は
+> [`20260920000000_partner_share_token`](../prisma/migrations/20260920000000_partner_share_token/migration.sql) で Partner へ移した。
 
 ### Transaction（取引）
 
