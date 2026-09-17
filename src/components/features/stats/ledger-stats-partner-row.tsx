@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PartnerLedgerStat } from "@/actions/ledger-stats";
+import { InterestRateBadge } from "@/components/features/ledger/interest-rate-badge";
 
 function yen(amount: number) {
   return `${amount < 0 ? "-" : ""}¥${Math.abs(amount).toLocaleString()}`;
@@ -34,9 +35,9 @@ export function LedgerStatsPartnerRow({ stat }: { stat: PartnerLedgerStat }) {
           )}
         </div>
         <div className="flex items-center gap-4 shrink-0 text-sm">
-          {stat.estimatedInterestTotal > 0 && (
+          {stat.unpaidInterestTotal > 0 && (
             <span className="hidden sm:inline text-xs font-semibold text-amber-600 dark:text-amber-400 tabular-nums">
-              見込み利子 +{stat.estimatedInterestTotal.toLocaleString()}円
+              未払利息 {stat.unpaidInterestTotal.toLocaleString()}円
             </span>
           )}
           <span
@@ -61,16 +62,10 @@ export function LedgerStatsPartnerRow({ stat }: { stat: PartnerLedgerStat }) {
                 {ledger.title}
               </div>
               <div>
-                <span
-                  className={cn(
-                    "inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full",
-                    ledger.effectiveWeeklyInterestRate > 0
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {ledger.effectiveWeeklyInterestRate > 0 ? `週${ledger.effectiveWeeklyInterestRate}%` : "無利子"}
-                </span>
+                <InterestRateBadge
+                  annualInterestRate={ledger.annualInterestRate}
+                  className="inline-block"
+                />
               </div>
               <div className="text-muted-foreground md:text-foreground">
                 <span className="md:hidden">残高 </span>
@@ -90,12 +85,14 @@ export function LedgerStatsPartnerRow({ stat }: { stat: PartnerLedgerStat }) {
                 借入 ¥{ledger.totalBorrowed.toLocaleString()}
               </div>
               <div className="flex items-center justify-between gap-2">
-                {ledger.estimatedInterest > 0 ? (
+                {ledger.unpaidInterest > 0 || ledger.nextInterestAmount > 0 ? (
                   <span className="text-amber-600 dark:text-amber-400 font-semibold tabular-nums">
-                    見込み +¥{ledger.estimatedInterest.toLocaleString()}
-                    <span className="text-muted-foreground font-normal">
-                      （{ledger.elapsedDays}日）
-                    </span>
+                    未払利息 ¥{ledger.unpaidInterest.toLocaleString()}
+                    {ledger.nextInterestAmount > 0 && (
+                      <span className="text-muted-foreground font-normal">
+                        （次回 +¥{ledger.nextInterestAmount.toLocaleString()}）
+                      </span>
+                    )}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">—</span>

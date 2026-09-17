@@ -5,7 +5,13 @@ import { SharedBalanceCard } from "@/components/features/partner/balance-card";
 import { LedgerNoteSection } from "@/components/features/ledger/ledger-note-section";
 import { NextInterestNotice } from "@/components/features/ledger/next-interest-notice";
 import { SharedTransactionCard } from "@/components/features/transaction/shared-transaction-card";
-import { INTEREST_TIER_THRESHOLD } from "@/lib/ledger-interest";
+import {
+  describeInterestRule,
+  formatRate,
+  formatWeeklyRate,
+  INTEREST_REPAYMENT_RULE_TEXT,
+} from "@/lib/ledger-interest";
+import { shouldShowBreakdown } from "@/lib/ledger-balance";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -47,14 +53,16 @@ export default async function SharePage({ params }: Props) {
     ledgerTitle,
     ownerName,
     balance,
-    weeklyInterestRateUnder5000,
-    weeklyInterestRateFrom5000,
+    breakdown,
+    annualInterestRate,
+    interestAccrualWeekday,
+    interestCompounding,
     nextInterest,
     transactions,
     notes,
   } = result.data!;
   const isDefaultLedger = ledgerTitle === "通常";
-  const hasInterest = weeklyInterestRateUnder5000 > 0 || weeklyInterestRateFrom5000 > 0;
+  const hasInterest = annualInterestRate > 0;
 
   return (
     <div className="min-h-screen">
@@ -86,6 +94,11 @@ export default async function SharePage({ params }: Props) {
             balance={balance}
             ownerName={ownerName}
             partnerName={partnerName}
+            breakdown={
+              shouldShowBreakdown(breakdown, annualInterestRate)
+                ? breakdown
+                : undefined
+            }
           />
         </div>
 
@@ -100,17 +113,26 @@ export default async function SharePage({ params }: Props) {
               <span className="font-medium">{ledgerTitle}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">週利率</span>
+              <span className="text-muted-foreground">利率</span>
               {hasInterest ? (
                 <span className="font-medium tabular-nums">
-                  {INTEREST_TIER_THRESHOLD.toLocaleString()}円未満 週
-                  {weeklyInterestRateUnder5000}% ・ {INTEREST_TIER_THRESHOLD.toLocaleString()}
-                  円以上 週{weeklyInterestRateFrom5000}%
+                  年{formatRate(annualInterestRate)}%（週
+                  {formatWeeklyRate(annualInterestRate)}%）
                 </span>
               ) : (
                 <span className="font-medium">無利子</span>
               )}
             </div>
+            {hasInterest && (
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {describeInterestRule({
+                  annualInterestRate,
+                  interestAccrualWeekday,
+                  interestCompounding,
+                })}
+                {INTEREST_REPAYMENT_RULE_TEXT}
+              </p>
+            )}
             <NextInterestNotice nextInterest={nextInterest} />
           </div>
         </div>

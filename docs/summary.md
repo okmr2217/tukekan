@@ -55,11 +55,13 @@ Partner
 
 Ledger（口座）
 ├── id
-├── title                        自由記述（例: "通常", "5000円貸しパターン"）
-├── weeklyInterestRateUnder5000  残高5000円未満に適用する週利率(%)
-├── weeklyInterestRateFrom5000   残高5000円以上に適用する週利率(%)
-├── shareToken                   共有リンク用トークン（unique・任意）
-├── shareTokenExpiresAt          共有リンクの有効期限
+├── title                    自由記述（例: "通常", "利子つき"）
+├── annualInterestRate       年利(%)。0 = 無利子。週の利息額は 年利 ÷ 52
+├── interestAccrualWeekday   利息が発生する曜日（JST。0=日 〜 6=土。既定 3=水）
+├── interestCompounding      true = 複利（元本+未払利息に課金） / false = 単利
+├── lastInterestAccruedAt    最後に利息を発生させた日時（同日二重発生の防止）
+├── shareToken               共有リンク用トークン（unique・任意）
+├── shareTokenExpiresAt      共有リンクの有効期限
 ├── partnerId
 ├── transactions[]
 └── notes[]
@@ -70,6 +72,7 @@ Transaction
 ├── purpose       用途（任意、1行・100文字以内。例: 麻雀、ランチ、返済）
 ├── description   メモ（任意、複数行可・1000文字以内の詳細テキスト）
 ├── date          取引日（UTC保存、表示時にJST変換）
+├── kind          "NORMAL"（通常の貸し借り） | "INTEREST"（自動発生した利息）
 ├── isArchived    アーカイブ済みフラグ
 ├── ownerId       記録者のAccount
 ├── partnerId     取引相手のPartner
@@ -87,7 +90,10 @@ LedgerNote
 - **Partner** は「自分が管理する相手」であり、ユーザーごとに独立して存在する（アプリ未登録の相手も登録可）
 - **Ledger（口座）** は Partner ごとに複数持てる。貸し借りのパターンごとに口座を分けて管理する
 - **取引は一方的**: 自分が記録した取引のみを扱い、相手側のアカウントとは連動しない
-- **週利率は残高帯で2段階**: 残高（絶対値）が5000円未満か以上かで適用レートが切り替わる
+- **利率は年利で持つ**: 週ごとの利息額は「年利 ÷ 52」で計算する。利率・発生曜日・単複利は口座ごとの設定
+- **利息は元本と分離**: 利息は `kind = "INTEREST"` の取引として記録し、元本残高には足さず「未払利息」として別勘定に積む。
+  返済（マイナス取引）はまず未払利息に充当され、余りが元本の返済になる（`src/lib/ledger-balance.ts`）。
+  **合計残高 = 元本 + 未払利息 = 全取引の金額合計** は常に成り立つ
 
 ---
 
@@ -115,6 +121,7 @@ LedgerNote
   /statistics                 統計
   /statistics/accounts        口座別の統計
   /ledgers/[id]               口座の詳細（取引履歴・メモ・共有設定）
+  /ledgers/[id]/settings      口座の設定（口座名・年利・利息の発生曜日・単利/複利・削除）
   /partners                   相手の一覧
   /partners/[id]              相手の詳細（口座一覧）
   /partners/[id]/edit         相手の編集
@@ -147,9 +154,10 @@ BottomBar（固定フッター）に4タブ:
 - 口座ごとの残高 + 累計残高表示
 
 ### 口座（Ledger）管理
-- Partnerごとに複数の口座を作成・編集・削除
-- 口座単位で週利率を設定（残高5000円未満／以上の2段階）
-- 次回の利子付与日（毎週水曜 9:00 JST）のプレビュー表示
+- Partnerごとに複数の口座を作成・削除。設定は口座の設定ページ（`/ledgers/[id]/settings`）
+- 口座単位で 年利(%)・利息の発生曜日・単利/複利 を設定
+- 利息は選んだ曜日に週1回（9:00 JST）発生し、未払利息として元本と分けて積まれる
+- 次回の利子発生日・見込み額のプレビュー表示
 - 口座ごとのメモ（LedgerNote）
 
 ### 共有リンク
@@ -201,7 +209,9 @@ src/
 │   ├── auth.ts             JWT / Cookie処理
 │   ├── password.ts         bcrypt
 │   ├── prisma.ts           Prismaクライアントシングルトン
-│   ├── ledger-interest.ts  週利率の判定・次回利子日の算出
+│   ├── ledger-interest.ts  年利⇄週利の換算・次回利子日の算出・説明文の生成
+│   ├── ledger-balance.ts   元本／未払利息の内訳計算（返済の利息充当）
+│   ├── transaction-kind.ts 取引種別（NORMAL / INTEREST）
 │   ├── calc-running-balance.ts
 │   ├── date-utils.ts / date-picker-utils.ts
 │   ├── revalidate.ts
@@ -220,5 +230,8 @@ src/
 3. **色は「見ている人」の視点で一貫**: 緑 = 見ている人の債権 / 赤 = 見ている人の債務。
    アプリ内はユーザー視点、公開URL（`/share/[token]`）は相手視点に符号を反転して表示する（`src/lib/balance-wording.ts`）
 4. **`Transaction.ledgerId` は nullable**: 既存データの口座移行が完了するまで null を許容している
-5. **利子付与はGitHub Actionsの定期実行**: 詳細は [09-github-actions.md](./09-github-actions.md) を参照
-6. **テストなし**: 現状テストコードは存在しない（Playwrightはスクリーンショット生成用）
+5. **利子付与はGitHub Actionsの定期実行**: 毎日 9:00 JST に起動し、その日が発生曜日の口座だけを処理する。
+   詳細は [09-github-actions.md](./09-github-actions.md) を参照
+6. **利息の充当は導出**: 元本／未払利息の内訳は取引を日付順に走査して都度計算する（充当結果はDBに保存しない）。
+   そのため過去の取引を編集・アーカイブすると内訳も自動で計算し直される
+7. **テストなし**: 現状テストコードは存在しない（Playwrightはスクリーンショット生成用）

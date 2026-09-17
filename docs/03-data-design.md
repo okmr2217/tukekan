@@ -48,6 +48,22 @@
 | ownerId   | String        | この相手を登録したAccountのID |
 | createdAt | DateTime      | 作成日時                      |
 
+### Ledger（口座）
+
+Partner ごとに複数持てる「貸し借りのまとまり」。利子のルールは口座単位で設定する。
+
+| カラム                 | 型            | 説明                                                         |
+| ---------------------- | ------------- | ------------------------------------------------------------ |
+| id                     | String (cuid) | 一意のID                                                     |
+| title                  | String        | 口座名（例: "通常", "利子つき"）                             |
+| annualInterestRate     | Decimal(6,2)? | 年利(%)。0 = 無利子。1週間ぶんの利息は「年利 ÷ 52」で計算する |
+| interestAccrualWeekday | Int           | 利息が発生する曜日（JST。0=日 〜 6=土）。既定は 3（水）        |
+| interestCompounding    | Boolean       | true = 複利（元本＋未払利息に課金） / false = 単利（元本のみ） |
+| lastInterestAccruedAt  | DateTime?     | 最後に利息を発生させた日時。同じ日の二重発生を防ぐために使う  |
+| shareToken             | String?       | 共有リンク用トークン（unique）                               |
+| shareTokenExpiresAt    | DateTime?     | 共有リンクの有効期限                                         |
+| partnerId              | String        | 相手（Partner）のID                                          |
+
 ### Transaction（取引）
 
 金額の正負で貸し借りを区別。返済も借りもマイナス金額で記録（purposeで区別可能）。
@@ -59,13 +75,19 @@
 | purpose     | String?       | 用途（麻雀、ドライブ、返済 等）。1行・100文字以内 |
 | description | String?       | メモ（詳細テキスト）。複数行可・1000文字以内 |
 | date        | DateTime      | 取引発生日                      |
+| kind        | String        | 種別。`NORMAL`（通常の貸し借り） / `INTEREST`（自動発生した利息）。既定は `NORMAL` |
 | ownerId     | String        | 取引を登録したAccountのID       |
+| ledgerId    | String?       | 紐づく口座（Ledger）のID        |
 | partnerId   | String        | 相手（Partner）のID             |
 | createdAt   | DateTime      | 作成日時                        |
 
 ---
 
 ## 3.3 Prisma Schema
+
+> このセクションは初期設計時のスナップショット。Ledger / LedgerNote や `kind`・`isArchived` などの
+> 後から追加されたフィールドは含まれていない。**実際のスキーマは
+> [`prisma/schema.prisma`](../prisma/schema.prisma) が正**。
 
 ```prisma
 model Account {
@@ -116,7 +138,31 @@ model Transaction {
 
 ---
 
-## 3.4 データアクセスパターン（Prisma）
+## 3.4 残高の内訳（元本と未払利息）
+
+利息は元本に足さず、別勘定の「未払利息」として積む。内訳はDBに保存せず、
+取引を日付順（同値なら作成順）に走査して毎回導出する（[`src/lib/ledger-balance.ts`](../src/lib/ledger-balance.ts)）。
+
+| 取引 | 挙動 |
+| --- | --- |
+| `kind = "INTEREST"` | 未払利息を増やす |
+| プラスの通常取引（貸し） | 元本を増やす |
+| マイナスの取引（返済・借り） | **まず未払利息に充当**し、余りを元本から引く |
+
+```
+貸し 10,000 → 利息 500 → 返済 3,000
+  元本 7,500 / 未払利息 0（返済のうち 500 が利息、2,500 が元本に充当される）
+```
+
+**不変条件**: `元本 + 未払利息 = 全取引の金額合計`。
+つまり合計残高は利息を分離する前と変わらず、増えるのは内訳だけ。
+
+利息額は「対象額 × 年利 ÷ 52（四捨五入）」。対象額は単利なら元本、複利なら元本＋未払利息で、
+対象額が0以下の口座では利息は発生しない（[`src/lib/ledger-interest.ts`](../src/lib/ledger-interest.ts)）。
+
+---
+
+## 3.5 データアクセスパターン（Prisma）
 
 ### 自分の相手ごとの貸借残高を取得
 

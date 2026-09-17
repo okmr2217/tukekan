@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Pencil, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Settings2, ChevronRight } from "lucide-react";
 import { LedgerFormDialog } from "./ledger-form-dialog";
+import { InterestRateBadge } from "@/components/features/ledger/interest-rate-badge";
 import type { LedgerWithBalance } from "@/actions/ledger";
 import { cn } from "@/lib/utils";
 
@@ -13,8 +15,8 @@ type Props = {
 };
 
 export function LedgerSection({ partnerId, ledgers }: Props) {
+  const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
-  const [editing, setEditing] = useState<LedgerWithBalance | undefined>();
 
   return (
     <>
@@ -42,29 +44,18 @@ export function LedgerSection({ partnerId, ledgers }: Props) {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-sm font-medium truncate">{ledger.title}</span>
-                  <span
-                    className={cn(
-                      "shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full",
-                      ledger.effectiveWeeklyInterestRate > 0
-                        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
-                        : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {ledger.effectiveWeeklyInterestRate > 0
-                      ? `週${ledger.effectiveWeeklyInterestRate}%`
-                      : "無利子"}
-                  </span>
+                  <InterestRateBadge annualInterestRate={ledger.annualInterestRate} />
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      setEditing(ledger);
+                      router.push(`/ledgers/${ledger.id}/settings`);
                     }}
-                    aria-label="口座を編集"
+                    aria-label="口座の設定"
                     className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   >
-                    <Pencil className="size-3.5" />
+                    <Settings2 className="size-3.5" />
                   </button>
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </div>
@@ -83,18 +74,20 @@ export function LedgerSection({ partnerId, ledgers }: Props) {
                   {ledger.balance < 0 ? "-" : ""}¥{Math.abs(ledger.balance).toLocaleString()}
                 </span>
               </div>
+              {ledger.breakdown.unpaidInterest > 0 && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  元本 ¥{ledger.breakdown.principal.toLocaleString()} ・ 未払利息{" "}
+                  <span className="font-medium text-amber-600 dark:text-amber-400">
+                    ¥{ledger.breakdown.unpaidInterest.toLocaleString()}
+                  </span>
+                </p>
+              )}
             </Link>
           ))}
         </div>
       </div>
 
       <LedgerFormDialog partnerId={partnerId} open={addOpen} onOpenChange={setAddOpen} />
-      <LedgerFormDialog
-        partnerId={partnerId}
-        ledger={editing}
-        open={!!editing}
-        onOpenChange={(open) => !open && setEditing(undefined)}
-      />
     </>
   );
 }

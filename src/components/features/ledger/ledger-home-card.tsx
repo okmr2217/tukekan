@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LedgerForHome } from "@/actions/ledger";
 import { formatRelativeDay } from "@/lib/date-utils";
+import { formatRate } from "@/lib/ledger-interest";
 
 type Props = {
   ledger: LedgerForHome;
@@ -34,9 +35,9 @@ export function LedgerHomeCard({ ledger }: Props) {
               {ledger.title}
             </span>
           )}
-          {ledger.effectiveWeeklyInterestRate > 0 && (
+          {ledger.annualInterestRate > 0 && (
             <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
-              週{ledger.effectiveWeeklyInterestRate}%
+              年{formatRate(ledger.annualInterestRate)}%
             </span>
           )}
         </p>
@@ -68,6 +69,11 @@ export function LedgerHomeCard({ ledger }: Props) {
           )}
         >
           {ledger.balance < 0 ? "-" : ""}¥{absBalance.toLocaleString()}
+          {ledger.breakdown.unpaidInterest > 0 && (
+            <span className="block text-[10px] font-medium text-amber-600 dark:text-amber-400 text-right">
+              利息 ¥{ledger.breakdown.unpaidInterest.toLocaleString()}
+            </span>
+          )}
         </span>
         <ChevronRight className="h-4 w-4 text-muted-foreground" />
       </div>

@@ -3,20 +3,33 @@
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { toJST } from "@/lib/date-utils";
-import { getEffectiveWeeklyRate } from "@/lib/ledger-interest";
+import {
+  getNextInterestPreview,
+  toInterestSettings,
+  type LedgerInterestSettings,
+} from "@/lib/ledger-interest";
+import {
+  calcLedgerBreakdown,
+  type LedgerBalanceBreakdown,
+} from "@/lib/ledger-balance";
+import { isInterestKind } from "@/lib/transaction-kind";
 
-export type LedgerStat = {
+export type LedgerStat = LedgerInterestSettings & {
   ledgerId: string;
   title: string;
-  weeklyInterestRateUnder5000: number;
-  weeklyInterestRateFrom5000: number;
-  effectiveWeeklyInterestRate: number;
+  /** 合計残高（元本 + 未払利息） */
   balance: number;
+  breakdown: LedgerBalanceBreakdown;
+  /** 貸した金額の合計（利息は含まない） */
   totalLent: number;
   totalBorrowed: number;
   transactionCount: number;
+  /** 最後の取引からの経過日数 */
   elapsedDays: number;
-  estimatedInterest: number;
+  /** 未払いのまま残っている利息（実績） */
+  unpaidInterest: number;
+  /** 残高が変わらなければ次回発生する利息（見込み） */
+  nextInterestAmount: number;
 };
 
 export type PartnerLedgerStat = {
@@ -25,7 +38,8 @@ export type PartnerLedgerStat = {
   balance: number;
   totalLent: number;
   totalBorrowed: number;
-  estimatedInterestTotal: number;
+  unpaidInterestTotal: number;
+  nextInterestTotal: number;
   ledgers: LedgerStat[];
 };
 
@@ -34,7 +48,8 @@ export type OverallLedgerStat = {
   totalLent: number;
   totalBorrowed: number;
   transactionCount: number;
-  estimatedInterestTotal: number;
+  unpaidInterestTotal: number;
+  nextInterestTotal: number;
 };
 
 export type InterestLedgerStat = LedgerStat & {
@@ -52,24 +67,21 @@ function elapsedDaysSince(date: Date): number {
 function buildLedgerStat(ledger: {
   id: string;
   title: string;
-  weeklyInterestRateUnder5000: unknown;
-  weeklyInterestRateFrom5000: unknown;
+  annualInterestRate: unknown;
+  interestAccrualWeekday: number;
+  interestCompounding: boolean;
   createdAt: Date;
-  transactions: { amount: number; date: Date }[];
+  transactions: { amount: number; kind: string; date: Date; createdAt: Date }[];
 }): LedgerStat {
-  const rateUnder5000 = ledger.weeklyInterestRateUnder5000
-    ? Number(ledger.weeklyInterestRateUnder5000)
-    : 0;
-  const rateFrom5000 = ledger.weeklyInterestRateFrom5000
-    ? Number(ledger.weeklyInterestRateFrom5000)
-    : 0;
+  const settings = toInterestSettings(ledger);
+  const breakdown = calcLedgerBreakdown(ledger.transactions);
+
   const lent = ledger.transactions
-    .filter((t) => t.amount > 0)
+    .filter((t) => t.amount > 0 && !isInterestKind(t.kind))
     .reduce((sum, t) => sum + t.amount, 0);
   const borrowed = ledger.transactions
     .filter((t) => t.amount < 0)
     .reduce((sum, t) => sum + t.amount, 0);
-  const balance = lent + borrowed;
 
   const lastDate =
     ledger.transactions.length > 0
@@ -78,26 +90,21 @@ function buildLedgerStat(ledger: {
           ledger.transactions[0].date,
         )
       : ledger.createdAt;
-  const elapsedDays = elapsedDaysSince(lastDate);
 
-  const effectiveRate = getEffectiveWeeklyRate(balance, rateUnder5000, rateFrom5000);
-  const estimatedInterest =
-    effectiveRate > 0 && balance > 0
-      ? Math.round(balance * (effectiveRate / 100) * (elapsedDays / 7))
-      : 0;
+  const nextInterest = getNextInterestPreview(breakdown, settings);
 
   return {
     ledgerId: ledger.id,
     title: ledger.title,
-    weeklyInterestRateUnder5000: rateUnder5000,
-    weeklyInterestRateFrom5000: rateFrom5000,
-    effectiveWeeklyInterestRate: effectiveRate,
-    balance,
+    ...settings,
+    balance: breakdown.total,
+    breakdown,
     totalLent: lent,
     totalBorrowed: Math.abs(borrowed),
     transactionCount: ledger.transactions.length,
-    elapsedDays,
-    estimatedInterest,
+    elapsedDays: elapsedDaysSince(lastDate),
+    unpaidInterest: breakdown.unpaidInterest,
+    nextInterestAmount: nextInterest.amount,
   };
 }
 
@@ -116,12 +123,13 @@ export async function getPartnerLedgerStats(): Promise<PartnerLedgerStat[]> {
         select: {
           id: true,
           title: true,
-          weeklyInterestRateUnder5000: true,
-          weeklyInterestRateFrom5000: true,
+          annualInterestRate: true,
+          interestAccrualWeekday: true,
+          interestCompounding: true,
           createdAt: true,
           transactions: {
             where: { isArchived: false },
-            select: { amount: true, date: true },
+            select: { amount: true, kind: true, date: true, createdAt: true },
           },
         },
       },
@@ -136,7 +144,8 @@ export async function getPartnerLedgerStats(): Promise<PartnerLedgerStat[]> {
       balance: ledgers.reduce((sum, l) => sum + l.balance, 0),
       totalLent: ledgers.reduce((sum, l) => sum + l.totalLent, 0),
       totalBorrowed: ledgers.reduce((sum, l) => sum + l.totalBorrowed, 0),
-      estimatedInterestTotal: ledgers.reduce((sum, l) => sum + l.estimatedInterest, 0),
+      unpaidInterestTotal: ledgers.reduce((sum, l) => sum + l.unpaidInterest, 0),
+      nextInterestTotal: ledgers.reduce((sum, l) => sum + l.nextInterestAmount, 0),
       ledgers,
     };
   });
@@ -153,9 +162,17 @@ export async function getOverallLedgerStats(): Promise<OverallLedgerStat> {
       transactionCount:
         acc.transactionCount +
         p.ledgers.reduce((sum, l) => sum + l.transactionCount, 0),
-      estimatedInterestTotal: acc.estimatedInterestTotal + p.estimatedInterestTotal,
+      unpaidInterestTotal: acc.unpaidInterestTotal + p.unpaidInterestTotal,
+      nextInterestTotal: acc.nextInterestTotal + p.nextInterestTotal,
     }),
-    { balance: 0, totalLent: 0, totalBorrowed: 0, transactionCount: 0, estimatedInterestTotal: 0 },
+    {
+      balance: 0,
+      totalLent: 0,
+      totalBorrowed: 0,
+      transactionCount: 0,
+      unpaidInterestTotal: 0,
+      nextInterestTotal: 0,
+    },
   );
 }
 
@@ -164,11 +181,13 @@ export async function getInterestBearingLedgers(): Promise<InterestLedgerStat[]>
 
   const rows = partnerStats.flatMap((p) =>
     p.ledgers
-      .filter(
-        (l) => l.weeklyInterestRateUnder5000 > 0 || l.weeklyInterestRateFrom5000 > 0,
-      )
+      .filter((l) => l.annualInterestRate > 0 || l.unpaidInterest > 0)
       .map((l) => ({ ...l, partnerId: p.partnerId, partnerName: p.partnerName })),
   );
 
-  return rows.sort((a, b) => b.estimatedInterest - a.estimatedInterest);
+  return rows.sort(
+    (a, b) =>
+      b.unpaidInterest - a.unpaidInterest ||
+      b.nextInterestAmount - a.nextInterestAmount,
+  );
 }

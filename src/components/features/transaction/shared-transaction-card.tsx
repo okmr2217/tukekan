@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { formatDateTimeForDisplay } from "@/lib/date-utils";
+import { isInterestKind } from "@/lib/transaction-kind";
 
 type SharedTransaction = {
   id: string;
@@ -7,6 +8,7 @@ type SharedTransaction = {
   purpose: string | null;
   description: string | null;
   date: Date;
+  kind?: string;
   runningBalance: number;
 };
 
@@ -41,6 +43,11 @@ export function SharedTransactionCard({ transaction }: Props) {
         >
           {isLending ? "貸し" : "借り"}
         </span>
+        {isInterestKind(transaction.kind) && (
+          <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+            利息
+          </span>
+        )}
         <span className="text-xs font-medium text-muted-foreground">
           {formatDateTimeForDisplay(transaction.date)}
         </span>

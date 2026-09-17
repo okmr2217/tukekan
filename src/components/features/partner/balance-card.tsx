@@ -7,6 +7,7 @@ import {
   type BalanceTone,
 } from "@/lib/balance-wording";
 import type { TransactionWithPartner } from "@/actions/transaction";
+import type { LedgerBalanceBreakdown } from "@/lib/ledger-balance";
 
 function formatRelativeDate(date: Date): string {
   const now = new Date();
@@ -28,7 +29,14 @@ export function buildLatestSummary(tx: TransactionWithPartner): string {
 /** 見ている人にとって債権なら緑・債務なら赤・精算済みならニュートラル */
 const TONE_CLASSES: Record<
   BalanceTone,
-  { card: string; message: string; amount: string; badge: string; sub: string }
+  {
+    card: string;
+    message: string;
+    amount: string;
+    badge: string;
+    sub: string;
+    divider: string;
+  }
 > = {
   credit: {
     card: "bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800",
@@ -36,6 +44,7 @@ const TONE_CLASSES: Record<
     amount: "text-emerald-900 dark:text-emerald-100",
     badge: "bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200",
     sub: "text-emerald-600 dark:text-emerald-400",
+    divider: "border-emerald-200 dark:border-emerald-800",
   },
   debt: {
     card: "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900",
@@ -43,6 +52,7 @@ const TONE_CLASSES: Record<
     amount: "text-red-900 dark:text-red-100",
     badge: "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200",
     sub: "text-red-600 dark:text-red-400",
+    divider: "border-red-200 dark:border-red-900",
   },
   settled: {
     card: "bg-muted/50 border-border",
@@ -50,6 +60,7 @@ const TONE_CLASSES: Record<
     amount: "text-foreground",
     badge: "bg-muted text-muted-foreground",
     sub: "text-muted-foreground",
+    divider: "border-border",
   },
 };
 
@@ -58,12 +69,18 @@ type BalanceDisplayProps = {
   balance: number;
   statement: BalanceStatement;
   latestSummary?: string;
+  /**
+   * 元本／未払利息の内訳。利子のある口座だけ渡す。
+   * 合計（balance）を主役にして、その下に内訳を併記する。
+   */
+  breakdown?: LedgerBalanceBreakdown;
 };
 
 export function BalanceDisplay({
   balance,
   statement,
   latestSummary,
+  breakdown,
 }: BalanceDisplayProps) {
   const tone = TONE_CLASSES[statement.tone];
   const absBalance = Math.abs(balance);
@@ -96,6 +113,28 @@ export function BalanceDisplay({
       {latestSummary && (
         <p className={cn("text-xs", tone.sub)}>{latestSummary}</p>
       )}
+      {breakdown && (
+        <div
+          className={cn(
+            "mt-2.5 pt-2.5 border-t flex items-center gap-3 text-xs",
+            tone.divider,
+          )}
+        >
+          <span className={tone.sub}>
+            元本{" "}
+            <span className={cn("font-semibold tabular-nums", tone.amount)}>
+              ¥{Math.abs(breakdown.principal).toLocaleString()}
+            </span>
+          </span>
+          <span className={cn("opacity-40", tone.sub)}>｜</span>
+          <span className={tone.sub}>
+            未払利息{" "}
+            <span className={cn("font-semibold tabular-nums", tone.amount)}>
+              ¥{Math.abs(breakdown.unpaidInterest).toLocaleString()}
+            </span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -105,6 +144,7 @@ type SharedBalanceCardProps = {
   balance: number;
   ownerName: string;
   partnerName: string;
+  breakdown?: LedgerBalanceBreakdown;
 };
 
 /** 公開URL用。相手視点の表現に変換して表示する */
@@ -112,11 +152,13 @@ export function SharedBalanceCard({
   balance,
   ownerName,
   partnerName,
+  breakdown,
 }: SharedBalanceCardProps) {
   return (
     <BalanceDisplay
       balance={balance}
       statement={partnerBalanceStatement(balance, ownerName, partnerName)}
+      breakdown={breakdown}
     />
   );
 }

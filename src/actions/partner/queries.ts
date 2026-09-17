@@ -35,6 +35,13 @@ export async function getPartnerById(
   };
 }
 
+/**
+ * 相手ごとの合計残高（口座をまたいだ合算）。
+ *
+ * 利息を元本と分けて持つようになった後も「元本 + 未払利息 = 全取引の金額合計」は
+ * 変わらないため、ここは従来どおり単純な合計で正しい。
+ * 元本／未払利息の内訳が必要なところでは `src/lib/ledger-balance.ts` を使う。
+ */
 export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
   const session = await getSession();
   if (!session) return [];

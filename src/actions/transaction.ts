@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { revalidateTransactionScope } from "@/lib/revalidate";
 import { resolveLedgerId } from "@/actions/partner/_helpers";
+import { toTransactionKind, type TransactionKind } from "@/lib/transaction-kind";
 
 export type TransactionWithPartner = {
   id: string;
@@ -12,6 +13,8 @@ export type TransactionWithPartner = {
   purpose: string | null;
   description: string | null;
   date: Date;
+  /** "NORMAL"（通常の貸し借り） | "INTEREST"（自動発生した利息） */
+  kind: TransactionKind;
   isArchived: boolean;
   partnerId: string;
   partnerName: string;
@@ -80,6 +83,7 @@ export async function getTransactions(
     purpose: t.purpose,
     description: t.description,
     date: t.date,
+    kind: toTransactionKind(t.kind),
     isArchived: t.isArchived,
     partnerId: t.partnerId,
     partnerName: t.partner.name,
@@ -109,6 +113,8 @@ export async function getPurposeSuggestions(): Promise<string[]> {
     where: {
       ownerId: session.userId,
       purpose: { not: null },
+      // 利息の自動 purpose（「利子（年利X%）」）はユーザーが入力するものではないので除外する
+      kind: "NORMAL",
     },
     _count: { purpose: true },
     orderBy: { _count: { purpose: "desc" } },
@@ -212,6 +218,7 @@ export async function createTransaction(
       purpose: purpose || null,
       description: description || null,
       date: validDate,
+      kind: "NORMAL",
       ownerId: session.userId,
       partnerId: partnerId,
       ledgerId,

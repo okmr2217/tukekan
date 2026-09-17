@@ -4,6 +4,14 @@ import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { toJST } from "@/lib/date-utils";
 
+/*
+ * 相手単位の集計（口座をまたぐ）。
+ *
+ * 利息を元本と分けて持つようになった後も「元本 + 未払利息 = 全取引の金額合計」は
+ * 変わらないため、ここでの合計・累計は従来どおり正しい。
+ * 元本／未払利息の内訳が必要な口座別の統計は `src/actions/ledger-stats.ts` を参照。
+ */
+
 export type PartnerStat = {
   partnerId: string;
   partnerName: string;

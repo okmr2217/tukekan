@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { getLedgersByPartner } from "@/actions/ledger";
 import { cn } from "@/lib/utils";
+import { formatRate } from "@/lib/ledger-interest";
 
-type LedgerOption = { id: string; title: string; effectiveWeeklyInterestRate: number };
+type LedgerOption = { id: string; title: string; annualInterestRate: number };
 
 type Props = {
   partnerId: string;
@@ -65,7 +66,7 @@ export function LedgerPickerField({
               )}
             >
               {l.title}
-              {l.effectiveWeeklyInterestRate > 0 && (
+              {l.annualInterestRate > 0 && (
                 <span
                   className={cn(
                     "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
@@ -74,7 +75,7 @@ export function LedgerPickerField({
                       : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
                   )}
                 >
-                  週{l.effectiveWeeklyInterestRate}%
+                  年{formatRate(l.annualInterestRate)}%
                 </span>
               )}
             </button>

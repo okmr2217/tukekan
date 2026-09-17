@@ -2,6 +2,7 @@
 
 import { BalanceDisplay, buildLatestSummary } from "@/components/features/partner/balance-card";
 import { ownerBalanceStatement } from "@/lib/balance-wording";
+import { shouldShowBreakdown } from "@/lib/ledger-balance";
 import type { LedgerById } from "@/actions/ledger";
 import type { TransactionWithPartner } from "@/actions/transaction";
 
@@ -21,6 +22,11 @@ export function LedgerBalanceCard({ ledger, latestTransaction }: Props) {
       balance={ledger.balance}
       statement={ownerBalanceStatement(ledger.balance, ledger.partnerName)}
       latestSummary={latestSummary}
+      breakdown={
+        shouldShowBreakdown(ledger.breakdown, ledger.annualInterestRate)
+          ? ledger.breakdown
+          : undefined
+      }
     />
   );
 }

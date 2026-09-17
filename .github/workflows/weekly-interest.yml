@@ -2,8 +2,10 @@ name: Weekly Interest Job
 
 on:
   schedule:
-    # 毎週水曜 09:00 JST (00:00 UTC)
-    - cron: "0 0 * * 3"
+    # 毎日 09:00 JST (00:00 UTC)。
+    # どの口座の利息を発生させるかは、口座ごとの発生曜日（Ledger.interestAccrualWeekday）を
+    # スクリプト側で判定する。各口座につき利息が発生するのは週1回。
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:

@@ -14,7 +14,7 @@ const MENU_ITEMS = [
   {
     href: "/statistics/accounts",
     label: "統計（口座別・PC対応）",
-    description: "口座ごとの残高・利率・見込み利子",
+    description: "口座ごとの残高・年利・未払利息",
     icon: LineChart,
   },
   {

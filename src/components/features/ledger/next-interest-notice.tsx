@@ -1,13 +1,19 @@
 import { CalendarClock } from "lucide-react";
 import { formatDateForDisplay } from "@/lib/date-utils";
-import type { NextInterestPreview } from "@/lib/ledger-interest";
+import {
+  formatRate,
+  formatWeeklyRate,
+  getWeekdayLabel,
+  type NextInterestPreview,
+} from "@/lib/ledger-interest";
 
 type Props = {
   nextInterest: NextInterestPreview;
 };
 
 export function NextInterestNotice({ nextInterest }: Props) {
-  const { nextDate, rate, amount, isEligible } = nextInterest;
+  const { nextDate, annualRate, amount, isEligible, compounding, weekday } =
+    nextInterest;
   const dateLabel = formatDateForDisplay(nextDate);
 
   return (
@@ -22,19 +28,30 @@ export function NextInterestNotice({ nextInterest }: Props) {
               次回の利子：<span className="font-medium">{dateLabel}</span>
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              このまま残高が変わらなければ 週{rate}% で
+              このまま残高が変わらなければ 年{formatRate(annualRate)}%（週
+              {formatWeeklyRate(annualRate)}%）で
               <span className="font-semibold text-amber-600 dark:text-amber-400">
                 {" "}
                 +¥{amount.toLocaleString()}
-              </span>
-              {" "}見込み
+              </span>{" "}
+              見込み
+              {compounding ? "（複利）" : ""}
+            </p>
+          </>
+        ) : annualRate > 0 ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              毎週{getWeekdayLabel(weekday)}曜日に利子が発生します
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              いまは残高がプラスでないため、次回は発生しません
             </p>
           </>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">利子は発生しません</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              無利子、または残高がプラスでないため対象外です
+              この口座は無利子に設定されています
             </p>
           </>
         )}

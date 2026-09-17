@@ -8,20 +8,32 @@ import { revalidatePath } from "next/cache";
 import { findOwnedPartner } from "@/actions/partner/_helpers";
 import type { LedgerNote } from "@/generated/prisma";
 import {
-  getEffectiveWeeklyRate,
   getNextInterestPreview,
+  toInterestSettings,
+  DEFAULT_INTEREST_WEEKDAY,
+  MAX_ANNUAL_INTEREST_RATE,
+  type LedgerInterestSettings,
   type NextInterestPreview,
 } from "@/lib/ledger-interest";
+import {
+  calcLedgerBreakdown,
+  calcLedgerRunningBreakdown,
+  type LedgerBalanceBreakdown,
+} from "@/lib/ledger-balance";
+import { isInterestKind } from "@/lib/transaction-kind";
 
-export type LedgerWithBalance = {
+export type LedgerWithBalance = LedgerInterestSettings & {
   id: string;
   title: string;
-  weeklyInterestRateUnder5000: number;
-  weeklyInterestRateFrom5000: number;
-  effectiveWeeklyInterestRate: number;
+  /** 合計残高（元本 + 未払利息） */
   balance: number;
+  breakdown: LedgerBalanceBreakdown;
+  /** 貸した金額の合計（利息は含まない） */
   totalLent: number;
+  /** 借りた・返済された金額の合計 */
   totalBorrowed: number;
+  /** これまでに発生した利息の合計 */
+  totalInterest: number;
   transactionCount: number;
   createdAt: Date;
 };
@@ -39,52 +51,46 @@ export async function getLedgersByPartner(
     include: {
       transactions: {
         where: { isArchived: false },
-        select: { amount: true },
+        select: { amount: true, kind: true, date: true, createdAt: true },
       },
     },
   });
 
   return ledgers.map((l) => {
     const lent = l.transactions
-      .filter((t) => t.amount > 0)
+      .filter((t) => t.amount > 0 && !isInterestKind(t.kind))
       .reduce((sum, t) => sum + t.amount, 0);
     const borrowed = l.transactions
       .filter((t) => t.amount < 0)
       .reduce((sum, t) => sum + t.amount, 0);
-    const balance = lent + borrowed;
-    const rateUnder5000 = l.weeklyInterestRateUnder5000
-      ? Number(l.weeklyInterestRateUnder5000)
-      : 0;
-    const rateFrom5000 = l.weeklyInterestRateFrom5000
-      ? Number(l.weeklyInterestRateFrom5000)
-      : 0;
+    const interest = l.transactions
+      .filter((t) => isInterestKind(t.kind))
+      .reduce((sum, t) => sum + t.amount, 0);
+    const breakdown = calcLedgerBreakdown(l.transactions);
 
     return {
       id: l.id,
       title: l.title,
-      weeklyInterestRateUnder5000: rateUnder5000,
-      weeklyInterestRateFrom5000: rateFrom5000,
-      effectiveWeeklyInterestRate: getEffectiveWeeklyRate(
-        balance,
-        rateUnder5000,
-        rateFrom5000,
-      ),
-      balance,
+      ...toInterestSettings(l),
+      balance: breakdown.total,
+      breakdown,
       totalLent: lent,
       totalBorrowed: Math.abs(borrowed),
+      totalInterest: interest,
       transactionCount: l.transactions.length,
       createdAt: l.createdAt,
     };
   });
 }
 
-export type LedgerForHome = {
+export type LedgerForHome = LedgerInterestSettings & {
   id: string;
   partnerId: string;
   partnerName: string;
   title: string;
-  effectiveWeeklyInterestRate: number;
+  /** 合計残高（元本 + 未払利息） */
   balance: number;
+  breakdown: LedgerBalanceBreakdown;
   lastTransaction: {
     amount: number;
     purpose: string | null;
@@ -101,13 +107,14 @@ export async function getLedgersForHome(): Promise<LedgerForHome[]> {
     select: {
       id: true,
       title: true,
-      weeklyInterestRateUnder5000: true,
-      weeklyInterestRateFrom5000: true,
+      annualInterestRate: true,
+      interestAccrualWeekday: true,
+      interestCompounding: true,
       partnerId: true,
       partner: { select: { name: true } },
       transactions: {
         where: { isArchived: false },
-        select: { amount: true, purpose: true, date: true, createdAt: true },
+        select: { amount: true, purpose: true, date: true, kind: true, createdAt: true },
         orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       },
     },
@@ -115,18 +122,15 @@ export async function getLedgersForHome(): Promise<LedgerForHome[]> {
 
   return ledgers
     .map((l) => {
-      const balance = l.transactions.reduce((sum, t) => sum + t.amount, 0);
+      const breakdown = calcLedgerBreakdown(l.transactions);
       return {
         id: l.id,
         partnerId: l.partnerId,
         partnerName: l.partner.name,
         title: l.title,
-        effectiveWeeklyInterestRate: getEffectiveWeeklyRate(
-          balance,
-          l.weeklyInterestRateUnder5000 ? Number(l.weeklyInterestRateUnder5000) : 0,
-          l.weeklyInterestRateFrom5000 ? Number(l.weeklyInterestRateFrom5000) : 0,
-        ),
-        balance,
+        ...toInterestSettings(l),
+        balance: breakdown.total,
+        breakdown,
         lastTransaction: l.transactions[0] ?? null,
       };
     })
@@ -141,13 +145,12 @@ export async function getLedgersForHome(): Promise<LedgerForHome[]> {
     });
 }
 
-export type LedgerById = {
+export type LedgerById = LedgerInterestSettings & {
   id: string;
   title: string;
-  weeklyInterestRateUnder5000: number;
-  weeklyInterestRateFrom5000: number;
-  effectiveWeeklyInterestRate: number;
+  /** 合計残高（元本 + 未払利息） */
   balance: number;
+  breakdown: LedgerBalanceBreakdown;
   partnerId: string;
   partnerName: string;
   partnerIsArchived: boolean;
@@ -166,15 +169,16 @@ export async function getLedgerById(ledgerId: string): Promise<LedgerById | null
     select: {
       id: true,
       title: true,
-      weeklyInterestRateUnder5000: true,
-      weeklyInterestRateFrom5000: true,
+      annualInterestRate: true,
+      interestAccrualWeekday: true,
+      interestCompounding: true,
       shareToken: true,
       shareTokenExpiresAt: true,
       partnerId: true,
       partner: { select: { name: true, isArchived: true, ownerId: true } },
       transactions: {
         where: { isArchived: false },
-        select: { amount: true },
+        select: { amount: true, kind: true, date: true, createdAt: true },
       },
       notes: { orderBy: { createdAt: "desc" } },
     },
@@ -182,28 +186,22 @@ export async function getLedgerById(ledgerId: string): Promise<LedgerById | null
 
   if (!ledger || ledger.partner.ownerId !== session.userId) return null;
 
-  const balance = ledger.transactions.reduce((sum, t) => sum + t.amount, 0);
-  const rateUnder5000 = ledger.weeklyInterestRateUnder5000
-    ? Number(ledger.weeklyInterestRateUnder5000)
-    : 0;
-  const rateFrom5000 = ledger.weeklyInterestRateFrom5000
-    ? Number(ledger.weeklyInterestRateFrom5000)
-    : 0;
+  const settings = toInterestSettings(ledger);
+  const breakdown = calcLedgerBreakdown(ledger.transactions);
 
   return {
     id: ledger.id,
     title: ledger.title,
-    weeklyInterestRateUnder5000: rateUnder5000,
-    weeklyInterestRateFrom5000: rateFrom5000,
-    effectiveWeeklyInterestRate: getEffectiveWeeklyRate(balance, rateUnder5000, rateFrom5000),
-    balance,
+    ...settings,
+    balance: breakdown.total,
+    breakdown,
     partnerId: ledger.partnerId,
     partnerName: ledger.partner.name,
     partnerIsArchived: ledger.partner.isArchived,
     shareToken: ledger.shareToken,
     shareTokenExpiresAt: ledger.shareTokenExpiresAt,
     notes: ledger.notes,
-    nextInterest: getNextInterestPreview(balance, rateUnder5000, rateFrom5000),
+    nextInterest: getNextInterestPreview(breakdown, settings),
   };
 }
 
@@ -212,17 +210,24 @@ const ledgerSchema = z.object({
     .string()
     .min(1, "口座名を入力してください")
     .max(30, "口座名は30文字以内で入力してください"),
-  weeklyInterestRateUnder5000: z
+  annualInterestRate: z
     .number()
-    .min(0, "週利率は0%以上で入力してください")
-    .max(100, "週利率は100%以下で入力してください"),
-  weeklyInterestRateFrom5000: z
+    .min(0, "年利は0%以上で入力してください")
+    .max(
+      MAX_ANNUAL_INTEREST_RATE,
+      `年利は${MAX_ANNUAL_INTEREST_RATE.toLocaleString()}%以下で入力してください`,
+    ),
+  interestAccrualWeekday: z
     .number()
-    .min(0, "週利率は0%以上で入力してください")
-    .max(100, "週利率は100%以下で入力してください"),
+    .int()
+    .min(0, "曜日を選択してください")
+    .max(6, "曜日を選択してください")
+    .default(DEFAULT_INTEREST_WEEKDAY),
+  interestCompounding: z.boolean().default(false),
 });
 
-export type LedgerInput = z.infer<typeof ledgerSchema>;
+/** 口座の追加時は曜日・単複利を省略できる（既定値が入る） */
+export type LedgerInput = z.input<typeof ledgerSchema>;
 
 export type LedgerFormState = { error?: string; success?: boolean };
 
@@ -367,14 +372,13 @@ export async function revokeLedgerShareToken(
   return { success: true };
 }
 
-export type SharedLedgerData = {
+export type SharedLedgerData = LedgerInterestSettings & {
   partnerName: string;
   ledgerTitle: string;
   ownerName: string;
+  /** 合計残高（元本 + 未払利息） */
   balance: number;
-  weeklyInterestRateUnder5000: number;
-  weeklyInterestRateFrom5000: number;
-  effectiveWeeklyInterestRate: number;
+  breakdown: LedgerBalanceBreakdown;
   nextInterest: NextInterestPreview;
   transactions: Array<{
     id: string;
@@ -382,6 +386,7 @@ export type SharedLedgerData = {
     purpose: string | null;
     description: string | null;
     date: Date;
+    kind: string;
     runningBalance: number;
   }>;
   notes: LedgerNote[];
@@ -395,13 +400,22 @@ export async function getLedgerByShareToken(
     select: {
       title: true,
       shareTokenExpiresAt: true,
-      weeklyInterestRateUnder5000: true,
-      weeklyInterestRateFrom5000: true,
+      annualInterestRate: true,
+      interestAccrualWeekday: true,
+      interestCompounding: true,
       partner: { select: { name: true, owner: { select: { name: true } } } },
       transactions: {
         where: { isArchived: false },
-        select: { id: true, amount: true, purpose: true, description: true, date: true },
-        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          amount: true,
+          purpose: true,
+          description: true,
+          date: true,
+          kind: true,
+          createdAt: true,
+        },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       },
       notes: { orderBy: { createdAt: "desc" } },
     },
@@ -412,31 +426,31 @@ export async function getLedgerByShareToken(
     return { error: "expired" };
   }
 
-  const balance = ledger.transactions.reduce((sum, t) => sum + t.amount, 0);
-  const rateUnder5000 = ledger.weeklyInterestRateUnder5000
-    ? Number(ledger.weeklyInterestRateUnder5000)
-    : 0;
-  const rateFrom5000 = ledger.weeklyInterestRateFrom5000
-    ? Number(ledger.weeklyInterestRateFrom5000)
-    : 0;
-
-  let runningBalance = balance;
-  const transactionsWithBalance = ledger.transactions.map((t) => {
-    const entry = { ...t, runningBalance };
-    runningBalance -= t.amount;
-    return entry;
-  });
+  const settings = toInterestSettings(ledger);
+  // 内訳（元本／未払利息）は時系列に取引を適用して求めるので、
+  // 共通ロジック（calcLedgerRunningBreakdown）に計算を任せて表示用に新しい順へ戻す。
+  const transactionsWithBalance = calcLedgerRunningBreakdown(ledger.transactions)
+    .map((t) => ({
+      id: t.id,
+      amount: t.amount,
+      purpose: t.purpose,
+      description: t.description,
+      date: t.date,
+      kind: t.kind,
+      runningBalance: t.total,
+    }))
+    .reverse();
+  const breakdown = calcLedgerBreakdown(ledger.transactions);
 
   return {
     data: {
       partnerName: ledger.partner.name,
       ledgerTitle: ledger.title,
       ownerName: ledger.partner.owner.name,
-      balance,
-      weeklyInterestRateUnder5000: rateUnder5000,
-      weeklyInterestRateFrom5000: rateFrom5000,
-      effectiveWeeklyInterestRate: getEffectiveWeeklyRate(balance, rateUnder5000, rateFrom5000),
-      nextInterest: getNextInterestPreview(balance, rateUnder5000, rateFrom5000),
+      ...settings,
+      balance: breakdown.total,
+      breakdown,
+      nextInterest: getNextInterestPreview(breakdown, settings),
       transactions: transactionsWithBalance,
       notes: ledger.notes,
     },

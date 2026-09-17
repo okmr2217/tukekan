@@ -1,0 +1,144 @@
+name: Migrate Ledger Annual Interest (one-shot)
+
+# 本番DBに対して「バックアップ → マイグレーション適用」を実行する
+# ワンショットの手動ワークフロー。定期実行はしない。
+# 利子システムの改修（年利への一本化 / 発生曜日・単複利の追加 / Transaction.kind の追加）用。
+#
+# このマイグレーションには不可逆なデータ変換が含まれる:
+#   - Ledger.weeklyInterestRateUnder5000 / weeklyInterestRateFrom5000 を削除する
+#   - 年利は「5000円以上の週利率 × 52」でバックフィルされる（5000円未満の利率は失われる）
+#   - Transaction.kind は既存行すべて 'NORMAL'（既存の利子取引はバックフィルしない）
+#
+# ジョブサマリーに「purpose が '利子' で始まる取引の件数」を出力する。
+# ここが 0 でない場合、過去の利子が元本に混ざったままになっているので、
+# kind = 'INTEREST' へのバックフィルが必要かどうかを別途判断すること。
+#
+# 実行前に GitHub Secrets に以下が設定されていることを確認すること:
+#   - DATABASE_URL: pgbouncer 経由 (6543番ポート)
+#   - DIRECT_URL:   直接接続 (5432番ポート、pg_dump 用)
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: '本番DBへの実行を確認するため "migrate-production" と入力してください'
+        required: true
+        type: string
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    # DATABASE_URL は通常トランザクションモードのプーラー(6543)を指すが、
+    # Prisma migrate CLI がこのランナーからそのプーラーに対して
+    # ハングすることが判明している。このワンショットジョブでは
+    # DATABASE_URL もセッションプーラー(DIRECT_URLと同じ)にする。
+    env:
+      DATABASE_URL: ${{ secrets.DIRECT_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+    steps:
+      - name: Confirm intent
+        run: |
+          if [ "${{ inputs.confirm }}" != "migrate-production" ]; then
+            echo "confirm 入力が一致しません。実行を中止します。" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure pg_dump is available
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          pg_dump --version
+
+      - name: Check migration status (pre)
+        run: timeout 60 npx prisma migrate status || echo "::warning::migrate status (pre) failed or timed out (exit $?)"
+
+      - name: Backup production database
+        id: backup
+        run: |
+          filename="backup_$(date -u +%Y%m%d_%H%M%S).dump"
+          timeout 120 pg_dump "$DIRECT_URL" -Fc -f "$filename"
+          ls -lh "$filename"
+          echo "filename=$filename" >> "$GITHUB_OUTPUT"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: ${{ steps.backup.outputs.filename }}
+          retention-days: 14
+
+      - name: Apply pending migrations
+        run: timeout 120 npx prisma migrate deploy
+
+      - name: Check migration status (post)
+        run: timeout 60 npx prisma migrate status
+
+      - name: Write job summary
+        run: |
+          {
+            echo "## Ledger annual interest migration summary"
+            echo ""
+            echo "- Backup file: \`${{ steps.backup.outputs.filename }}\` (see workflow artifacts, retained 14 days)"
+            echo ""
+            echo "### Ledgers"
+            echo '```'
+            npx tsx -e "
+              import { PrismaClient } from './src/generated/prisma/client';
+              import { PrismaPg } from '@prisma/adapter-pg';
+              const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+              const prisma = new PrismaClient({ adapter });
+              const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+              (async () => {
+                const ledgers = await prisma.ledger.findMany({
+                  select: {
+                    title: true,
+                    annualInterestRate: true,
+                    interestAccrualWeekday: true,
+                    interestCompounding: true,
+                    partner: { select: { name: true } },
+                  },
+                  orderBy: { createdAt: 'asc' },
+                });
+                console.log('ledgers:', ledgers.length);
+                for (const l of ledgers) {
+                  const rate = Number(l.annualInterestRate ?? 0);
+                  console.log(
+                    [
+                      l.partner.name + ' / ' + l.title,
+                      '年利' + rate + '%',
+                      '毎週' + WEEKDAYS[l.interestAccrualWeekday] + '曜日',
+                      l.interestCompounding ? '複利' : '単利',
+                    ].join('  '),
+                  );
+                }
+                const interestLike = await prisma.transaction.count({
+                  where: { purpose: { startsWith: '利子' } },
+                });
+                const interestKind = await prisma.transaction.count({
+                  where: { kind: 'INTEREST' },
+                });
+                console.log('');
+                console.log('transactions with purpose starting with 利子:', interestLike);
+                console.log('transactions with kind=INTEREST:', interestKind);
+                if (interestLike > 0) {
+                  console.log('WARNING: 過去の利子取引が元本に混ざったままです。kind のバックフィルを検討してください。');
+                }
+              })().finally(() => prisma.\$disconnect());
+            "
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

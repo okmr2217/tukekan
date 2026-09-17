@@ -5,6 +5,7 @@ import { StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCompactTime, formatShortDate } from "@/lib/date-utils";
 import type { TransactionWithPartner } from "@/actions/transaction";
+import { isInterestKind } from "@/lib/transaction-kind";
 
 type Props = {
   transaction: TransactionWithPartner;
@@ -20,6 +21,7 @@ export function TransactionCard({
   showPartnerName = false,
 }: Props) {
   const isLending = transaction.amount > 0;
+  const isInterest = isInterestKind(transaction.kind);
   const absAmount = Math.abs(transaction.amount);
   const absBalance = Math.abs(runningBalance);
   const isGrayedOut = transaction.isArchived || transaction.partnerIsArchived;
@@ -48,6 +50,11 @@ export function TransactionCard({
         >
           {isLending ? "貸し" : "借り"}
         </span>
+        {isInterest && (
+          <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+            利息
+          </span>
+        )}
         <span className="text-xs font-medium text-muted-foreground">
           {formatCompactTime(transaction.date)}
         </span>

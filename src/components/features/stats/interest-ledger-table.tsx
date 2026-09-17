@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { InterestLedgerStat } from "@/actions/ledger-stats";
+import { formatRate, getWeekdayLabel } from "@/lib/ledger-interest";
 
 export function InterestLedgerTable({ ledgers }: { ledgers: InterestLedgerStat[] }) {
   if (ledgers.length === 0) {
@@ -22,16 +23,19 @@ export function InterestLedgerTable({ ledgers }: { ledgers: InterestLedgerStat[]
               口座
             </th>
             <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right whitespace-nowrap">
-              利率
+              年利
             </th>
             <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right whitespace-nowrap">
               残高
             </th>
             <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right whitespace-nowrap">
-              経過日数
+              発生日
             </th>
             <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right whitespace-nowrap">
-              見込み利子
+              未払利息
+            </th>
+            <th className="py-2.5 px-3 text-xs font-medium text-muted-foreground text-right whitespace-nowrap">
+              次回見込み
             </th>
           </tr>
         </thead>
@@ -47,16 +51,22 @@ export function InterestLedgerTable({ ledgers }: { ledgers: InterestLedgerStat[]
                 {l.title}
               </td>
               <td className="py-2.5 px-3 text-sm tabular-nums text-right whitespace-nowrap">
-                週{l.effectiveWeeklyInterestRate}%
+                {formatRate(l.annualInterestRate)}%
               </td>
               <td className="py-2.5 px-3 text-sm tabular-nums text-right whitespace-nowrap">
                 ¥{l.balance.toLocaleString()}
               </td>
-              <td className="py-2.5 px-3 text-sm tabular-nums text-right whitespace-nowrap text-muted-foreground">
-                {l.elapsedDays}日
+              <td className="py-2.5 px-3 text-sm text-right whitespace-nowrap text-muted-foreground">
+                毎週{getWeekdayLabel(l.interestAccrualWeekday)}
+                {l.interestCompounding ? "・複利" : ""}
               </td>
               <td className="py-2.5 px-3 text-sm tabular-nums text-right whitespace-nowrap font-semibold text-amber-600 dark:text-amber-400">
-                {l.estimatedInterest > 0 ? `+¥${l.estimatedInterest.toLocaleString()}` : "—"}
+                {l.unpaidInterest > 0 ? `¥${l.unpaidInterest.toLocaleString()}` : "—"}
+              </td>
+              <td className="py-2.5 px-3 text-sm tabular-nums text-right whitespace-nowrap text-muted-foreground">
+                {l.nextInterestAmount > 0
+                  ? `+¥${l.nextInterestAmount.toLocaleString()}`
+                  : "—"}
               </td>
             </tr>
           ))}

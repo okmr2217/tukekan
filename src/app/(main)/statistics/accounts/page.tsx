@@ -98,7 +98,7 @@ export default async function AccountStatisticsPage() {
       <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto w-full">
         <div className="px-4 pt-3 pb-4 text-left">
           <p className="text-xs text-muted-foreground mb-3">
-            口座（週利率）を踏まえた貸借の集計と推移
+            口座（年利）を踏まえた貸借の集計と推移
           </p>
           <p className="text-sm text-muted-foreground">現在の貸借残高合計</p>
           <p
@@ -156,8 +156,8 @@ export default async function AccountStatisticsPage() {
                   value={`${overallStats.transactionCount}回`}
                 />
                 <SummaryTile
-                  label="見込み利子合計"
-                  value={`+¥${overallStats.estimatedInterestTotal.toLocaleString()}`}
+                  label="未払利息の合計"
+                  value={`¥${overallStats.unpaidInterestTotal.toLocaleString()}`}
                   tone="gold"
                 />
               </div>

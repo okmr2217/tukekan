@@ -7,12 +7,13 @@
 | ファイル | 名前 | トリガー | 目的 |
 | --- | --- | --- | --- |
 | [`keep-supabase-alive.yml`](../.github/workflows/keep-supabase-alive.yml) | Ping Supabase to Prevent Pausing | 定期実行 (`0 0 * * 0,3`) + 手動 | Supabase の無料枠プロジェクトが一定期間アクセスなしで自動一時停止されるのを防ぐため、DBに軽いクエリを打つ |
-| [`weekly-interest.yml`](../.github/workflows/weekly-interest.yml) | Weekly Interest Job | 定期実行 (`0 0 * * 3`, 毎週水曜 09:00 JST) + 手動 | `scripts/weekly-interest.ts` を実行し、週次の利息計算バッチを本番DBに対して走らせる |
+| [`weekly-interest.yml`](../.github/workflows/weekly-interest.yml) | Weekly Interest Job | 定期実行 (`0 0 * * *`, 毎日 09:00 JST) + 手動 | `scripts/weekly-interest.ts` を実行し、その日が発生曜日にあたる口座だけ利息を計算する（各口座につき週1回） |
 | [`migrate-to-ledgers.yml`](../.github/workflows/migrate-to-ledgers.yml) | Migrate to Ledgers (one-shot) | 手動のみ | 本番DBに対する「バックアップ → マイグレーション適用 → Ledger移行スクリプト」のワンショット移行作業。定期実行はしない |
 | [`migrate-ledger-share-and-notes.yml`](../.github/workflows/migrate-ledger-share-and-notes.yml) | Migrate Ledger Share and Notes (one-shot) | 手動のみ | 共有トークン・口座メモ追加のワンショット移行作業 |
 | [`migrate-ledger-tiered-rate.yml`](../.github/workflows/migrate-ledger-tiered-rate.yml) | Migrate Ledger Tiered Interest Rate (one-shot) | 手動のみ | 週利率の2段階化のワンショット移行作業。バックフィルはマイグレーションSQLに含まれる |
 | [`migrate-transaction-purpose.yml`](../.github/workflows/migrate-transaction-purpose.yml) | Migrate Transaction Purpose (one-shot) | 手動のみ | 取引への「用途」追加と、既存メモ（description）の用途への移植のワンショット移行作業。移植はマイグレーションSQLに含まれる |
 | [`migrate-transaction-label-preset.yml`](../.github/workflows/migrate-transaction-label-preset.yml) | Migrate Transaction Label Preset (one-shot) | 手動のみ | `Account.transactionLabelPreset`（取引ボタンの名目ラベルのプリセット）追加のワンショット移行作業。既存行は既定値 `BOTH` で埋まる |
+| [`migrate-ledger-annual-interest.yml`](../.github/workflows/migrate-ledger-annual-interest.yml) | Migrate Ledger Annual Interest (one-shot) | 手動のみ | 利子システム改修（年利への一本化・発生曜日/単複利の追加・`Transaction.kind` 追加）のワンショット移行作業。**不可逆なデータ変換を含む** |
 
 ---
 
@@ -27,8 +28,15 @@
 
 ## weekly-interest.yml
 
-- **cron**: 毎週水曜 00:00 UTC（JST 09:00）に実行
+- **cron**: 毎日 00:00 UTC（JST 09:00）に実行
 - `npm ci` で依存関係をインストールした後、`npx tsx scripts/weekly-interest.ts` を実行
+- 毎日起動するが、実際に処理するのは「その日（JST）が `Ledger.interestAccrualWeekday` に一致する口座」だけ。
+  各口座の利息が発生するのは週1回
+- 同じ日に二重で利息を発生させないよう、`Ledger.lastInterestAccruedAt` が当日（JST）ならスキップする。
+  そのため `workflow_dispatch` での手動再実行は安全
+- 利息額は「対象額 × 年利 ÷ 52（四捨五入）」。対象額は単利なら元本、複利なら元本＋未払利息で、
+  0以下の口座はスキップする
+- 作成される取引は `kind = "INTEREST"` で、元本には足されず未払利息としてたまる
 - 必要な Secrets:
   - `DATABASE_URL`（本番DB接続用）
 - ロジックの詳細は `scripts/weekly-interest.ts` を参照
@@ -71,6 +79,23 @@
 - `prisma/migrations/20260918000000_add_transaction_label_preset/migration.sql` が `Account` に `transactionLabelPreset TEXT NOT NULL DEFAULT 'BOTH'` を追加する
 - 既存データの書き換えはなく、既存アカウントはすべて既定の `BOTH`（貸した・返済した / 借りた・返済された）になる。**他の移行ワークフローと違い不可逆なデータ変換は含まない**
 - ジョブサマリーにアカウント件数とプリセットの分布が出力される
+
+## migrate-ledger-annual-interest.yml
+
+- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
+- `migrate-transaction-label-preset.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
+- `prisma/migrations/20260919000000_ledger_annual_interest_and_transaction_kind/migration.sql` が以下を実行する:
+  - `Ledger` に `annualInterestRate` / `interestAccrualWeekday` / `interestCompounding` / `lastInterestAccruedAt` を追加
+  - 年利を「`weeklyInterestRateFrom5000` × 52」でバックフィル
+  - `Ledger` から `weeklyInterestRateUnder5000` / `weeklyInterestRateFrom5000` を削除
+  - `Transaction` に `kind TEXT NOT NULL DEFAULT 'NORMAL'` を追加
+- **不可逆な操作**。特に「5000円未満」の週利率は移行後に復元できない。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
+- 既存取引の `kind` はすべて `NORMAL` のままで、**過去の利子取引を遡って分離することはしない**。
+  ジョブサマリーに `purpose` が「利子」で始まる取引の件数を出力するので、
+  **ここが0でない場合は** 過去の利子が元本に混ざったままであることを意味する。
+  遡って分離したい場合は `UPDATE "Transaction" SET "kind" = 'INTEREST' WHERE "purpose" LIKE '利子%'` 相当のバックフィルを別途検討する
+  （合計残高は変わらず、元本と未払利息の内訳だけが変わる）
+- ジョブサマリーに各口座の年利・発生曜日・単複利の一覧も出力される
 
 ---
 

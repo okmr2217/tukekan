@@ -132,6 +132,57 @@ async function main() {
     ],
   });
 
+  // そうたの「利子つき」口座 — 利息の分離（元本／未払利息）を確認するためのデモ
+  const sotaInterestLedger = await prisma.ledger.create({
+    data: {
+      partnerId: sota.id,
+      title: "利子つき",
+      annualInterestRate: 260, // 週5%（260 ÷ 52）
+      interestAccrualWeekday: 3, // 毎週水曜
+      interestCompounding: false, // 単利（元本のみに課金）
+    },
+  });
+
+  await prisma.transaction.createMany({
+    data: [
+      {
+        ownerId: yuki.id,
+        partnerId: sota.id,
+        ledgerId: sotaInterestLedger.id,
+        amount: 20000,
+        purpose: "貸付",
+        date: daysAgo(21),
+      },
+      {
+        ownerId: yuki.id,
+        partnerId: sota.id,
+        ledgerId: sotaInterestLedger.id,
+        amount: 1000,
+        kind: "INTEREST",
+        purpose: "利子（年利260%）",
+        date: daysAgo(14),
+      },
+      {
+        ownerId: yuki.id,
+        partnerId: sota.id,
+        ledgerId: sotaInterestLedger.id,
+        amount: 1000,
+        kind: "INTEREST",
+        purpose: "利子（年利260%）",
+        date: daysAgo(7),
+      },
+      {
+        // 返済1,500円 → まず未払利息2,000円のうち1,500円に充当される
+        ownerId: yuki.id,
+        partnerId: sota.id,
+        ledgerId: sotaInterestLedger.id,
+        amount: -1500,
+        purpose: "そうたから返済",
+        date: daysAgo(3),
+      },
+    ],
+  });
+
   console.log("Seed completed!");
   console.log("");
   console.log(`デモアカウント（パスワード: ${demoPassword}）:`);

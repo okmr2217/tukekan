@@ -47,9 +47,17 @@ model Ledger {
   id    String @id @default(cuid())
   title String // 自由記述（例: "通常", "5000円貸しパターン"）
 
-  // 週利率(%)。残高帯によって2段階で指定できる。0 = 無利子
-  weeklyInterestRateUnder5000 Decimal? @default(0) @db.Decimal(5, 2) // 残高5000円未満に適用
-  weeklyInterestRateFrom5000  Decimal? @default(0) @db.Decimal(5, 2) // 残高5000円以上に適用
+  // 年利(%)。0 = 無利子。週ごとの利息額は「年利 ÷ 52」で計算する
+  annualInterestRate Decimal? @default(0) @db.Decimal(6, 2)
+
+  // 利息が発生する曜日（JST基準。0=日曜 〜 6=土曜）
+  interestAccrualWeekday Int @default(3)
+
+  // true = 複利（元本＋未払利息に課金） / false = 単利（元本のみに課金）
+  interestCompounding Boolean @default(false)
+
+  // 同じ日に二重で利息を発生させないための最終発生日時
+  lastInterestAccruedAt DateTime?
 
   shareToken          String?   @unique
   shareTokenExpiresAt DateTime?
@@ -71,6 +79,11 @@ model Transaction {
   purpose     String? // 用途（例: 麻雀、ランチ、返済）。1行・100文字以内
   description String? // メモ（詳細テキスト）。複数行可・1000文字以内
   date        DateTime // UTCで保存、クライアント側でJST変換
+
+  // 取引の種別。"NORMAL"（通常の貸し借り・返済） | "INTEREST"（自動発生した利息）
+  // src/lib/transaction-kind.ts を参照
+  kind String @default("NORMAL")
+
   isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

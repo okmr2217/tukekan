@@ -46,8 +46,7 @@ export async function createPartner(
       ledgers: {
         create: {
           title: "通常",
-          weeklyInterestRateUnder5000: 0,
-          weeklyInterestRateFrom5000: 0,
+          annualInterestRate: 0,
         },
       },
     },
