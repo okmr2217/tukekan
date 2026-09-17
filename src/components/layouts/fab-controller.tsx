@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { TransactionModal } from "@/components/features/transaction/transaction-modal";
 import { TransactionFilterSheet } from "@/components/features/transaction/transaction-filter-sheet";
 import type { Partner } from "@/actions/partner";
@@ -8,20 +8,21 @@ import type { Partner } from "@/actions/partner";
 type Props = {
   partners: Partner[];
   suggestions: string[];
-  ledgerPartnerMap: Record<string, string>;
 };
 
-export function FABController({ partners, suggestions, ledgerPartnerMap }: Props) {
+export function FABController({ partners, suggestions }: Props) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const isTransactions = pathname === "/transactions";
-  const ledgerMatch = pathname.match(/^\/ledgers\/([^/]+)$/);
+  const partnerMatch = pathname.match(/^\/partners\/([^/]+)$/);
 
-  if (!isTransactions && !ledgerMatch) return null;
+  if (!isTransactions && !partnerMatch) return null;
 
-  const defaultLedgerId = ledgerMatch?.[1];
-  const defaultPartnerId = defaultLedgerId
-    ? ledgerPartnerMap[defaultLedgerId]
+  const defaultPartnerId = partnerMatch?.[1];
+  // 相手ページで口座を絞り込んでいるときは、その口座を初期値にする
+  const defaultLedgerId = defaultPartnerId
+    ? (searchParams.get("ledger") ?? undefined)
     : undefined;
 
   return (
@@ -31,7 +32,7 @@ export function FABController({ partners, suggestions, ledgerPartnerMap }: Props
         partners={partners}
         suggestions={suggestions}
         defaultPartnerId={defaultPartnerId}
-        defaultLedgerId={defaultLedgerId}
+        defaultLedgerId={defaultLedgerId || undefined}
       />
     </>
   );

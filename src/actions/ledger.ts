@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { createId } from "@paralleldrive/cuid2";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -17,7 +16,6 @@ import {
 } from "@/lib/ledger-interest";
 import {
   calcLedgerBreakdown,
-  calcLedgerRunningBreakdown,
   type LedgerBalanceBreakdown,
 } from "@/lib/ledger-balance";
 import { isInterestKind } from "@/lib/transaction-kind";
@@ -35,9 +33,12 @@ export type LedgerWithBalance = LedgerInterestSettings & {
   /** これまでに発生した利息の合計 */
   totalInterest: number;
   transactionCount: number;
+  nextInterest: NextInterestPreview;
+  notes: LedgerNote[];
   createdAt: Date;
 };
 
+/** 相手ページに出す口座の一覧（残高・内訳・次回の利子・メモつき） */
 export async function getLedgersByPartner(
   partnerId: string,
 ): Promise<LedgerWithBalance[]> {
@@ -53,6 +54,7 @@ export async function getLedgersByPartner(
         where: { isArchived: false },
         select: { amount: true, kind: true, date: true, createdAt: true },
       },
+      notes: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -66,83 +68,51 @@ export async function getLedgersByPartner(
     const interest = l.transactions
       .filter((t) => isInterestKind(t.kind))
       .reduce((sum, t) => sum + t.amount, 0);
+    const settings = toInterestSettings(l);
     const breakdown = calcLedgerBreakdown(l.transactions);
 
     return {
       id: l.id,
       title: l.title,
-      ...toInterestSettings(l),
+      ...settings,
       balance: breakdown.total,
       breakdown,
       totalLent: lent,
       totalBorrowed: Math.abs(borrowed),
       totalInterest: interest,
       transactionCount: l.transactions.length,
+      nextInterest: getNextInterestPreview(breakdown, settings),
+      notes: l.notes,
       createdAt: l.createdAt,
     };
   });
 }
 
-export type LedgerForHome = LedgerInterestSettings & {
+export type LedgerOption = {
   id: string;
-  partnerId: string;
-  partnerName: string;
   title: string;
-  /** 合計残高（元本 + 未払利息） */
-  balance: number;
-  breakdown: LedgerBalanceBreakdown;
-  lastTransaction: {
-    amount: number;
-    purpose: string | null;
-    date: Date;
-  } | null;
+  annualInterestRate: number;
 };
 
-export async function getLedgersForHome(): Promise<LedgerForHome[]> {
+/** 取引フォームの口座ピッカー用。残高やメモを持たない軽い一覧 */
+export async function getLedgerOptions(
+  partnerId: string,
+): Promise<LedgerOption[]> {
   const session = await getSession();
   if (!session) return [];
+  if (!(await findOwnedPartner(partnerId, session.userId))) return [];
 
   const ledgers = await prisma.ledger.findMany({
-    where: { partner: { ownerId: session.userId, isArchived: false } },
-    select: {
-      id: true,
-      title: true,
-      annualInterestRate: true,
-      interestAccrualWeekday: true,
-      interestCompounding: true,
-      partnerId: true,
-      partner: { select: { name: true } },
-      transactions: {
-        where: { isArchived: false },
-        select: { amount: true, purpose: true, date: true, kind: true, createdAt: true },
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      },
-    },
+    where: { partnerId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, title: true, annualInterestRate: true },
   });
 
-  return ledgers
-    .map((l) => {
-      const breakdown = calcLedgerBreakdown(l.transactions);
-      return {
-        id: l.id,
-        partnerId: l.partnerId,
-        partnerName: l.partner.name,
-        title: l.title,
-        ...toInterestSettings(l),
-        balance: breakdown.total,
-        breakdown,
-        lastTransaction: l.transactions[0] ?? null,
-      };
-    })
-    .sort((a, b) => {
-      if (!a.lastTransaction && !b.lastTransaction) return 0;
-      if (!a.lastTransaction) return 1;
-      if (!b.lastTransaction) return -1;
-      return (
-        new Date(b.lastTransaction.date).getTime() -
-        new Date(a.lastTransaction.date).getTime()
-      );
-    });
+  return ledgers.map((l) => ({
+    id: l.id,
+    title: l.title,
+    annualInterestRate: toInterestSettings(l).annualInterestRate,
+  }));
 }
 
 export type LedgerById = LedgerInterestSettings & {
@@ -154,8 +124,6 @@ export type LedgerById = LedgerInterestSettings & {
   partnerId: string;
   partnerName: string;
   partnerIsArchived: boolean;
-  shareToken: string | null;
-  shareTokenExpiresAt: Date | null;
   notes: LedgerNote[];
   nextInterest: NextInterestPreview;
 };
@@ -172,8 +140,6 @@ export async function getLedgerById(ledgerId: string): Promise<LedgerById | null
       annualInterestRate: true,
       interestAccrualWeekday: true,
       interestCompounding: true,
-      shareToken: true,
-      shareTokenExpiresAt: true,
       partnerId: true,
       partner: { select: { name: true, isArchived: true, ownerId: true } },
       transactions: {
@@ -198,8 +164,6 @@ export async function getLedgerById(ledgerId: string): Promise<LedgerById | null
     partnerId: ledger.partnerId,
     partnerName: ledger.partner.name,
     partnerIsArchived: ledger.partner.isArchived,
-    shareToken: ledger.shareToken,
-    shareTokenExpiresAt: ledger.shareTokenExpiresAt,
     notes: ledger.notes,
     nextInterest: getNextInterestPreview(breakdown, settings),
   };
@@ -278,7 +242,7 @@ export async function updateLedger(
   });
 
   revalidatePath(`/partners/${ledger.partnerId}`);
-  revalidatePath(`/ledgers/${ledgerId}`);
+  revalidatePath(`/ledgers/${ledgerId}/settings`);
   revalidatePath("/");
   revalidatePath("/statistics/accounts");
   return { success: true };
@@ -312,161 +276,4 @@ export async function deleteLedger(ledgerId: string): Promise<LedgerFormState> {
   revalidatePath("/");
   revalidatePath("/statistics/accounts");
   return { success: true };
-}
-
-// --- 共有リンク ---
-
-export type ShareTokenState = {
-  error?: string;
-  success?: boolean;
-  token?: string;
-};
-
-export async function generateLedgerShareToken(
-  ledgerId: string,
-): Promise<ShareTokenState> {
-  const session = await getSession();
-  if (!session) return { error: "ログインが必要です" };
-
-  const ledger = await prisma.ledger.findUnique({
-    where: { id: ledgerId },
-    include: { partner: true },
-  });
-  if (!ledger || ledger.partner.ownerId !== session.userId) {
-    return { error: "口座が見つかりません" };
-  }
-
-  const token = createId();
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 90);
-
-  await prisma.ledger.update({
-    where: { id: ledgerId },
-    data: { shareToken: token, shareTokenExpiresAt: expiresAt },
-  });
-
-  revalidatePath(`/ledgers/${ledgerId}`);
-  return { success: true, token };
-}
-
-export async function revokeLedgerShareToken(
-  ledgerId: string,
-): Promise<{ error?: string; success?: boolean }> {
-  const session = await getSession();
-  if (!session) return { error: "ログインが必要です" };
-
-  const ledger = await prisma.ledger.findUnique({
-    where: { id: ledgerId },
-    include: { partner: true },
-  });
-  if (!ledger || ledger.partner.ownerId !== session.userId) {
-    return { error: "口座が見つかりません" };
-  }
-
-  await prisma.ledger.update({
-    where: { id: ledgerId },
-    data: { shareToken: null, shareTokenExpiresAt: null },
-  });
-
-  revalidatePath(`/ledgers/${ledgerId}`);
-  return { success: true };
-}
-
-export type SharedLedgerData = LedgerInterestSettings & {
-  partnerName: string;
-  ledgerTitle: string;
-  ownerName: string;
-  /** 合計残高（元本 + 未払利息） */
-  balance: number;
-  breakdown: LedgerBalanceBreakdown;
-  nextInterest: NextInterestPreview;
-  transactions: Array<{
-    id: string;
-    amount: number;
-    purpose: string | null;
-    description: string | null;
-    date: Date;
-    kind: string;
-    runningBalance: number;
-  }>;
-  notes: LedgerNote[];
-};
-
-export async function getLedgerByShareToken(
-  token: string,
-): Promise<{ data?: SharedLedgerData; error?: string }> {
-  const ledger = await prisma.ledger.findUnique({
-    where: { shareToken: token },
-    select: {
-      title: true,
-      shareTokenExpiresAt: true,
-      annualInterestRate: true,
-      interestAccrualWeekday: true,
-      interestCompounding: true,
-      partner: { select: { name: true, owner: { select: { name: true } } } },
-      transactions: {
-        where: { isArchived: false },
-        select: {
-          id: true,
-          amount: true,
-          purpose: true,
-          description: true,
-          date: true,
-          kind: true,
-          createdAt: true,
-        },
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      },
-      notes: { orderBy: { createdAt: "desc" } },
-    },
-  });
-
-  if (!ledger) return { error: "invalid" };
-  if (!ledger.shareTokenExpiresAt || ledger.shareTokenExpiresAt < new Date()) {
-    return { error: "expired" };
-  }
-
-  const settings = toInterestSettings(ledger);
-  // 内訳（元本／未払利息）は時系列に取引を適用して求めるので、
-  // 共通ロジック（calcLedgerRunningBreakdown）に計算を任せて表示用に新しい順へ戻す。
-  const transactionsWithBalance = calcLedgerRunningBreakdown(ledger.transactions)
-    .map((t) => ({
-      id: t.id,
-      amount: t.amount,
-      purpose: t.purpose,
-      description: t.description,
-      date: t.date,
-      kind: t.kind,
-      runningBalance: t.total,
-    }))
-    .reverse();
-  const breakdown = calcLedgerBreakdown(ledger.transactions);
-
-  return {
-    data: {
-      partnerName: ledger.partner.name,
-      ledgerTitle: ledger.title,
-      ownerName: ledger.partner.owner.name,
-      ...settings,
-      balance: breakdown.total,
-      breakdown,
-      nextInterest: getNextInterestPreview(breakdown, settings),
-      transactions: transactionsWithBalance,
-      notes: ledger.notes,
-    },
-  };
-}
-
-// --- 相手ごとの Ledger↔Partner 対応（取引フォームでのデフォルト口座解決用） ---
-
-export async function getLedgerPartnerMap(): Promise<Record<string, string>> {
-  const session = await getSession();
-  if (!session) return {};
-
-  const ledgers = await prisma.ledger.findMany({
-    where: { partner: { ownerId: session.userId } },
-    select: { id: true, partnerId: true },
-  });
-
-  return Object.fromEntries(ledgers.map((l) => [l.id, l.partnerId]));
 }

@@ -5,6 +5,16 @@ import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import type { LedgerNote } from "@/generated/prisma";
 
+/** メモは相手ページ（一覧・共有リンク）と口座の設定ページに出るので、両方を無効化する */
+async function revalidateNoteScope(ledgerId: string) {
+  const ledger = await prisma.ledger.findUnique({
+    where: { id: ledgerId },
+    select: { partnerId: true },
+  });
+  if (ledger) revalidatePath(`/partners/${ledger.partnerId}`);
+  revalidatePath(`/ledgers/${ledgerId}/settings`);
+}
+
 function validateContent(content: string): string | null {
   const trimmed = content.trim();
   if (trimmed.length === 0 || trimmed.length > 100) {
@@ -40,7 +50,7 @@ export async function createLedgerNote(input: {
     },
   });
 
-  revalidatePath(`/ledgers/${input.ledgerId}`);
+  await revalidateNoteScope(input.ledgerId);
   return { data: note };
 }
 
@@ -68,7 +78,7 @@ export async function updateLedgerNote(input: {
     data: { content: input.content.trim() },
   });
 
-  revalidatePath(`/ledgers/${existing.ledgerId}`);
+  await revalidateNoteScope(existing.ledgerId);
   return { data: note };
 }
 
@@ -89,6 +99,6 @@ export async function deleteLedgerNote(input: {
 
   await prisma.ledgerNote.delete({ where: { id: input.id } });
 
-  revalidatePath(`/ledgers/${existing.ledgerId}`);
+  await revalidateNoteScope(existing.ledgerId);
   return { data: { id: input.id } };
 }

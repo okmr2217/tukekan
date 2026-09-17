@@ -2,16 +2,20 @@
 
 import { useTransition, useState, useEffect } from "react";
 import { Share2, Link2Off, RefreshCw, Copy, ExternalLink } from "lucide-react";
-import { generateLedgerShareToken, revokeLedgerShareToken } from "@/actions/ledger";
+import {
+  generatePartnerShareToken,
+  revokePartnerShareToken,
+  type PartnerById,
+} from "@/actions/partner";
 import { toast } from "sonner";
-import type { LedgerById } from "@/actions/ledger";
 import { toJST } from "@/lib/date-utils";
 
 type Props = {
-  ledger: LedgerById;
+  partner: PartnerById;
 };
 
-export function LedgerShareLinkSection({ ledger }: Props) {
+/** 相手ごとの公開リンク。その相手のすべての口座がまとめて共有される */
+export function PartnerShareLinkSection({ partner }: Props) {
   const [isPending, startTransition] = useTransition();
   const [origin, setOrigin] = useState("");
 
@@ -20,18 +24,18 @@ export function LedgerShareLinkSection({ ledger }: Props) {
   }, []);
 
   const hasActiveToken =
-    ledger.shareToken !== null &&
-    ledger.shareTokenExpiresAt !== null &&
-    new Date(ledger.shareTokenExpiresAt) > new Date();
+    partner.shareToken !== null &&
+    partner.shareTokenExpiresAt !== null &&
+    new Date(partner.shareTokenExpiresAt) > new Date();
 
   const shareUrl =
-    hasActiveToken && ledger.shareToken
-      ? `${origin}/share/${ledger.shareToken}`
+    hasActiveToken && partner.shareToken
+      ? `${origin}/share/${partner.shareToken}`
       : null;
 
   const handleGenerate = () => {
     startTransition(async () => {
-      const result = await generateLedgerShareToken(ledger.id);
+      const result = await generatePartnerShareToken(partner.id);
       if (result.error) {
         toast.error(result.error);
         return;
@@ -57,7 +61,7 @@ export function LedgerShareLinkSection({ ledger }: Props) {
 
   const handleRevoke = () => {
     startTransition(async () => {
-      const result = await revokeLedgerShareToken(ledger.id);
+      const result = await revokePartnerShareToken(partner.id);
       if (result.error) {
         toast.error(result.error);
       } else {
@@ -66,8 +70,8 @@ export function LedgerShareLinkSection({ ledger }: Props) {
     });
   };
 
-  const expiresAt = ledger.shareTokenExpiresAt
-    ? new Date(ledger.shareTokenExpiresAt)
+  const expiresAt = partner.shareTokenExpiresAt
+    ? new Date(partner.shareTokenExpiresAt)
     : null;
 
   const formatExpiry = (date: Date) => {
@@ -83,7 +87,7 @@ export function LedgerShareLinkSection({ ledger }: Props) {
           <Share2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
         </div>
         <p className="text-sm font-medium">
-          {ledger.partnerName}との取引（{ledger.title}）を共有
+          {partner.name}さんとの取引を共有
         </p>
       </div>
 
@@ -138,14 +142,19 @@ export function LedgerShareLinkSection({ ledger }: Props) {
           </div>
         </>
       ) : (
-        <button
-          onClick={handleGenerate}
-          disabled={isPending}
-          className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg px-3.5 py-2 transition-colors"
-        >
-          <Share2 className="w-3.5 h-3.5" />
-          共有リンクを発行
-        </button>
+        <>
+          <p className="text-xs text-muted-foreground mb-3">
+            リンクを知っている人は、ログインなしでこの相手との残高と取引履歴を見られます。
+          </p>
+          <button
+            onClick={handleGenerate}
+            disabled={isPending}
+            className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg px-3.5 py-2 transition-colors"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            共有リンクを発行
+          </button>
+        </>
       )}
     </div>
   );

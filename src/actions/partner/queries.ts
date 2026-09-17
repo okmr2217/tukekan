@@ -2,6 +2,12 @@
 
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import {
+  calcPartnerBreakdown,
+  EMPTY_BREAKDOWN,
+  type LedgerBalanceBreakdown,
+} from "@/lib/ledger-balance";
+import { findOwnedPartner } from "./_helpers";
 import type { Partner, PartnerWithBalance, PartnerById } from "./types";
 
 export async function getPartners(): Promise<Partner[]> {
@@ -23,7 +29,14 @@ export async function getPartnerById(
 
   const partner = await prisma.partner.findUnique({
     where: { id: partnerId },
-    select: { id: true, name: true, isArchived: true, ownerId: true },
+    select: {
+      id: true,
+      name: true,
+      isArchived: true,
+      shareToken: true,
+      shareTokenExpiresAt: true,
+      ownerId: true,
+    },
   });
 
   if (!partner || partner.ownerId !== session.userId) return null;
@@ -32,15 +45,19 @@ export async function getPartnerById(
     id: partner.id,
     name: partner.name,
     isArchived: partner.isArchived,
+    shareToken: partner.shareToken,
+    shareTokenExpiresAt: partner.shareTokenExpiresAt,
   };
 }
 
 /**
- * 相手ごとの合計残高（口座をまたいだ合算）。
+ * 相手ごとの残高（口座をまたいだ合算）。相手一覧（ホーム）で使う。
  *
- * 利息を元本と分けて持つようになった後も「元本 + 未払利息 = 全取引の金額合計」は
- * 変わらないため、ここは従来どおり単純な合計で正しい。
- * 元本／未払利息の内訳が必要なところでは `src/lib/ledger-balance.ts` を使う。
+ * 合計残高は「元本 + 未払利息 = 全取引の金額合計」なので単純な合計でも出せるが、
+ * 内訳（未払利息がいくら残っているか）は口座ごとに充当を計算しないと出せないため、
+ * `calcPartnerBreakdown` に任せる。
+ *
+ * 並び順は「最後の取引が新しい順」。取引がない相手は名前順で後ろにまとめる。
  */
 export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
   const session = await getSession();
@@ -53,20 +70,70 @@ export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
       name: true,
       isArchived: true,
       createdAt: true,
+      _count: { select: { ledgers: true } },
       transactions: {
         where: { isArchived: false },
-        select: { amount: true },
+        select: {
+          amount: true,
+          purpose: true,
+          date: true,
+          kind: true,
+          createdAt: true,
+          ledgerId: true,
+        },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       },
     },
     orderBy: { name: "asc" },
   });
 
-  return partners.map((p) => ({
-    id: p.id,
-    name: p.name,
-    isArchived: p.isArchived,
-    createdAt: p.createdAt,
-    transactionCount: p.transactions.length,
-    balance: p.transactions.reduce((sum, t) => sum + t.amount, 0),
-  }));
+  return partners
+    .map((p) => {
+      const breakdown = calcPartnerBreakdown(p.transactions);
+      return {
+        id: p.id,
+        name: p.name,
+        isArchived: p.isArchived,
+        createdAt: p.createdAt,
+        transactionCount: p.transactions.length,
+        ledgerCount: p._count.ledgers,
+        balance: breakdown.total,
+        breakdown,
+        lastTransaction: p.transactions[0] ?? null,
+      };
+    })
+    .sort((a, b) => {
+      if (!a.lastTransaction && !b.lastTransaction) {
+        return a.name.localeCompare(b.name, "ja");
+      }
+      if (!a.lastTransaction) return 1;
+      if (!b.lastTransaction) return -1;
+      return (
+        new Date(b.lastTransaction.date).getTime() -
+        new Date(a.lastTransaction.date).getTime()
+      );
+    });
+}
+
+/**
+ * 相手の合計残高の内訳（口座をまたいだ合算）。
+ *
+ * 口座に紐づいていない過去の取引も数に入れたいので、口座からではなく
+ * 相手の取引そのものから計算する。
+ */
+export async function getPartnerBalance(
+  partnerId: string,
+): Promise<LedgerBalanceBreakdown> {
+  const session = await getSession();
+  if (!session) return EMPTY_BREAKDOWN;
+  if (!(await findOwnedPartner(partnerId, session.userId))) {
+    return EMPTY_BREAKDOWN;
+  }
+
+  const transactions = await prisma.transaction.findMany({
+    where: { partnerId, isArchived: false },
+    select: { amount: true, kind: true, date: true, createdAt: true, ledgerId: true },
+  });
+
+  return calcPartnerBreakdown(transactions);
 }

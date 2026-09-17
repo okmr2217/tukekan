@@ -1,17 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getLedgerByShareToken } from "@/actions/ledger";
-import { SharedBalanceCard } from "@/components/features/partner/balance-card";
-import { LedgerNoteSection } from "@/components/features/ledger/ledger-note-section";
-import { NextInterestNotice } from "@/components/features/ledger/next-interest-notice";
-import { SharedTransactionCard } from "@/components/features/transaction/shared-transaction-card";
-import {
-  describeInterestRule,
-  formatRate,
-  formatWeeklyRate,
-  INTEREST_REPAYMENT_RULE_TEXT,
-} from "@/lib/ledger-interest";
-import { shouldShowBreakdown } from "@/lib/ledger-balance";
+import { getPartnerByShareToken } from "@/actions/partner";
+import { SharedPartnerView } from "./shared-partner-view";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -19,7 +9,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params;
-  const result = await getLedgerByShareToken(token);
+  const result = await getPartnerByShareToken(token);
   if (result.data) {
     return {
       title: `${result.data.partnerName}さんとの取引状況 - ツケカン`,
@@ -30,9 +20,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SharePage({ params }: Props) {
   const { token } = await params;
-  const result = await getLedgerByShareToken(token);
+  const result = await getPartnerByShareToken(token);
 
-  if (result.error) {
+  if (result.error || !result.data) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="text-center">
@@ -48,21 +38,7 @@ export default async function SharePage({ params }: Props) {
     );
   }
 
-  const {
-    partnerName,
-    ledgerTitle,
-    ownerName,
-    balance,
-    breakdown,
-    annualInterestRate,
-    interestAccrualWeekday,
-    interestCompounding,
-    nextInterest,
-    transactions,
-    notes,
-  } = result.data!;
-  const isDefaultLedger = ledgerTitle === "通常";
-  const hasInterest = annualInterestRate > 0;
+  const data = result.data;
 
   return (
     <div className="min-h-screen">
@@ -70,96 +46,17 @@ export default async function SharePage({ params }: Props) {
       <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="mx-auto flex min-h-14 max-w-lg flex-col justify-center px-4 py-2">
           <h1 className="font-medium leading-tight mb-1.5">
-            {partnerName}さんとの取引
-            {!isDefaultLedger && (
-              <span className="text-muted-foreground font-normal">
-                {" "}
-                （{ledgerTitle}）
-              </span>
-            )}
+            {data.partnerName}さんとの取引
           </h1>
           <p className="text-xs text-muted-foreground">
-            読み取り専用 · {partnerName}さんから見た表示 · アクセス時点のデータ
+            読み取り専用 · {data.partnerName}さんから見た表示 · アクセス時点のデータ
           </p>
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-lg px-4 py-6 space-y-6">
-        {/* Balance card */}
-        <div>
-          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
-            現在の残高
-          </p>
-          <SharedBalanceCard
-            balance={balance}
-            ownerName={ownerName}
-            partnerName={partnerName}
-            breakdown={
-              shouldShowBreakdown(breakdown, annualInterestRate)
-                ? breakdown
-                : undefined
-            }
-          />
-        </div>
+      <SharedPartnerView data={data} />
 
-        {/* 口座情報 */}
-        <div>
-          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
-            口座について
-          </p>
-          <div className="rounded-xl border bg-card px-4 py-3.5 space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">口座名</span>
-              <span className="font-medium">{ledgerTitle}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">利率</span>
-              {hasInterest ? (
-                <span className="font-medium tabular-nums">
-                  年{formatRate(annualInterestRate)}%（週
-                  {formatWeeklyRate(annualInterestRate)}%）
-                </span>
-              ) : (
-                <span className="font-medium">無利子</span>
-              )}
-            </div>
-            {hasInterest && (
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {describeInterestRule({
-                  annualInterestRate,
-                  interestAccrualWeekday,
-                  interestCompounding,
-                })}
-                {INTEREST_REPAYMENT_RULE_TEXT}
-              </p>
-            )}
-            <NextInterestNotice nextInterest={nextInterest} />
-          </div>
-        </div>
-
-        {/* Notes */}
-        {notes.length > 0 && (
-          <LedgerNoteSection ledgerId="" notes={notes} readOnly />
-        )}
-
-        {/* Transaction list */}
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3">
-            取引履歴（{transactions.length}件）
-          </h2>
-          {transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              取引履歴はありません
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {transactions.map((tx) => (
-                <SharedTransactionCard key={tx.id} transaction={tx} />
-              ))}
-            </div>
-          )}
-        </div>
-
+      <div className="mx-auto w-full max-w-lg px-4 pb-6 space-y-6">
         {/* Promotion */}
         <div className="rounded-lg border bg-card p-5 shadow-sm text-center space-y-3">
           <p className="text-sm text-muted-foreground">
@@ -185,7 +82,7 @@ export default async function SharePage({ params }: Props) {
         <p className="text-center text-xs text-muted-foreground pb-4">
           ツケカン — 友人間の貸し借り管理アプリ
         </p>
-      </main>
+      </div>
     </div>
   );
 }

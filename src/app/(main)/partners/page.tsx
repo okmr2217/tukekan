@@ -1,15 +1,9 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
-import { getPartnersWithBalance } from "@/actions/partner";
-import { PartnersPageClient } from "@/components/features/partner/partners-page-client";
 
-export default async function PartnersPage() {
-  const session = await getSession();
-  if (!session) {
-    redirect("/login");
-  }
-
-  const partners = await getPartnersWithBalance();
-
-  return <PartnersPageClient partners={partners} />;
+/**
+ * 相手の一覧はホーム（/）に統合した。
+ * 古いブックマークやリンクのためにリダイレクトだけ残している。
+ */
+export default function PartnersPage() {
+  redirect("/");
 }

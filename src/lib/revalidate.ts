@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 export function revalidatePartnerScope(partnerId?: string) {
   revalidatePath("/");
   revalidatePath("/transactions");
-  revalidatePath("/partners");
   if (partnerId) revalidatePath(`/partners/${partnerId}`);
 }
 

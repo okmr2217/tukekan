@@ -2,11 +2,19 @@ export type {
   Partner,
   PartnerWithBalance,
   PartnerById,
+  SharedPartnerData,
+  SharedPartnerLedger,
   CreatePartnerState,
   UpdatePartnerState,
+  ShareTokenState,
 } from "./partner/types";
 
-export { getPartners, getPartnerById, getPartnersWithBalance } from "./partner/queries";
+export {
+  getPartners,
+  getPartnerById,
+  getPartnersWithBalance,
+  getPartnerBalance,
+} from "./partner/queries";
 
 export {
   createPartner,
@@ -15,3 +23,9 @@ export {
   unarchivePartner,
   deletePartner,
 } from "./partner/mutations";
+
+export {
+  generatePartnerShareToken,
+  revokePartnerShareToken,
+  getPartnerByShareToken,
+} from "./partner/share";

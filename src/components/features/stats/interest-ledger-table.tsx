@@ -43,7 +43,10 @@ export function InterestLedgerTable({ ledgers }: { ledgers: InterestLedgerStat[]
           {ledgers.map((l) => (
             <tr key={l.ledgerId} className="border-b last:border-b-0">
               <td className="py-2.5 px-3 text-sm whitespace-nowrap">
-                <Link href={`/partners/${l.partnerId}`} className="hover:underline">
+                <Link
+                  href={`/partners/${l.partnerId}?ledger=${l.ledgerId}`}
+                  className="hover:underline"
+                >
                   {l.partnerName}
                 </Link>
               </td>

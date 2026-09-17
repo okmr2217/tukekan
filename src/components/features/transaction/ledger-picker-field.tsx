@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
-import { getLedgersByPartner } from "@/actions/ledger";
+import { getLedgerOptions, type LedgerOption } from "@/actions/ledger";
 import { cn } from "@/lib/utils";
 import { formatRate } from "@/lib/ledger-interest";
-
-type LedgerOption = { id: string; title: string; annualInterestRate: number };
 
 type Props = {
   partnerId: string;
@@ -29,7 +27,7 @@ export function LedgerPickerField({
       return;
     }
     let active = true;
-    getLedgersByPartner(partnerId).then((data) => {
+    getLedgerOptions(partnerId).then((data) => {
       if (active) setLedgers(data);
     });
     return () => {
