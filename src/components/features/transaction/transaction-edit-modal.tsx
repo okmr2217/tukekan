@@ -20,11 +20,9 @@ import { TransactionFormFields } from "./transaction-form-fields";
 import { PartnerPickerField } from "./partner-picker-field";
 import { LedgerPickerField } from "./ledger-picker-field";
 import {
-  floorToNearest30,
   buildDateTime,
-  type DateMode,
+  toDateTimeLocalValue,
 } from "@/lib/date-picker-utils";
-import { formatDateToJST, toJST } from "@/lib/date-utils";
 import {
   transactionFormResolver,
   type TransactionFormValues,
@@ -37,23 +35,6 @@ type Props = {
   suggestions?: string[];
   partners?: Partner[];
 };
-
-function initDateMode(date: Date): DateMode {
-  const jst = toJST(date);
-  const nowJst = toJST(new Date());
-  const today = new Date(nowJst.getFullYear(), nowJst.getMonth(), nowJst.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const d = new Date(jst.getFullYear(), jst.getMonth(), jst.getDate());
-  if (d.getTime() === today.getTime()) return "today";
-  if (d.getTime() === yesterday.getTime()) return "yesterday";
-  return "other";
-}
-
-function getDateString(date: Date): string {
-  const jst = toJST(date);
-  return `${jst.getFullYear()}-${String(jst.getMonth() + 1).padStart(2, "0")}-${String(jst.getDate()).padStart(2, "0")}`;
-}
 
 export function TransactionEditModal({
   transaction,
@@ -76,9 +57,8 @@ export function TransactionEditModal({
       isLending: true,
       purpose: "",
       description: "",
-      dateMode: "today",
-      otherDate: formatDateToJST(),
-      selectedTime: floorToNearest30(new Date()),
+      dateMode: "custom",
+      customDateTime: "",
     },
   });
 
@@ -92,9 +72,9 @@ export function TransactionEditModal({
         isLending: transaction.amount >= 0,
         purpose: transaction.purpose ?? "",
         description: transaction.description ?? "",
-        dateMode: initDateMode(transaction.date),
-        otherDate: getDateString(transaction.date),
-        selectedTime: floorToNearest30(transaction.date),
+        // 編集時は既存の日時を保つため、常に「日時を指定」で開く
+        dateMode: "custom",
+        customDateTime: toDateTimeLocalValue(transaction.date),
       });
     }
   }, [transaction, form]);
@@ -119,7 +99,7 @@ export function TransactionEditModal({
     if (!transaction) return;
     const rawAmount = parseInt(data.amount, 10);
     const signedAmount = data.isLending ? rawAmount : -rawAmount;
-    const date = buildDateTime(data.dateMode, data.otherDate, data.selectedTime);
+    const date = buildDateTime(data.dateMode, data.customDateTime);
 
     setError(null);
     startTransition(async () => {
@@ -182,7 +162,7 @@ export function TransactionEditModal({
               <TransactionFormFields
                 suggestions={suggestions}
                 isPending={isPending}
-                maxDate={formatDateToJST()}
+                showDateModeToggle={false}
               />
             </div>
           </FormProvider>

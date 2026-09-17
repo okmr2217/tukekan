@@ -7,13 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { FieldLabel } from "@/components/ui/field-label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { TIME_OPTIONS, type DateMode } from "@/lib/date-picker-utils";
+  formatHoursMinutes,
+  toDateTimeLocalValue,
+  type DateMode,
+} from "@/lib/date-picker-utils";
 import { cn } from "@/lib/utils";
 import { useTransactionLabels } from "./transaction-label-preset-context";
 import {
@@ -26,13 +23,11 @@ import {
 type Props = {
   suggestions: string[];
   isPending: boolean;
-  maxDate: string;
-};
-
-const DATE_MODE_LABELS: Record<DateMode, string> = {
-  today: "今日",
-  yesterday: "昨日",
-  other: "他の日",
+  /**
+   * 「現在 / 日時を指定」の切り替えピルを出すか。
+   * 編集では既存の日時を直接直したいだけなので false にして input だけを出す。
+   */
+  showDateModeToggle?: boolean;
 };
 
 /**
@@ -58,11 +53,16 @@ const AMOUNT_SIDE_CLASSES = {
 const AMOUNT_SIDE_BASE =
   "flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-50";
 
-export function TransactionFormFields({ suggestions, isPending, maxDate }: Props) {
+export function TransactionFormFields({
+  suggestions,
+  isPending,
+  showDateModeToggle = true,
+}: Props) {
   const {
     register,
     watch,
     control,
+    setValue,
     formState: { errors },
   } = useFormContext<TransactionFormValues>();
   const labels = useTransactionLabels();
@@ -73,6 +73,16 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
   const description = watch("description");
   const isLending = watch("isLending");
   const dateMode = watch("dateMode");
+  const customDateTime = watch("customDateTime");
+
+  // 「現在(HH:MM)」の表示と datetime-local の上限を実時間に追従させる
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 15_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const showDateTimeInput = !showDateModeToggle || dateMode === "custom";
 
   const filteredSuggestions =
     purpose.trim() === ""
@@ -223,67 +233,53 @@ export function TransactionFormFields({ suggestions, isPending, maxDate }: Props
 
       {/* Date + Time */}
       <div className="space-y-1.5">
-        <FieldLabel error={errors.otherDate?.message}>日時</FieldLabel>
+        <FieldLabel error={errors.customDateTime?.message}>日時</FieldLabel>
 
-        {/* Date mode pills */}
-        <Controller
-          name="dateMode"
-          control={control}
-          render={({ field }) => (
-            <div className="flex gap-2">
-              {(["today", "yesterday", "other"] as DateMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => field.onChange(mode)}
-                  disabled={isPending}
-                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all active:scale-95 ${
-                    dateMode === mode
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {DATE_MODE_LABELS[mode]}
-                </button>
-              ))}
-            </div>
-          )}
-        />
-
-        {/* Date input for "other" */}
-        {dateMode === "other" && (
-          <Input
-            type="date"
-            max={maxDate}
-            disabled={isPending}
-            aria-invalid={!!errors.otherDate}
-            {...register("otherDate")}
+        {showDateModeToggle && (
+          <Controller
+            name="dateMode"
+            control={control}
+            render={({ field }) => (
+              <div className="flex gap-2">
+                {(
+                  [
+                    ["now", `現在 (${formatHoursMinutes(now)})`],
+                    ["custom", "日時を指定"],
+                  ] as [DateMode, string][]
+                ).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      field.onChange(mode);
+                      if (mode === "custom" && customDateTime === "") {
+                        setValue("customDateTime", toDateTimeLocalValue(new Date()));
+                      }
+                    }}
+                    disabled={isPending}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all active:scale-95 ${
+                      dateMode === mode
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           />
         )}
 
-        {/* Time picker */}
-        <Controller
-          name="selectedTime"
-          control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value}
-              onValueChange={field.onChange}
-              disabled={isPending}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIME_OPTIONS.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
+        {showDateTimeInput && (
+          <Input
+            type="datetime-local"
+            max={toDateTimeLocalValue(now)}
+            disabled={isPending}
+            aria-invalid={!!errors.customDateTime}
+            {...register("customDateTime")}
+          />
+        )}
       </div>
     </div>
   );
