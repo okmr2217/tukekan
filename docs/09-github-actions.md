@@ -15,6 +15,7 @@
 | [`migrate-transaction-label-preset.yml`](../.github/workflows/migrate-transaction-label-preset.yml) | Migrate Transaction Label Preset (one-shot) | 手動のみ | `Account.transactionLabelPreset`（取引ボタンの名目ラベルのプリセット）追加のワンショット移行作業。既存行は既定値 `BOTH` で埋まる |
 | [`migrate-ledger-annual-interest.yml`](../.github/workflows/migrate-ledger-annual-interest.yml) | Migrate Ledger Annual Interest (one-shot) | 手動のみ | 利子システム改修（年利への一本化・発生曜日/単複利の追加・`Transaction.kind` 追加）のワンショット移行作業。**不可逆なデータ変換を含む** |
 | [`migrate-partner-share-token.yml`](../.github/workflows/migrate-partner-share-token.yml) | Migrate Partner Share Token (one-shot) | 手動のみ | 公開ページを口座単位から相手単位へ移すワンショット移行作業。**不可逆なデータ変換を含む** |
+| [`migrate-admin-audit-log.yml`](../.github/workflows/migrate-admin-audit-log.yml) | Migrate Admin Audit Log (one-shot) | 手動のみ | 管理画面（/admin）の監査ログ用 `AdminAuditLog` テーブル追加のワンショット移行作業。テーブルを足すだけで**不可逆なデータ変換は含まない** |
 
 ---
 
@@ -42,7 +43,10 @@
   - `DATABASE_URL`（本番DB接続用）。**ジョブ全体の `env` に設定する**。
     `npm ci` の postinstall で走る `prisma generate` が `prisma.config.ts` 経由で `DATABASE_URL` を要求するため、
     実行ステップだけに渡すと `npm ci` の時点で `PrismaConfigEnvError` で失敗する
-- ロジックの詳細は `scripts/weekly-interest.ts` を参照
+- ロジックの本体は `src/lib/interest-job.ts` の `runInterestJob()` にあり、管理画面（`/admin/jobs`）の手動実行と共通。
+  `scripts/weekly-interest.ts` は「DBにつないで実行し、結果をログに出す」だけの薄い入り口
+- `npx tsx scripts/weekly-interest.ts --dry-run` でDBを変更せずに結果の見積もりだけを出せる
+- Actions が落ちているときは、管理画面の「ジョブ」ページから同じ処理を手動で流せる（[docs/10-admin.md](./10-admin.md)）
 
 ## migrate-to-ledgers.yml
 
@@ -113,6 +117,16 @@
   - `Ledger` から `shareToken` / `shareTokenExpiresAt` を削除する
 - **不可逆な操作**。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
 - ジョブサマリーに移行後に共有リンクを持つ相手の一覧（名前・有効期限・口座数）が出力される
+
+## migrate-admin-audit-log.yml
+
+- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
+- `migrate-transaction-label-preset.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
+- `prisma/migrations/20260921000000_add_admin_audit_log/migration.sql` が `AdminAuditLog` テーブルと
+  `createdAt` / `actorEmail` のインデックスを作る
+- 既存テーブルへの変更・既存データの書き換えはない。**他の移行ワークフローと違い不可逆なデータ変換は含まない**
+- 管理画面（`/admin`）はこのテーブルがないと監査ログの読み書きで失敗するので、**管理画面をデプロイする前に実行すること**
+- ジョブサマリーに監査ログの件数（新規テーブルなので通常は0）とアカウント件数が出力される
 
 ---
 
