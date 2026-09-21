@@ -1,7 +1,7 @@
 /**
  * ジョブのページ。いまのところ対象は週次の自動利子ジョブだけ。
  *
- * 平常時は GitHub Actions（.github/workflows/weekly-interest.yml）が毎日 9:00 JST に
+ * 平常時は GitHub Actions（.github/workflows/weekly-interest.yml）が毎日 0:00 JST に
  * 走らせる。ここではその結果を確認し、Actions が落ちているときに手動で流し直せる。
  * 実行内容は scripts/weekly-interest.ts とまったく同じ（src/lib/interest-job.ts を共用）。
  */
@@ -45,7 +45,7 @@ export default async function AdminJobsPage() {
 
       <Panel
         title="週次自動利子ジョブ"
-        description="毎日 9:00 JST に起動し、その日が発生曜日の口座だけを処理する"
+        description="毎日 0:00 JST に起動し、その日が発生曜日の口座だけを処理する"
         action={
           <RunInterestJobButtons
             eligibleCount={eligible.length}
