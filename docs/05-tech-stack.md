@@ -34,11 +34,22 @@ src/
 │   │   │       └── page.tsx      # 取引履歴
 │   │   └── settings/
 │   │       └── page.tsx          # 設定
+│   ├── admin/                    # 管理画面（Cloudflare Access で認証・docs/10-admin.md）
+│   │   ├── layout.tsx            # サイドバー構成のPC向けレイアウト
+│   │   ├── page.tsx              # ダッシュボード
+│   │   ├── accounts/
+│   │   ├── ledgers/
+│   │   ├── transactions/
+│   │   ├── share-links/
+│   │   ├── jobs/
+│   │   └── audit/
 │   └── layout.tsx                # ルートレイアウト
+├── proxy.ts                      # /admin の入り口のゲート（Next.js 16 で middleware.ts から改称）
 ├── actions/                      # Server Actions
 │   ├── auth.ts                   # ログイン、ログアウト、セッション取得
 │   ├── transaction.ts            # 取引の作成
-│   └── partner.ts                # 相手の作成
+│   ├── partner.ts                # 相手の作成
+│   └── admin/                    # 管理画面の読み書き（types / queries / mutations）
 ├── components/
 │   ├── ui/                       # shadcn/ui コンポーネント
 │   │   ├── button.tsx
@@ -54,6 +65,7 @@ src/
 │   │   └── partner/
 │   │       ├── partner-select.tsx        # 相手選択コンボボックス
 │   │       └── partner-balance-list.tsx  # 残高一覧
+│   │   └── admin/                        # 管理画面のサイドバー・テーブル・操作ボタン
 │   └── layouts/
 │       ├── header.tsx
 │       ├── bottom-bar.tsx                # ボトムバーナビゲーション
@@ -62,6 +74,10 @@ src/
 │   ├── prisma.ts                 # Prismaクライアント
 │   ├── auth.ts                   # JWT検証・生成、セッション管理
 │   ├── password.ts               # bcryptハッシュ化
+│   ├── cf-access.ts              # Cloudflare Access の JWT 検証（管理画面）
+│   ├── admin-auth.ts             # requireAdmin() など管理画面の認可
+│   ├── admin-audit.ts            # 管理画面の監査ログの操作種別
+│   ├── interest-job.ts           # 週次利子ジョブの本体（cron と管理画面で共用）
 │   └── utils.ts                  # 汎用ユーティリティ
 ├── types/
 │   └── index.ts                  # 共通型定義

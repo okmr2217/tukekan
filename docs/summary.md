@@ -83,6 +83,14 @@ LedgerNote
 ├── content
 ├── ownerId
 └── ledgerId
+
+AdminAuditLog（管理画面の操作記録・他テーブルとリレーションなし）
+├── id
+├── actorEmail  Cloudflare Access が認証した操作者
+├── action      REVOKE_SHARE_TOKEN / RUN_INTEREST_JOB / DRY_RUN_INTEREST_JOB
+├── targetType  "Partner" | "Job"
+├── targetId
+└── summary     人が読むための要約
 ```
 
 ### データモデルの重要な概念
@@ -99,11 +107,20 @@ LedgerNote
 
 ## 認証・セキュリティ
 
+### アプリ本体（ユーザー向け）
+
 - JWTをHttpOnly Cookieに保存（有効期限90日）
 - セッション情報: `{ userId, email, name }`
 - ログイン: email + パスワードで認証
 - データは全て `ownerId`（セッションのuserId）でスコープされ、他ユーザーのデータは参照できない
 - 相手ごとの共有リンク（`/share/[token]`）のみ、未認証で読み取り専用の閲覧が可能
+
+### 管理画面（運営者向け）
+
+- `/admin` は本体のログインを使わず **Cloudflare Access** で認証する（`docs/10-admin.md`）
+- Access が署名したJWT（`Cf-Access-Jwt-Assertion` / `CF_Authorization`）をチーム用JWKSで検証する
+- ゲートは3層: Cloudflare Access → `src/proxy.ts` → 各ページ・各Server Actionの `requireAdmin()`
+- 管理画面からの書き込みは「共有リンクの失効」「利子ジョブの手動実行」のみで、すべて `AdminAuditLog` に残る
 
 ---
 
@@ -127,6 +144,16 @@ LedgerNote
   /menu                       メニュー
   /settings                   設定（プロフィール・取引ボタン表示・外観）
   /help                       ヘルプ
+
+/admin                        管理画面（Cloudflare Access で認証・サイドバー構成のPC向け）
+  /                           ダッシュボード（全体サマリーと異常の一覧）
+  /accounts                   アカウント一覧
+  /accounts/[id]              アカウント詳細（相手・口座・直近の取引）
+  /ledgers                    口座一覧（利子つき口座の監視）
+  /transactions               取引の横断検索
+  /share-links                共有リンクの一覧と失効
+  /jobs                       利子ジョブの状況と手動実行
+  /audit                      監査ログ
 ```
 
 ---
@@ -173,6 +200,13 @@ BottomBar（固定フッター）に4タブ:
 ### 統計
 - 相手別・口座別の貸借集計、月次推移、利子付き口座の一覧
 
+### 管理画面（`/admin`・運営者向け）
+- 認証は Cloudflare Access。アプリ本体のログインとは独立（`docs/10-admin.md`）
+- 全アカウント横断の閲覧: 規模・お金の総量・アカウント/口座/取引の一覧と検索
+- 利子ジョブの監視と手動実行（試し打ち対応）。「1週間以上利息が発生していない口座」を検出する
+- 共有リンクの棚卸しと失効
+- 書き込み操作はすべて監査ログ（`AdminAuditLog`）に残る
+
 ---
 
 ## Server Actions 一覧
@@ -188,6 +222,8 @@ BottomBar（固定フッター）に4タブ:
 | `actions/transaction.ts` | `getTransactions`, `getDescriptionSuggestions`, `createTransaction`, `updateTransaction`, `archiveTransaction`, `unarchiveTransaction`, `deleteTransaction` |
 | `actions/stats.ts` | `getPartnerStats`, `getOverallStats`, `getMonthlyStats` |
 | `actions/ledger-stats.ts` | `getPartnerLedgerStats`, `getOverallLedgerStats`, `getInterestBearingLedgers` |
+| `actions/admin/queries.ts` | `getAdminOverview`, `getAdminAccounts`, `getAdminAccountDetail`, `getAdminLedgers`, `getAdminTransactions`, `getAdminAccountOptions`, `getAdminShareLinks`, `getInterestJobStatus`, `getAdminAuditLogs` |
+| `actions/admin/mutations.ts` | `revokeShareTokenAsAdmin`, `runInterestJobAsAdmin` |
 
 ---
 

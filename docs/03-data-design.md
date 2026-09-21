@@ -139,6 +139,26 @@ model Transaction {
 }
 ```
 
+### AdminAuditLog（管理画面の操作記録）
+
+管理画面（`/admin`）から行った書き込み操作の記録。操作者は Cloudflare Access が認証した
+メールアドレスで、`Account` とはひも付かないためリレーションを張らない。詳細は [10-admin.md](./10-admin.md)。
+
+```prisma
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorEmail String   // Cloudflare Access が認証したメールアドレス
+  action     String   // REVOKE_SHARE_TOKEN | RUN_INTEREST_JOB | DRY_RUN_INTEREST_JOB
+  targetType String?  // "Partner" | "Job"
+  targetId   String?
+  summary    String   // 人が読むための要約
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorEmail])
+}
+```
+
 ---
 
 ## 3.4 残高の内訳（元本と未払利息）

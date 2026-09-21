@@ -122,3 +122,28 @@ model LedgerNote {
   @@index([ledgerId])
   @@index([ownerId])
 }
+
+// 管理画面（/admin）で行った操作の記録。
+// 管理画面は Cloudflare Access で認証するため、actorEmail は Account ではなく
+// Access が認証したメールアドレスをそのまま文字列で持つ（リレーションは張らない）。
+model AdminAuditLog {
+  id String @id @default(cuid())
+
+  // 操作した管理者のメールアドレス（Cloudflare Access の identity）
+  actorEmail String
+
+  // 操作の種別。src/lib/admin-audit.ts の ADMIN_AUDIT_ACTIONS
+  action String
+
+  // 操作対象の種類（"Partner" / "Job" など）と識別子
+  targetType String?
+  targetId   String?
+
+  // 人が読むための要約（例: "共有リンクを失効: たろう"）
+  summary String
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorEmail])
+}

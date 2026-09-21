@@ -17,6 +17,7 @@
 | [06-security.md](./06-security.md)       | セキュリティ、非機能要件                    |
 | [07-phases.md](./07-phases.md)           | 開発フェーズ                                |
 | [09-github-actions.md](./09-github-actions.md) | GitHub Actions ワークフロー一覧・詳細  |
+| [10-admin.md](./10-admin.md)             | 管理画面（/admin）・Cloudflare Access 認証  |
 
 ## 用語定義
 
@@ -28,6 +29,7 @@
 | 貸し          | 自分が相手にお金を渡した（+金額）                        |
 | 借り/返済     | 自分が相手からお金を受け取った（-金額）                  |
 | Ledger        | Partnerごとの「口座」。取引はこの口座に紐づく            |
+| 管理画面      | 運営者向けの `/admin`。Cloudflare Access で認証する      |
 
 ## バイブコーディング時の参照ガイド
 
@@ -63,6 +65,7 @@
 | 機能確認         | `02-features.md`                      |
 | ディレクトリ確認 | `05-tech-stack.md`                    |
 | フェーズ進捗     | `07-phases.md`                        |
+| 管理画面         | `10-admin.md` + `06-security.md`      |
 
 ### ポイント
 

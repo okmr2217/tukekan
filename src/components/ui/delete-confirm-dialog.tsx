@@ -18,6 +18,9 @@ type Props = {
   description: string;
   onConfirm: () => void;
   isPending?: boolean;
+  /** 確定ボタンのラベル。削除以外の取り消せない操作にも使えるように差し替えられる */
+  confirmLabel?: string;
+  loadingLabel?: string;
 };
 
 export function DeleteConfirmDialog({
@@ -27,6 +30,8 @@ export function DeleteConfirmDialog({
   description,
   onConfirm,
   isPending = false,
+  confirmLabel = "削除",
+  loadingLabel = "削除中...",
 }: Props) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -43,9 +48,9 @@ export function DeleteConfirmDialog({
             variant="destructive"
             onClick={onConfirm}
             loading={isPending}
-            loadingText="削除中..."
+            loadingText={loadingLabel}
           >
-            削除
+            {confirmLabel}
           </LoadingButton>
         </AlertDialogFooter>
       </AlertDialogContent>

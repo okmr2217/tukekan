@@ -21,11 +21,20 @@
 | [docs/06-security.md](./docs/06-security.md) | セキュリティ、非機能要件 |
 | [docs/07-phases.md](./docs/07-phases.md) | 開発フェーズ |
 | [docs/09-github-actions.md](./docs/09-github-actions.md) | GitHub Actions ワークフロー一覧・詳細 |
+| [docs/10-admin.md](./docs/10-admin.md) | 管理画面（/admin）・Cloudflare Access 認証 |
 | [docs/summary.md](./docs/summary.md) | アプリ全体のサマリー（技術スタック・データモデル・画面構成など） |
 
 ## GitHub Actions
 
 `.github/workflows/` に定期実行・手動実行のワークフローが定義されている。内容・トリガー・必要な Secrets などの詳細は [docs/09-github-actions.md](./docs/09-github-actions.md) を参照すること。特に `migrate-to-ledgers.yml`・`migrate-ledger-annual-interest.yml`・`migrate-partner-share-token.yml` は本番DBに対する不可逆なワンショット移行作業なので、実行前に必ず同ドキュメントの注意事項を確認する。
+
+## 管理画面
+
+`/admin` は運営者向けの管理画面で、アプリ本体のログイン（JWT + Cookie）ではなく **Cloudflare Access** で認証する。詳細は [docs/10-admin.md](./docs/10-admin.md) を参照。実装時の約束:
+
+- 管理画面のページとServer Actionは、**必ず先頭で `requireAdmin()`（`src/lib/admin-auth.ts`）を呼ぶ**。`src/proxy.ts` のゲートがあっても省かない
+- 管理画面からの書き込みは「共有リンクの失効」「利子ジョブの手動実行」の2つだけ。**書き込みを足すときは必ず `AdminAuditLog` に記録する**
+- `src/lib/cf-access.ts` は Edge ランタイム（proxy）からも読むので、`next/headers` や prisma を import しない
 
 ## 開発時の参照ガイド
 
@@ -40,3 +49,4 @@
 | ディレクトリ確認 | `docs/05-tech-stack.md` |
 | フェーズ進捗 | `docs/07-phases.md` |
 | CI/CD・定期ジョブ | `docs/09-github-actions.md` |
+| 管理画面 | `docs/10-admin.md` + `docs/06-security.md` |
