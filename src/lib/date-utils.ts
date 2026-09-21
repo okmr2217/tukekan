@@ -60,6 +60,46 @@ export function formatCompactTime(date: Date): string {
 }
 
 /**
+ * 取引カード用の日時（JST基準）。
+ *
+ * 60分以内 → "N分前"
+ * 今日     → "HH:mm"
+ * 昨日     → "昨日 HH:mm"
+ * 今年     → "M/D"
+ * それ以前 → "YYYY/M/D"
+ *
+ * 一昨日より前の取引は時刻まで見たい場面がほとんどないので日付だけにして、
+ * カード1行に名目・口座・相手のチップが並ぶ余地を残している（時刻は詳細ダイアログで出す）。
+ */
+export function formatTransactionTime(date: Date): string {
+  const jst = toJST(date);
+  const jstNow = toJST(new Date());
+
+  const diffMinutes = Math.floor(
+    (jstNow.getTime() - jst.getTime()) / (1000 * 60),
+  );
+  const hours = String(jst.getHours()).padStart(2, "0");
+  const minutes = String(jst.getMinutes()).padStart(2, "0");
+
+  const sameDate = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (diffMinutes >= 0 && diffMinutes < 60) return `${diffMinutes}分前`;
+  if (sameDate(jst, jstNow)) return `${hours}:${minutes}`;
+
+  const yesterday = new Date(jstNow);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (sameDate(jst, yesterday)) return `昨日 ${hours}:${minutes}`;
+
+  const md = `${jst.getMonth() + 1}/${jst.getDate()}`;
+  return jst.getFullYear() === jstNow.getFullYear()
+    ? md
+    : `${jst.getFullYear()}/${md}`;
+}
+
+/**
  * JST基準の相対日付（今日／昨日／N日前／M/D）
  */
 export function formatRelativeDay(date: Date): string {

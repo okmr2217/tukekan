@@ -105,8 +105,13 @@ export function TransactionCardList({
             key={t.id}
             transaction={t}
             runningBalance={runningBalanceMap.get(t.id) ?? 0}
+            viewpoint="owner"
             onClick={() => handleDetail(t)}
-            showPartnerName={showPartnerName}
+            partnerName={showPartnerName ? t.partnerName : undefined}
+            partnerHref={
+              showPartnerName ? `/partners/${t.partnerId}` : undefined
+            }
+            dimmed={t.isArchived || t.partnerIsArchived}
           />
         ))}
       </div>
@@ -121,17 +126,26 @@ export function TransactionCardList({
 
       <TransactionDetailModal
         transaction={selectedTransaction}
+        runningBalance={
+          selectedTransaction
+            ? (runningBalanceMap.get(selectedTransaction.id) ?? 0)
+            : 0
+        }
+        viewpoint="owner"
+        counterpartyName={selectedTransaction?.partnerName ?? ""}
         open={detailModalOpen}
         onOpenChange={setDetailModalOpen}
-        onEdit={(t) => {
-          setDetailModalOpen(false);
-          handleEdit(t);
+        actions={{
+          onEdit: (t) => {
+            setDetailModalOpen(false);
+            handleEdit(t);
+          },
+          onArchiveToggle: (t) => {
+            setDetailModalOpen(false);
+            handleArchiveToggle(t);
+          },
+          onDelete: handleDeleteRequest,
         }}
-        onArchiveToggle={(t) => {
-          setDetailModalOpen(false);
-          handleArchiveToggle(t);
-        }}
-        onDelete={handleDeleteRequest}
       />
 
       <DeleteConfirmDialog
