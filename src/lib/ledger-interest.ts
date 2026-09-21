@@ -87,7 +87,7 @@ export function calcWeeklyInterestAmount(base: number, annualRate: number): numb
 }
 
 /**
- * 次回、利子ジョブ（毎日 9:00 JST に起動し、当日が指定曜日の口座だけ処理する）が
+ * 次回、利子ジョブ（毎日 0:00 JST に起動し、当日が指定曜日の口座だけ処理する）が
  * この口座の利息を発生させる日時を返す。
  * 返り値は他の日付ユーティリティと同じ規約で、Date のフィールド（getFullYear等）が
  * そのまま JST の壁時計時刻を表す（toJST() の変換結果と同じ扱い）。
@@ -97,11 +97,12 @@ export function getNextInterestDateJST(
   from: Date = new Date(),
 ): Date {
   const jst = toJST(from);
+  // ジョブは JST 0時に走るので、その日の 00:00 を基準にする。
   const target = new Date(
     jst.getFullYear(),
     jst.getMonth(),
     jst.getDate(),
-    9,
+    0,
     0,
     0,
     0,
