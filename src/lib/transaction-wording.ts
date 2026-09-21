@@ -126,13 +126,10 @@ export function transactionSentence(
 }
 
 export type BalanceRoleStatement = {
+  /** 債権なら credit、債務なら debt。カードではこれを色で示す */
   tone: MoneyTone;
   /** 債権か債務かが読み取れる短いラベル */
   label: string;
-  /** 「残高」と組み合わせて使うラベル */
-  balanceLabel: string;
-  /** 会計用語での立場 */
-  role: string;
   /** 表示用の絶対値 */
   absAmount: number;
 };
@@ -142,30 +139,12 @@ export type BalanceRoleStatement = {
  */
 export function describeBalanceRole(balance: number): BalanceRoleStatement {
   if (balance > 0) {
-    return {
-      tone: "credit",
-      label: "貸している",
-      balanceLabel: "貸している残高",
-      role: "債権",
-      absAmount: balance,
-    };
+    return { tone: "credit", label: "貸している", absAmount: balance };
   }
   if (balance < 0) {
-    return {
-      tone: "debt",
-      label: "借りている",
-      balanceLabel: "借りている残高",
-      role: "債務",
-      absAmount: -balance,
-    };
+    return { tone: "debt", label: "借りている", absAmount: -balance };
   }
-  return {
-    tone: "settled",
-    label: "貸し借りなし",
-    balanceLabel: "残高",
-    role: "精算済み",
-    absAmount: 0,
-  };
+  return { tone: "settled", label: "貸し借りなし", absAmount: 0 };
 }
 
 /** 「¥1,234」 */
