@@ -173,8 +173,13 @@ export function formatYen(amount: number): string {
   return `¥${Math.abs(amount).toLocaleString()}`;
 }
 
-/** 「+¥1,234」「-¥1,234」 */
-export function formatSignedYen(amount: number): string {
-  const sign = amount < 0 ? "-" : "+";
-  return `${sign}${formatYen(amount)}`;
+/**
+ * 取引の金額。マイナスのときだけ符号を付ける（プラスは符号なし）。
+ *
+ * 金額そのものは色を持たせず黒（foreground）で出すので、
+ * 「減った」ことだけはマイナス符号で示す。債権／債務の向きは
+ * 名目チップと残高の色が担当する。
+ */
+export function formatTransactionAmount(amount: number): string {
+  return amount < 0 ? `-${formatYen(amount)}` : formatYen(amount);
 }

@@ -14,7 +14,7 @@ import { formatDateTimeForDisplay } from "@/lib/date-utils";
 import {
   describeBalanceRole,
   describeTransaction,
-  formatSignedYen,
+  formatTransactionAmount,
   formatYen,
   transactionSentence,
   type TransactionViewpoint,
@@ -133,13 +133,9 @@ export function TransactionDetailModal<T extends TransactionDetailData>({
                 </span>
               )}
             </div>
-            <div
-              className={cn(
-                "text-[32px] font-medium leading-none tracking-tight tabular-nums",
-                TONE_TEXT[statement.tone],
-              )}
-            >
-              {formatSignedYen(statement.amount)}
+            {/* 金額は色を持たせない（カードと揃える） */}
+            <div className="text-[32px] font-medium leading-none tracking-tight tabular-nums text-foreground">
+              {formatTransactionAmount(statement.amount)}
             </div>
             <div className="mt-2 text-[13px] text-muted-foreground">
               {transactionSentence(statement, counterpartyName)}
