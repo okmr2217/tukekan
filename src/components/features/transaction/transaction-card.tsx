@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTransactionTime } from "@/lib/date-utils";
 import {
@@ -52,6 +51,7 @@ type Props = {
  * 下段の左右はラベル＋右寄せの数字という同じ組み方にしてあるので、位置もサイズもそろう。
  * 一覧では金額も残高もそれぞれ縦にそろい、推移を列として追える。
  * 用途はカード幅をまるごと使えるので、金額が大きくても省略されにくい。
+ * メモがあれば用途の下に本文を2行まで出す。
  * 残高が債権か債務かは色で示す（ことばでの説明は詳細ダイアログで出す）。
  */
 export function TransactionCard({
@@ -132,19 +132,17 @@ export function TransactionCard({
           </span>
         </div>
 
-        <div className="mt-1 flex min-w-0 items-baseline gap-1 text-sm font-medium text-foreground">
-          {transaction.purpose ? (
-            <span className="truncate">{transaction.purpose}</span>
-          ) : (
+        <div className="mt-1 min-w-0 truncate text-sm font-medium text-foreground">
+          {transaction.purpose ?? (
             <span className="text-xs text-muted-foreground/60">用途なし</span>
           )}
-          {transaction.description && (
-            <StickyNote
-              className="size-3 shrink-0 self-center text-muted-foreground/60"
-              aria-label="メモあり"
-            />
-          )}
         </div>
+        {/* メモは用途の下に出す。長いものはカードでは2行までにして、全文はダイアログで読ませる */}
+        {transaction.description && (
+          <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap break-words text-xs leading-snug text-muted-foreground">
+            {transaction.description}
+          </p>
+        )}
       </div>
 
       {/* 下段: 左が取引の金額、右が残高。どちらもラベル＋右寄せの数字でそろえる */}
