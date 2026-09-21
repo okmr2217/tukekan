@@ -3,7 +3,8 @@
 import { parseAsString, useQueryState } from "nuqs";
 import { SharedBalanceCard } from "@/components/features/partner/balance-card";
 import { LedgerCard } from "@/components/features/ledger/ledger-card";
-import { SharedTransactionCard } from "@/components/features/transaction/shared-transaction-card";
+import { LedgerNoteSection } from "@/components/features/ledger/ledger-note-section";
+import { SharedTransactionList } from "@/components/features/transaction/shared-transaction-list";
 import { shouldShowBreakdown } from "@/lib/ledger-balance";
 import {
   describeInterestRule,
@@ -51,6 +52,9 @@ export function SharedPartnerView({ data }: Props) {
   const shownRate = selectedLedger
     ? selectedLedger.annualInterestRate
     : Math.max(0, ...ledgers.map((l) => l.annualInterestRate));
+
+  // 複数の口座が混ざって並ぶときだけ、カードに口座名を出すために使う
+  const ledgerTitles = new Map(ledgers.map((l) => [l.id, l.title]));
 
   const toggleLedger = (ledgerId: string) => {
     setSelectedLedgerId(ledgerId === activeLedgerId ? null : ledgerId);
@@ -159,19 +163,13 @@ export function SharedPartnerView({ data }: Props) {
             取引履歴はありません
           </p>
         ) : (
-          <div className="space-y-2">
-            {visibleTransactions.map((tx) => (
-              <SharedTransactionCard
-                key={tx.id}
-                transaction={tx}
-                ledgerTitle={
-                  ledgers.length > 1 && !selectedLedger
-                    ? ledgers.find((l) => l.id === tx.ledgerId)?.title
-                    : undefined
-                }
-              />
-            ))}
-          </div>
+          <SharedTransactionList
+            transactions={visibleTransactions}
+            ownerName={ownerName}
+            ledgerTitles={
+              ledgers.length > 1 && !selectedLedger ? ledgerTitles : undefined
+            }
+          />
         )}
       </div>
     </main>
