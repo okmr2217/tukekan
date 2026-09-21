@@ -6,9 +6,9 @@ import { parseAsString, useQueryState } from "nuqs";
 import { Plus, Settings, ChevronRight } from "lucide-react";
 import { LedgerFormDialog } from "./ledger-form-dialog";
 import { LedgerCard } from "@/components/features/ledger/ledger-card";
-import { LedgerNoteSection } from "@/components/features/ledger/ledger-note-section";
 import { BalanceDisplay, buildLatestSummary } from "./balance-card";
 import { PartnerShareLinkSection } from "./partner-share-link-section";
+import { PartnerShareNoteSection } from "./partner-share-note-section";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
 import { ownerBalanceStatement } from "@/lib/balance-wording";
 import { shouldShowBreakdown } from "@/lib/ledger-balance";
@@ -53,8 +53,6 @@ export function PartnerDetailView({
   const visibleTransactions = activeLedgerId
     ? transactions.filter((t) => t.ledgerId === activeLedgerId)
     : transactions;
-
-  const visibleLedgers = selectedLedger ? [selectedLedger] : ledgers;
 
   // 絞り込み中はその口座の残高、そうでなければ全口座の合算を主役にする
   const shownBreakdown = selectedLedger ? selectedLedger.breakdown : breakdown;
@@ -133,15 +131,8 @@ export function PartnerDetailView({
         <PartnerShareLinkSection partner={partner} />
       </div>
 
-      {/* メモ（口座ごと） */}
-      {visibleLedgers.map((ledger) => (
-        <LedgerNoteSection
-          key={ledger.id}
-          ledgerId={ledger.id}
-          notes={ledger.notes}
-          ledgerTitle={ledgers.length > 1 ? ledger.title : undefined}
-        />
-      ))}
+      {/* 公開ページのメモ（相手ごとに1つ） */}
+      <PartnerShareNoteSection partner={partner} />
 
       {/* 取引一覧 */}
       <div>

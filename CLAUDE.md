@@ -26,7 +26,7 @@
 
 ## GitHub Actions
 
-`.github/workflows/` に定期実行・手動実行のワークフローが定義されている。内容・トリガー・必要な Secrets などの詳細は [docs/09-github-actions.md](./docs/09-github-actions.md) を参照すること。特に `migrate-to-ledgers.yml`・`migrate-ledger-annual-interest.yml`・`migrate-partner-share-token.yml` は本番DBに対する不可逆なワンショット移行作業なので、実行前に必ず同ドキュメントの注意事項を確認する。
+`.github/workflows/` に定期実行・手動実行のワークフローが定義されている。内容・トリガー・必要な Secrets などの詳細は [docs/09-github-actions.md](./docs/09-github-actions.md) を参照すること。特に `migrate-to-ledgers.yml`・`migrate-ledger-annual-interest.yml`・`migrate-partner-share-token.yml`・`migrate-partner-share-note.yml` は本番DBに対する不可逆なワンショット移行作業なので、実行前に必ず同ドキュメントの注意事項を確認する。
 
 ## 管理画面
 

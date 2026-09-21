@@ -35,6 +35,7 @@ export async function getPartnerById(
       isArchived: true,
       shareToken: true,
       shareTokenExpiresAt: true,
+      shareNote: true,
       ownerId: true,
     },
   });
@@ -47,6 +48,7 @@ export async function getPartnerById(
     isArchived: partner.isArchived,
     shareToken: partner.shareToken,
     shareTokenExpiresAt: partner.shareTokenExpiresAt,
+    shareNote: partner.shareNote,
   };
 }
 

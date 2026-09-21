@@ -14,7 +14,12 @@ import {
   getNextInterestPreview,
   toInterestSettings,
 } from "@/lib/ledger-interest";
-import type { ShareTokenState, SharedPartnerData } from "./types";
+import { SHARE_NOTE_MAX_LENGTH } from "@/lib/share-note";
+import type {
+  ShareNoteState,
+  ShareTokenState,
+  SharedPartnerData,
+} from "./types";
 
 /** 共有リンクの有効期間（日） */
 const SHARE_TOKEN_VALID_DAYS = 90;
@@ -60,6 +65,35 @@ export async function revokePartnerShareToken(
 }
 
 /**
+ * 公開ページ（/share/[token]）に表示するメモを保存する。
+ *
+ * メモは相手ごとに1つだけ。空文字を渡すとメモなし（null）になる。
+ */
+export async function updatePartnerShareNote(
+  partnerId: string,
+  note: string,
+): Promise<ShareNoteState> {
+  const session = await getSession();
+  if (!session) return { error: "ログインが必要です" };
+  if (!(await findOwnedPartner(partnerId, session.userId))) {
+    return { error: "相手が見つかりません" };
+  }
+
+  const trimmed = note.trim();
+  if (trimmed.length > SHARE_NOTE_MAX_LENGTH) {
+    return { error: `メモは${SHARE_NOTE_MAX_LENGTH}文字以内で入力してください` };
+  }
+
+  await prisma.partner.update({
+    where: { id: partnerId },
+    data: { shareNote: trimmed.length === 0 ? null : trimmed },
+  });
+
+  revalidatePath(`/partners/${partnerId}`);
+  return { success: true };
+}
+
+/**
  * 公開ページ用のデータ。相手のすべての口座をまとめて返す。
  *
  * 金額はすべて記録者（オーナー）視点のまま返し、符号の反転は表示側で行う。
@@ -71,6 +105,7 @@ export async function getPartnerByShareToken(
     where: { shareToken: token },
     select: {
       name: true,
+      shareNote: true,
       shareTokenExpiresAt: true,
       owner: { select: { name: true } },
       ledgers: {
@@ -81,7 +116,6 @@ export async function getPartnerByShareToken(
           annualInterestRate: true,
           interestAccrualWeekday: true,
           interestCompounding: true,
-          notes: { orderBy: { createdAt: "desc" } },
         },
       },
       transactions: {
@@ -124,7 +158,6 @@ export async function getPartnerByShareToken(
       balance: breakdown.total,
       breakdown,
       nextInterest: getNextInterestPreview(breakdown, settings),
-      notes: l.notes,
     };
   });
 
@@ -164,6 +197,7 @@ export async function getPartnerByShareToken(
     data: {
       partnerName: partner.name,
       ownerName: partner.owner.name,
+      shareNote: partner.shareNote,
       balance: breakdown.total,
       breakdown,
       ledgers,

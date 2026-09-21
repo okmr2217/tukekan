@@ -9,13 +9,13 @@
 | [`keep-supabase-alive.yml`](../.github/workflows/keep-supabase-alive.yml) | Ping Supabase to Prevent Pausing | 定期実行 (`0 0 * * 0,3`) + 手動 | Supabase の無料枠プロジェクトが一定期間アクセスなしで自動一時停止されるのを防ぐため、DBに軽いクエリを打つ |
 | [`weekly-interest.yml`](../.github/workflows/weekly-interest.yml) | Weekly Interest Job | 定期実行 (`0 0 * * *`, 毎日 09:00 JST) + 手動 | `scripts/weekly-interest.ts` を実行し、その日が発生曜日にあたる口座だけ利息を計算する（各口座につき週1回） |
 | [`migrate-to-ledgers.yml`](../.github/workflows/migrate-to-ledgers.yml) | Migrate to Ledgers (one-shot) | 手動のみ | 本番DBに対する「バックアップ → マイグレーション適用 → Ledger移行スクリプト」のワンショット移行作業。定期実行はしない |
-| [`migrate-ledger-share-and-notes.yml`](../.github/workflows/migrate-ledger-share-and-notes.yml) | Migrate Ledger Share and Notes (one-shot) | 手動のみ | 共有トークン・口座メモ追加のワンショット移行作業 |
 | [`migrate-ledger-tiered-rate.yml`](../.github/workflows/migrate-ledger-tiered-rate.yml) | Migrate Ledger Tiered Interest Rate (one-shot) | 手動のみ | 週利率の2段階化のワンショット移行作業。バックフィルはマイグレーションSQLに含まれる |
 | [`migrate-transaction-purpose.yml`](../.github/workflows/migrate-transaction-purpose.yml) | Migrate Transaction Purpose (one-shot) | 手動のみ | 取引への「用途」追加と、既存メモ（description）の用途への移植のワンショット移行作業。移植はマイグレーションSQLに含まれる |
 | [`migrate-transaction-label-preset.yml`](../.github/workflows/migrate-transaction-label-preset.yml) | Migrate Transaction Label Preset (one-shot) | 手動のみ | `Account.transactionLabelPreset`（取引ボタンの名目ラベルのプリセット）追加のワンショット移行作業。既存行は既定値 `BOTH` で埋まる |
 | [`migrate-ledger-annual-interest.yml`](../.github/workflows/migrate-ledger-annual-interest.yml) | Migrate Ledger Annual Interest (one-shot) | 手動のみ | 利子システム改修（年利への一本化・発生曜日/単複利の追加・`Transaction.kind` 追加）のワンショット移行作業。**不可逆なデータ変換を含む** |
 | [`migrate-partner-share-token.yml`](../.github/workflows/migrate-partner-share-token.yml) | Migrate Partner Share Token (one-shot) | 手動のみ | 公開ページを口座単位から相手単位へ移すワンショット移行作業。**不可逆なデータ変換を含む** |
 | [`migrate-admin-audit-log.yml`](../.github/workflows/migrate-admin-audit-log.yml) | Migrate Admin Audit Log (one-shot) | 手動のみ | 管理画面（/admin）の監査ログ用 `AdminAuditLog` テーブル追加のワンショット移行作業。テーブルを足すだけで**不可逆なデータ変換は含まない** |
+| [`migrate-partner-share-note.yml`](../.github/workflows/migrate-partner-share-note.yml) | Migrate Partner Share Note (one-shot) | 手動のみ | メモ機能（`LedgerNote`）の廃止と、公開ページ用メモ `Partner.shareNote` への作り直しのワンショット移行作業。**不可逆なデータ変換を含む**（相手ごとに最新1件だけを引き継ぎ、テーブルは削除） |
 
 ---
 
@@ -127,6 +127,17 @@
 - 既存テーブルへの変更・既存データの書き換えはない。**他の移行ワークフローと違い不可逆なデータ変換は含まない**
 - 管理画面（`/admin`）はこのテーブルがないと監査ログの読み書きで失敗するので、**管理画面をデプロイする前に実行すること**
 - ジョブサマリーに監査ログの件数（新規テーブルなので通常は0）とアカウント件数が出力される
+
+## migrate-partner-share-note.yml
+
+- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
+- `migrate-admin-audit-log.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
+- `prisma/migrations/20260921010000_partner_share_note/migration.sql` が以下を実行する:
+  - `Partner` に公開ページ用のメモ `shareNote` を追加する
+  - 相手ごとに**いちばん新しいメモ1件だけ**を `shareNote` へ引き継ぐ（100文字を超える分は切り詰める）
+  - `LedgerNote` テーブルを削除する
+- **不可逆な操作**。引き継がれなかったメモは消える。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
+- ジョブサマリーに相手の件数とメモを持つ相手の件数が出力される
 
 ---
 
