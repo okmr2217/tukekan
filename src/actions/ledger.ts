@@ -5,7 +5,6 @@ import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { findOwnedPartner } from "@/actions/partner/_helpers";
-import type { LedgerNote } from "@/generated/prisma";
 import {
   getNextInterestPreview,
   toInterestSettings,
@@ -34,11 +33,10 @@ export type LedgerWithBalance = LedgerInterestSettings & {
   totalInterest: number;
   transactionCount: number;
   nextInterest: NextInterestPreview;
-  notes: LedgerNote[];
   createdAt: Date;
 };
 
-/** 相手ページに出す口座の一覧（残高・内訳・次回の利子・メモつき） */
+/** 相手ページに出す口座の一覧（残高・内訳・次回の利子つき） */
 export async function getLedgersByPartner(
   partnerId: string,
 ): Promise<LedgerWithBalance[]> {
@@ -54,7 +52,6 @@ export async function getLedgersByPartner(
         where: { isArchived: false },
         select: { amount: true, kind: true, date: true, createdAt: true },
       },
-      notes: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -82,7 +79,6 @@ export async function getLedgersByPartner(
       totalInterest: interest,
       transactionCount: l.transactions.length,
       nextInterest: getNextInterestPreview(breakdown, settings),
-      notes: l.notes,
       createdAt: l.createdAt,
     };
   });
@@ -94,7 +90,7 @@ export type LedgerOption = {
   annualInterestRate: number;
 };
 
-/** 取引フォームの口座ピッカー用。残高やメモを持たない軽い一覧 */
+/** 取引フォームの口座ピッカー用。残高を持たない軽い一覧 */
 export async function getLedgerOptions(
   partnerId: string,
 ): Promise<LedgerOption[]> {
@@ -124,7 +120,6 @@ export type LedgerById = LedgerInterestSettings & {
   partnerId: string;
   partnerName: string;
   partnerIsArchived: boolean;
-  notes: LedgerNote[];
   nextInterest: NextInterestPreview;
 };
 
@@ -146,7 +141,6 @@ export async function getLedgerById(ledgerId: string): Promise<LedgerById | null
         where: { isArchived: false },
         select: { amount: true, kind: true, date: true, createdAt: true },
       },
-      notes: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -164,7 +158,6 @@ export async function getLedgerById(ledgerId: string): Promise<LedgerById | null
     partnerId: ledger.partnerId,
     partnerName: ledger.partner.name,
     partnerIsArchived: ledger.partner.isArchived,
-    notes: ledger.notes,
     nextInterest: getNextInterestPreview(breakdown, settings),
   };
 }

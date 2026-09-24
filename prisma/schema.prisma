@@ -24,7 +24,6 @@ model Account {
 
   partners     Partner[]
   transactions Transaction[]
-  ledgerNotes  LedgerNote[]
 }
 
 model Partner {
@@ -38,6 +37,9 @@ model Partner {
   // 以前は口座（Ledger）ごとに持っていたが、公開は相手単位に一本化した。
   shareToken          String?   @unique
   shareTokenExpiresAt DateTime?
+
+  // 公開ページ（/share/[token]）に表示するメモ。相手ごとに1つだけ持つ（100文字以内）
+  shareNote String?
 
   ownerId String
   owner   Account @relation(fields: [ownerId], references: [id])
@@ -71,7 +73,6 @@ model Ledger {
   partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   transactions Transaction[]
-  notes        LedgerNote[]
 
   @@index([partnerId])
 }
@@ -105,22 +106,6 @@ model Transaction {
   @@index([partnerId])
   @@index([ledgerId])
   @@index([date])
-}
-
-model LedgerNote {
-  id        String   @id @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  ownerId String
-  owner   Account @relation(fields: [ownerId], references: [id])
-
-  ledgerId String
-  ledger   Ledger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
-
-  @@index([ledgerId])
-  @@index([ownerId])
 }
 
 // 管理画面（/admin）で行った操作の記録。

@@ -42,8 +42,7 @@ Account
 ├── passwordHash
 ├── transactionLabelPreset  取引ボタンの名目ラベル（BOTH / LENDER / BORROWER）
 ├── partners[]      自分が管理するパートナー
-├── transactions[]  自分が記録した取引
-└── ledgerNotes[]   自分が書いたメモ
+└── transactions[]  自分が記録した取引
 
 Partner
 ├── id
@@ -51,6 +50,7 @@ Partner
 ├── isArchived    アーカイブ済みフラグ
 ├── shareToken           公開ページ用トークン（unique・任意）
 ├── shareTokenExpiresAt  公開リンクの有効期限
+├── shareNote            公開ページに表示するメモ（任意・100文字以内・相手ごとに1つ）
 ├── ownerId       このPartnerを所有するAccount
 ├── ledgers[]
 └── transactions[]
@@ -63,8 +63,7 @@ Ledger（口座）
 ├── interestCompounding      true = 複利（元本+未払利息に課金） / false = 単利
 ├── lastInterestAccruedAt    最後に利息を発生させた日時（同日二重発生の防止）
 ├── partnerId
-├── transactions[]
-└── notes[]
+└── transactions[]
 
 Transaction
 ├── id
@@ -77,12 +76,6 @@ Transaction
 ├── ownerId       記録者のAccount
 ├── partnerId     取引相手のPartner
 └── ledgerId      紐づく口座（移行期間中は null 許容）
-
-LedgerNote
-├── id
-├── content
-├── ownerId
-└── ledgerId
 
 AdminAuditLog（管理画面の操作記録・他テーブルとリレーションなし）
 ├── id
@@ -137,7 +130,7 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
   /transactions               すべての取引
   /statistics                 統計
   /statistics/accounts        口座別の統計
-  /partners/[id]              相手の詳細（合計残高・口座一覧・共有リンク・メモ・全口座の取引）
+  /partners/[id]              相手の詳細（合計残高・口座一覧・共有リンク・公開ページのメモ・全口座の取引）
   /partners/[id]/edit         相手の編集（名前・アーカイブ・削除）
   /partners                   `/` へのリダイレクト（旧URL互換）
   /ledgers/[id]/settings      口座の設定（口座名・年利・利息の発生曜日・単利/複利・削除）
@@ -189,11 +182,11 @@ BottomBar（固定フッター）に4タブ:
 - 口座単位で 年利(%)・利息の発生曜日・単利/複利 を設定
 - 利息は選んだ曜日に週1回（0:00 JST）発生し、未払利息として元本と分けて積まれる
 - 次回の利子発生日・見込み額のプレビュー表示
-- 口座ごとのメモ（LedgerNote）
 
 ### 共有リンク
 - 相手ごとに共有トークンを発行・失効
-- `/share/[token]` で相手にすべての口座の残高・取引履歴・メモを読み取り専用で共有
+- `/share/[token]` で相手にすべての口座の残高・取引履歴を読み取り専用で共有
+- 公開ページに表示するメモを相手ごとに1つ持てる（`Partner.shareNote`・100文字以内）。相手ページから書き換え、空にすると公開ページに出ない
 - 公開ページでも口座ごとに絞り込める
 - 有効期限切れ・失効後はアクセス不可
 
@@ -216,9 +209,8 @@ BottomBar（固定フッター）に4タブ:
 | `actions/auth.ts` | `login`, `register`, `logout`, `getCurrentUser`, `updateProfile`, `getTransactionLabelPreset`, `updateTransactionLabelPreset` |
 | `actions/partner/queries.ts` | `getPartners`, `getPartnerById`, `getPartnersWithBalance`, `getPartnerBalance` |
 | `actions/partner/mutations.ts` | `createPartner`, `updatePartner`, `archivePartner`, `unarchivePartner`, `deletePartner` |
-| `actions/partner/share.ts` | `generatePartnerShareToken`, `revokePartnerShareToken`, `getPartnerByShareToken` |
+| `actions/partner/share.ts` | `generatePartnerShareToken`, `revokePartnerShareToken`, `updatePartnerShareNote`, `getPartnerByShareToken` |
 | `actions/ledger.ts` | `getLedgersByPartner`, `getLedgerOptions`, `getLedgerById`, `createLedger`, `updateLedger`, `deleteLedger` |
-| `actions/ledger-note.ts` | `createLedgerNote`, `updateLedgerNote`, `deleteLedgerNote` |
 | `actions/transaction.ts` | `getTransactions`, `getDescriptionSuggestions`, `createTransaction`, `updateTransaction`, `archiveTransaction`, `unarchiveTransaction`, `deleteTransaction` |
 | `actions/stats.ts` | `getPartnerStats`, `getOverallStats`, `getMonthlyStats` |
 | `actions/ledger-stats.ts` | `getPartnerLedgerStats`, `getOverallLedgerStats`, `getInterestBearingLedgers` |

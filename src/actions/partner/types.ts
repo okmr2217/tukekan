@@ -1,4 +1,3 @@
-import type { LedgerNote } from "@/generated/prisma";
 import type { LedgerBalanceBreakdown } from "@/lib/ledger-balance";
 import type {
   LedgerInterestSettings,
@@ -35,6 +34,8 @@ export type PartnerById = {
   isArchived: boolean;
   shareToken: string | null;
   shareTokenExpiresAt: Date | null;
+  /** 公開ページに表示するメモ（相手ごとに1つ） */
+  shareNote: string | null;
 };
 
 /** 公開ページに出す口座1件ぶん */
@@ -45,13 +46,14 @@ export type SharedPartnerLedger = LedgerInterestSettings & {
   balance: number;
   breakdown: LedgerBalanceBreakdown;
   nextInterest: NextInterestPreview;
-  notes: LedgerNote[];
 };
 
 /** 公開ページ（/share/[token]）に渡すデータ。金額はすべてオーナー視点で、表示時に反転する */
 export type SharedPartnerData = {
   partnerName: string;
   ownerName: string;
+  /** 記録者が公開ページ向けに残したメモ */
+  shareNote: string | null;
   /** 全口座を合算した残高 */
   balance: number;
   breakdown: LedgerBalanceBreakdown;
@@ -84,4 +86,9 @@ export type ShareTokenState = {
   error?: string;
   success?: boolean;
   token?: string;
+};
+
+export type ShareNoteState = {
+  error?: string;
+  success?: boolean;
 };

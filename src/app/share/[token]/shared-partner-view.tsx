@@ -3,7 +3,6 @@
 import { parseAsString, useQueryState } from "nuqs";
 import { SharedBalanceCard } from "@/components/features/partner/balance-card";
 import { LedgerCard } from "@/components/features/ledger/ledger-card";
-import { LedgerNoteSection } from "@/components/features/ledger/ledger-note-section";
 import { SharedTransactionList } from "@/components/features/transaction/shared-transaction-list";
 import { shouldShowBreakdown } from "@/lib/ledger-balance";
 import {
@@ -23,8 +22,15 @@ type Props = {
  * （反転は各カードが担当する）。口座での絞り込みだけここで持つ。
  */
 export function SharedPartnerView({ data }: Props) {
-  const { partnerName, ownerName, balance, breakdown, ledgers, transactions } =
-    data;
+  const {
+    partnerName,
+    ownerName,
+    shareNote,
+    balance,
+    breakdown,
+    ledgers,
+    transactions,
+  } = data;
 
   const [selectedLedgerId, setSelectedLedgerId] = useQueryState(
     "ledger",
@@ -121,16 +127,19 @@ export function SharedPartnerView({ data }: Props) {
         </div>
       )}
 
-      {/* メモ（口座ごと） */}
-      {visibleLedgers.map((ledger) => (
-        <LedgerNoteSection
-          key={ledger.id}
-          ledgerId={ledger.id}
-          notes={ledger.notes}
-          ledgerTitle={ledgers.length > 1 ? ledger.title : undefined}
-          readOnly
-        />
-      ))}
+      {/* 記録者からのメモ */}
+      {shareNote && (
+        <div>
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
+            {ownerName}さんからのメモ
+          </p>
+          <div className="rounded-xl border bg-card px-4 py-3.5 shadow-sm">
+            <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+              {shareNote}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* 取引履歴 */}
       <div>

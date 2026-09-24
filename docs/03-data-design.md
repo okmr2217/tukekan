@@ -88,7 +88,7 @@ Partner ごとに複数持てる「貸し借りのまとまり」。利子のル
 
 ## 3.3 Prisma Schema
 
-> このセクションは初期設計時のスナップショット。Ledger / LedgerNote や `kind`・`isArchived` などの
+> このセクションは初期設計時のスナップショット。Ledger や `kind`・`isArchived` などの
 > 後から追加されたフィールドは含まれていない。**実際のスキーマは
 > [`prisma/schema.prisma`](../prisma/schema.prisma) が正**。
 

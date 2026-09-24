@@ -7,6 +7,7 @@ export type {
   CreatePartnerState,
   UpdatePartnerState,
   ShareTokenState,
+  ShareNoteState,
 } from "./partner/types";
 
 export {
@@ -27,5 +28,6 @@ export {
 export {
   generatePartnerShareToken,
   revokePartnerShareToken,
+  updatePartnerShareNote,
   getPartnerByShareToken,
 } from "./partner/share";
