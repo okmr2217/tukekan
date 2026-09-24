@@ -3,7 +3,6 @@
 import { parseAsString, useQueryState } from "nuqs";
 import { SharedBalanceCard } from "@/components/features/partner/balance-card";
 import { LedgerCard } from "@/components/features/ledger/ledger-card";
-import { LedgerNoteSection } from "@/components/features/ledger/ledger-note-section";
 import { SharedTransactionList } from "@/components/features/transaction/shared-transaction-list";
 import { shouldShowBreakdown } from "@/lib/ledger-balance";
 import {
