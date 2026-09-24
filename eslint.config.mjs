@@ -12,8 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Auto-generated files
-    "src/generated/**",
+    // 自動生成物
+    // Cloudflare Workers のビルド成果物（OpenNext / wrangler）
+    ".open-next/**",
+    ".wrangler/**",
   ]),
   {
     rules: {

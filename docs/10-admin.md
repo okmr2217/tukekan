@@ -81,7 +81,7 @@ Access を通ったリクエストには Cloudflare が署名した JWT が付�
 4. アプリケーションの **Audience (AUD) Tag** をコピーして `CF_ACCESS_AUD` に設定する
 5. チームドメイン（`<team>.cloudflareaccess.com`）を `CF_ACCESS_TEAM_DOMAIN` に設定する
 
-> **注意**: オリジン（Vercel など）に Cloudflare を通さず直接アクセスできる状態だと、
+> **注意**: オリジン（Worker の `*.workers.dev` など）に Access を通さず直接アクセスできる状態だと、
 > 1層目が素通りになる。それでも2層目・3層目で JWT を検証しているので `/admin` は開けないが、
 > 可能なら Cloudflare 経由のみを許可するよう設定しておくのが望ましい。
 

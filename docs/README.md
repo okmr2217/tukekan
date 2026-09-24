@@ -18,6 +18,7 @@
 | [07-phases.md](./07-phases.md)           | 開発フェーズ                                |
 | [09-github-actions.md](./09-github-actions.md) | GitHub Actions ワークフロー一覧・詳細  |
 | [10-admin.md](./10-admin.md)             | 管理画面（/admin）・Cloudflare Access 認証  |
+| [11-cloudflare-workers.md](./11-cloudflare-workers.md) | ホスティング（Cloudflare Workers / OpenNext）・デプロイ手順 |
 
 ## 用語定義
 

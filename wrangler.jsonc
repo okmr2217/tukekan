@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Cloudflare Workers へのデプロイ設定（OpenNext）。詳細は docs/11-cloudflare-workers.md
+  "name": "tukekan",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      // OpenNext が内部で使う自分自身へのサービスバインディング（name と一致させる）
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "tukekan"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+  // DB 接続（DATABASE_URL）・JWT_SECRET・CF_ACCESS_* などは
+  // `wrangler secret put` かダッシュボードの「変数とシークレット」で設定する（ここには書かない）。
+  //
+  // Hyperdrive を使う場合は次を追加する（src/lib/prisma.ts が自動で優先して使う）:
+  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<Hyperdrive の ID>" }]
+}

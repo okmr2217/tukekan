@@ -4,6 +4,13 @@
 
 ### 追加
 
+- ホスティングを Vercel から Cloudflare Workers に移行（OpenNext / `@opennextjs/cloudflare`）。DB は Supabase のまま
+  - `wrangler.jsonc`・`open-next.config.ts` を追加し、`npm run preview` / `npm run deploy` でビルド・デプロイできるように
+  - Next.js を 16.3 系に更新（OpenNext の対応バージョン）
+  - Prisma クライアントの生成先を `node_modules/.prisma/client` に戻し、`@prisma/client` から読み込むように
+    （Workers では edge 版に解決させて WASM を読むため）
+  - Workers ではリクエストごとに Prisma クライアントを作るように（`src/lib/prisma.ts`）。Hyperdrive のバインディングがあれば自動で使う
+  - 手順は `docs/11-cloudflare-workers.md`
 - 取引カードと取引詳細ダイアログのUIを刷新：用途・タイプ・金額・残高・日時を整理し、認証ページと公開ページで見た目を統一
   - **取引の情報と残高の情報を分離**：カードは区切り線の上に「名目・用途・金額・取引日時」、下に「この取引の後の残高」を置く
   - **残高は債権か債務かが読めるように**：符号ではなく「貸している残高 / 借りている残高」ということばと色（緑＝債権 / 赤＝債務）で示す
