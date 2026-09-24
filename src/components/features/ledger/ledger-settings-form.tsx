@@ -245,7 +245,7 @@ export function LedgerSettingsForm({ ledger }: Props) {
           ))}
         </div>
         <p className="text-xs text-muted-foreground">
-          毎週この曜日の朝9時（日本時間）に、その時点の残高から利息を計算します。
+          毎週この曜日の0時（日本時間）に、その時点の残高から利息を計算します。
         </p>
       </div>
 

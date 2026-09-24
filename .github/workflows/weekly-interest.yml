@@ -2,10 +2,12 @@ name: Weekly Interest Job
 
 on:
   schedule:
-    # 毎日 09:00 JST (00:00 UTC)。
+    # 毎日 00:10 JST (15:10 UTC)。日付が変わった直後の残高に対して利息を計算する。
+    # 毎時0分ちょうどは GitHub Actions の cron が混み合って遅延しやすいため数分ずらしている。
+    # スケジュール実行は遅れる方向にしかブレないので、多少遅延してもJSTの日付は変わらない。
     # どの口座の利息を発生させるかは、口座ごとの発生曜日（Ledger.interestAccrualWeekday）を
     # スクリプト側で判定する。各口座につき利息が発生するのは週1回。
-    - cron: "0 0 * * *"
+    - cron: "10 15 * * *"
   workflow_dispatch:
 
 jobs:
