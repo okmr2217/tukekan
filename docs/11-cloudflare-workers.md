@@ -66,30 +66,31 @@ Supabase へ毎回新しく TCP 接続を張るより速くしたい場合は Hy
 | --- | --- |
 | `npm run dev` | 従来どおり `next dev`（Node.js）で開発 |
 | `npm run preview` | OpenNext でビルドし、ローカルの workerd（本番と同じランタイム）で動かす。`.dev.vars` を読む |
-| `npm run deploy` | ビルドして Cloudflare にデプロイ（`wrangler login` 済みか `CLOUDFLARE_API_TOKEN` が必要） |
+| `npm run deploy` | 手元からビルドして Cloudflare にデプロイ（`wrangler login` 済みか `CLOUDFLARE_API_TOKEN` が必要）。通常は GitHub Actions に任せる |
 | `npm run cf-typegen` | `wrangler.jsonc` のバインディングから `CloudflareEnv` の型を生成 |
 
 ビルド時も `postinstall` の `prisma generate` が `DATABASE_URL` を要求する（値はダミーでもよい）。
 
 ---
 
-## 11.4 デプロイ方法（Workers Builds）
+## 11.4 デプロイ方法（GitHub Actions）
 
-Git 連携の **Workers Builds** を使う。
+`main` への push で [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) が走り、
+`opennextjs-cloudflare build` → `opennextjs-cloudflare deploy` で本番の Worker「tukekan」を更新する。
+Actions タブから手動実行（`workflow_dispatch`）もできる。
 
-1. ダッシュボード → Workers & Pages → 作成 → 「Git リポジトリをインポート」で `okmr2217/tukekan` を選ぶ
-2. ビルド設定
-   - ビルドコマンド: `npx opennextjs-cloudflare build`
-   - デプロイコマンド: `npx opennextjs-cloudflare deploy`
-   - ビルド変数: `DATABASE_URL`（`prisma generate` 用）
-3. 11.2 のシークレットを Worker に設定する
-4. `main` への push で本番デプロイ、その他のブランチはプレビュー版として上がる
+- 必要な Repository secrets: `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN`
+  （トークンには「Workers Scripts: 編集」相当の権限が要る）
+- ビルド時の `DATABASE_URL` はワークフロー内のダミー値（`prisma generate` が要求するだけで、DB にはつながない）
+- Worker の実行時シークレット（11.2）は Cloudflare 側に保存されており、デプロイしても消えない。
+  変更するときは `npx wrangler secret put <名前>` かダッシュボードで行う
+- デプロイ先: `https://tukekan.okumuradaichi2007.workers.dev`（カスタムドメインを付けるまで）
 
 ---
 
 ## 11.5 切り替え手順（Vercel → Workers）
 
-1. Workers にデプロイし、`*.workers.dev` の URL でログイン・取引登録・共有リンク・`/admin` の 403 を確認する
+1. Workers にデプロイし（済）、`*.workers.dev` の URL でログイン・取引登録・共有リンク・`/admin` の 403 を確認する
 2. Worker の「設定 → ドメインとルート」で本番ドメインをカスタムドメインとして追加する
    （DNS の向き先が Vercel から Worker に切り替わる）
 3. Cloudflare Access の管理画面アプリ（`<本番ドメイン>/admin`）がそのまま効いていることを確認する
