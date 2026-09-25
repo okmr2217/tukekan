@@ -1,9 +1,9 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { cn } from "@/lib/utils";
 import { PartnerBalanceSection } from "./partner-balance-section";
 import { PartnerShareCard } from "./partner-share-card";
+import { LedgerFilterChips } from "@/components/features/ledger/ledger-filter-chips";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
 import type { LedgerBalanceBreakdown } from "@/lib/ledger-balance";
 import type { LedgerWithBalance } from "@/actions/ledger";
@@ -65,20 +65,12 @@ export function PartnerDetailView({
 
         {/* 口座が複数あるときだけ、口座で絞り込むチップを出す */}
         {ledgers.length > 1 && (
-          <div className="-mx-4 px-4 mb-3 flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
-            <LedgerChip
-              label="すべて"
-              active={activeLedgerId === ""}
-              onClick={() => setSelectedLedgerId(null)}
+          <div className="mb-3">
+            <LedgerFilterChips
+              ledgers={ledgers}
+              activeLedgerId={activeLedgerId}
+              onChange={setSelectedLedgerId}
             />
-            {ledgers.map((ledger) => (
-              <LedgerChip
-                key={ledger.id}
-                label={ledger.title}
-                active={ledger.id === activeLedgerId}
-                onClick={() => setSelectedLedgerId(ledger.id)}
-              />
-            ))}
           </div>
         )}
 
@@ -92,28 +84,3 @@ export function PartnerDetailView({
   );
 }
 
-function LedgerChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "shrink-0 max-w-40 truncate text-xs px-3 py-1.5 rounded-full border transition-colors",
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
-      )}
-    >
-      {label}
-    </button>
-  );
-}
