@@ -1,13 +1,14 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import {
-  partnerBalanceStatement,
-  type BalanceStatement,
-  type BalanceTone,
-} from "@/lib/balance-wording";
+import { InterestRateBadge } from "@/components/features/ledger/interest-rate-badge";
+import type { BalanceStatement, BalanceTone } from "@/lib/balance-wording";
+import { shouldShowBreakdown } from "@/lib/ledger-balance";
+import { formatDateForDisplay } from "@/lib/date-utils";
 import type { TransactionWithPartner } from "@/actions/transaction";
 import type { LedgerBalanceBreakdown } from "@/lib/ledger-balance";
+import type { NextInterestPreview } from "@/lib/ledger-interest";
 
 function formatRelativeDate(date: Date): string {
   const now = new Date();
@@ -26,139 +27,189 @@ export function buildLatestSummary(tx: TransactionWithPartner): string {
   return `${dateStr}${desc} ${sign}¥${absAmount}`;
 }
 
-/** 見ている人にとって債権なら緑・債務なら赤・精算済みならニュートラル */
-const TONE_CLASSES: Record<
-  BalanceTone,
-  {
-    card: string;
-    message: string;
-    amount: string;
-    badge: string;
-    sub: string;
-    divider: string;
-  }
-> = {
-  credit: {
-    card: "bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800",
-    message: "text-emerald-700 dark:text-emerald-300",
-    amount: "text-emerald-900 dark:text-emerald-100",
-    badge: "bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200",
-    sub: "text-emerald-600 dark:text-emerald-400",
-    divider: "border-emerald-200 dark:border-emerald-800",
-  },
-  debt: {
-    card: "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900",
-    message: "text-red-700 dark:text-red-300",
-    amount: "text-red-900 dark:text-red-100",
-    badge: "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200",
-    sub: "text-red-600 dark:text-red-400",
-    divider: "border-red-200 dark:border-red-900",
-  },
-  settled: {
-    card: "bg-muted/50 border-border",
-    message: "text-muted-foreground",
-    amount: "text-foreground",
-    badge: "bg-muted text-muted-foreground",
-    sub: "text-muted-foreground",
-    divider: "border-border",
-  },
+/** 色を付けるのは金額だけ。見ている人にとって債権なら緑・債務なら赤・精算済みはそのまま */
+const AMOUNT_TONE: Record<BalanceTone, string> = {
+  credit: "text-emerald-600 dark:text-emerald-400",
+  debt: "text-red-600 dark:text-red-400",
+  settled: "text-foreground",
 };
 
-type BalanceDisplayProps = {
-  /** 記録者視点の残高。表示は絶対値＋説明文で行うので符号は色に使わない */
+/** 見ている人から見た残高の符号から色を決める */
+function toneOf(balance: number): BalanceTone {
+  if (balance > 0) return "credit";
+  if (balance < 0) return "debt";
+  return "settled";
+}
+
+export type BalanceCardLedger = {
+  id: string;
+  title: string;
+  annualInterestRate: number;
+  /** 合計残高（元本 + 未払利息）。記録者（オーナー）視点で渡す */
   balance: number;
+  breakdown: LedgerBalanceBreakdown;
+  nextInterest: NextInterestPreview;
+};
+
+type Props = {
+  /** 全口座の合計（記録者視点）。表示は絶対値＋説明文で行う */
+  balance: number;
+  /** 見ている人の視点に合わせた説明文と色 */
   statement: BalanceStatement;
   latestSummary?: string;
-  /**
-   * 元本／未払利息の内訳。利子のある口座だけ渡す。
-   * 合計（balance）を主役にして、その下に内訳を併記する。
-   */
+  /** 元本／未払利息の内訳。利子のある口座があるときだけ渡す */
   breakdown?: LedgerBalanceBreakdown;
+  ledgers: BalanceCardLedger[];
+  /**
+   * 表示の視点。"partner"（公開ページ）のときは口座の残高の符号を反転して相手視点で出す。
+   * 元本・未払利息は金額の大きさだけを見せるので反転しない。
+   */
+  viewpoint?: "owner" | "partner";
+  /** 口座の見出しの右端に置く操作（口座の追加など） */
+  ledgersAction?: ReactNode;
+  /** 口座カードの右端に置く操作（口座の設定へのリンクなど） */
+  renderLedgerAction?: (ledger: BalanceCardLedger) => ReactNode;
 };
 
-export function BalanceDisplay({
+/**
+ * 相手ページ・公開ページの両方で使う残高カード。
+ * 上に全口座の合計、下のトレイに口座ごとのカードを並べる。
+ *
+ * 口座が1つだけのときは合計と同じ金額を重ねて出さず、口座のカードには
+ * 利率と次回の利子だけを出す。
+ */
+export function BalanceCard({
   balance,
   statement,
   latestSummary,
   breakdown,
-}: BalanceDisplayProps) {
-  const tone = TONE_CLASSES[statement.tone];
-  const absBalance = Math.abs(balance);
+  ledgers,
+  viewpoint = "owner",
+  ledgersAction,
+  renderLedgerAction,
+}: Props) {
+  const showLedgerBalance = ledgers.length > 1;
 
   return (
-    <div className={cn("rounded-2xl border p-4", tone.card)}>
-      <div className="flex items-center gap-1.5 mb-1">
-        <span className={cn("text-xs font-semibold", tone.message)}>
-          {statement.message}
-        </span>
-        {statement.tone !== "settled" && (
-          <span
-            className={cn(
-              "ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded leading-none shrink-0",
-              tone.badge,
-            )}
-          >
-            未精算
-          </span>
-        )}
-      </div>
-      <p
-        className={cn(
-          "text-3xl font-medium leading-tight mb-1 tabular-nums",
-          tone.amount,
-        )}
-      >
-        ¥{absBalance.toLocaleString()}
-      </p>
-      {latestSummary && (
-        <p className={cn("text-xs", tone.sub)}>{latestSummary}</p>
-      )}
-      {breakdown && (
-        <div
+    <div className="rounded-2xl border bg-card overflow-hidden">
+      {/* 全口座の合計 */}
+      <div className="px-4 pt-4 pb-3.5">
+        <p className="text-xs text-muted-foreground">{statement.message}</p>
+        <p
           className={cn(
-            "mt-2.5 pt-2.5 border-t flex items-center gap-3 text-xs",
-            tone.divider,
+            "mt-1 text-3xl font-semibold leading-tight tabular-nums",
+            AMOUNT_TONE[statement.tone],
           )}
         >
-          <span className={tone.sub}>
-            元本{" "}
-            <span className={cn("font-semibold tabular-nums", tone.amount)}>
-              ¥{Math.abs(breakdown.principal).toLocaleString()}
+          ¥{Math.abs(balance).toLocaleString()}
+        </p>
+        {latestSummary && (
+          <p className="mt-1 text-xs text-muted-foreground">{latestSummary}</p>
+        )}
+        {breakdown && (
+          <div className="mt-2.5 flex items-center gap-4 text-xs text-muted-foreground">
+            <span>
+              元本{" "}
+              <span className="font-semibold tabular-nums text-foreground">
+                ¥{Math.abs(breakdown.principal).toLocaleString()}
+              </span>
             </span>
-          </span>
-          <span className={cn("opacity-40", tone.sub)}>｜</span>
-          <span className={tone.sub}>
-            未払利息{" "}
-            <span className={cn("font-semibold tabular-nums", tone.amount)}>
-              ¥{Math.abs(breakdown.unpaidInterest).toLocaleString()}
+            <span>
+              未払利息{" "}
+              <span className="font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                ¥{Math.abs(breakdown.unpaidInterest).toLocaleString()}
+              </span>
             </span>
-          </span>
+          </div>
+        )}
+      </div>
+
+      {/* 口座ごと */}
+      <div className="border-t bg-muted/50 px-3 pt-2 pb-3">
+        <div className="flex items-center justify-between min-h-7 pl-1 mb-1.5">
+          <p className="text-[11px] font-medium text-muted-foreground">
+            口座
+            <span className="ml-1 tabular-nums">{ledgers.length}</span>
+          </p>
+          {ledgersAction}
         </div>
-      )}
+        <ul className="space-y-2">
+          {ledgers.map((ledger) => (
+            <LedgerItem
+              key={ledger.id}
+              ledger={ledger}
+              viewpoint={viewpoint}
+              showBalance={showLedgerBalance}
+              action={renderLedgerAction?.(ledger)}
+            />
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
 
-type SharedBalanceCardProps = {
-  /** 記録者（オーナー）視点の残高 */
-  balance: number;
-  ownerName: string;
-  partnerName: string;
-  breakdown?: LedgerBalanceBreakdown;
-};
+/** 口座1つぶんのカード。残高と、利子があればその内訳・次回の利子 */
+function LedgerItem({
+  ledger,
+  viewpoint,
+  showBalance,
+  action,
+}: {
+  ledger: BalanceCardLedger;
+  viewpoint: "owner" | "partner";
+  showBalance: boolean;
+  action?: ReactNode;
+}) {
+  const balance = viewpoint === "partner" ? -ledger.balance : ledger.balance;
+  const showBreakdown =
+    showBalance &&
+    shouldShowBreakdown(ledger.breakdown, ledger.annualInterestRate);
 
-/** 公開URL用。相手視点の表現に変換して表示する */
-export function SharedBalanceCard({
-  balance,
-  ownerName,
-  partnerName,
-  breakdown,
-}: SharedBalanceCardProps) {
   return (
-    <BalanceDisplay
-      balance={balance}
-      statement={partnerBalanceStatement(balance, ownerName, partnerName)}
-      breakdown={breakdown}
-    />
+    <li
+      className={cn(
+        "flex items-start gap-2 rounded-xl border bg-card pl-3.5 py-2.5",
+        action ? "pr-2" : "pr-3.5",
+      )}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2 min-h-7">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-medium truncate">{ledger.title}</span>
+            <InterestRateBadge annualInterestRate={ledger.annualInterestRate} />
+          </div>
+          {showBalance && (
+            <span
+              className={cn(
+                "shrink-0 text-base font-semibold tabular-nums",
+                AMOUNT_TONE[toneOf(balance)],
+              )}
+            >
+              {balance < 0 ? "-" : ""}¥{Math.abs(balance).toLocaleString()}
+            </span>
+          )}
+        </div>
+        {showBreakdown && (
+          <p className="text-[11px] text-muted-foreground">
+            元本 ¥{Math.abs(ledger.breakdown.principal).toLocaleString()} ・
+            未払利息{" "}
+            <span className="font-semibold text-amber-600 dark:text-amber-400">
+              ¥{Math.abs(ledger.breakdown.unpaidInterest).toLocaleString()}
+            </span>
+          </p>
+        )}
+        {ledger.nextInterest.isEligible && (
+          <p className="text-[11px] text-muted-foreground">
+            次回の利子 {formatDateForDisplay(ledger.nextInterest.nextDate)} に{" "}
+            <span className="font-semibold text-amber-600 dark:text-amber-400">
+              +¥{ledger.nextInterest.amount.toLocaleString()}
+            </span>{" "}
+            見込み
+          </p>
+        )}
+      </div>
+      {action}
+    </li>
   );
 }

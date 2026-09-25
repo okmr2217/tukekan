@@ -191,7 +191,7 @@ BottomBar（固定フッター）に4タブ:
 - 相手ごとに共有トークンを発行・失効
 - `/share/[token]` で相手にすべての口座の残高・取引履歴を読み取り専用で共有
 - 公開ページに表示するメモを相手ごとに1つ持てる（`Partner.shareNote`・100文字以内）。相手ページから書き換え、空にすると公開ページに出ない
-- 公開ページでも口座ごとに絞り込める
+- 公開ページでも口座ごとに絞り込める（取引履歴の上のチップ。相手ページと同じ `LedgerFilterChips`）
 - 有効期限切れ・失効後はアクセス不可
 
 ### 統計
@@ -267,7 +267,7 @@ src/
    実質は2択だが名目は4通りあるため、ボタンのラベルは `Account.transactionLabelPreset` で切り替える（符号の意味は不変）
 3. **色は「見ている人」の視点で一貫**: 緑 = 見ている人の債権 / 赤 = 見ている人の債務。
    アプリ内はユーザー視点、公開URL（`/share/[token]`）は相手視点に符号を反転して表示する（`src/lib/balance-wording.ts`）
-   口座カードの符号の反転は `LedgerCard` の `viewpoint` プロパティが担当する
+   残高カード（相手ページ・公開ページで共通の `BalanceCard`）では、口座ごとの残高の符号の反転を `viewpoint` プロパティが担当する
 4. **`Transaction.ledgerId` は nullable**: 既存データの口座移行が完了するまで null を許容している
 5. **利子付与は Cloudflare Workers の Cron Triggers**: 毎日 0:00 JST に起動し、その日が発生曜日の口座だけを処理する。
    詳細は [11-cloudflare-workers.md](./11-cloudflare-workers.md) の「11.5 定期ジョブ」を参照
