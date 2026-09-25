@@ -52,8 +52,8 @@ export function AccountSection({ user }: Props) {
 
   const handlePasswordChange = () => {
     setPasswordError(null);
-    if (newPassword.length < 6) {
-      setPasswordError("新しいパスワードは6文字以上で入力してください");
+    if (newPassword.length < 8) {
+      setPasswordError("新しいパスワードは8文字以上で入力してください");
       return;
     }
     startPasswordTransition(async () => {
@@ -209,6 +209,7 @@ export function AccountSection({ user }: Props) {
                     <Input
                       id="new-password"
                       type="password"
+                      placeholder="8文字以上"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       disabled={isChangingPassword}
