@@ -131,7 +131,8 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
   /transactions               すべての取引
   /statistics                 統計
   /statistics/accounts        口座別の統計
-  /partners/[id]              相手の詳細（合計残高・口座一覧・共有リンク・公開ページのメモ・全口座の取引）
+  /partners/[id]              相手の詳細（合計残高と口座ごとの内訳・共有リンクと共有メモ・全口座の取引）
+  /partners/[id]/statistics   相手の統計（骨組みのみ）
   /partners/[id]/edit         相手の編集（名前・アーカイブ・削除）
   /partners                   `/` へのリダイレクト（旧URL互換）
   /ledgers/[id]/settings      口座の設定（口座名・年利・利息の発生曜日・単利/複利・削除）

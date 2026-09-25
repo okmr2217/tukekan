@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
+import { BarChart2, Settings } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import {
   getPartnerById,
@@ -53,7 +55,28 @@ export default async function PartnerDetailPage({
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title={partner.name} backHref="/" />
+      <MobileHeader
+        title={partner.name}
+        backHref="/"
+        action={
+          <div className="flex items-center gap-0.5 -mr-1.5 shrink-0">
+            <Link
+              href={`/partners/${partner.id}/statistics`}
+              aria-label="相手の統計"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <BarChart2 className="h-5 w-5" />
+            </Link>
+            <Link
+              href={`/partners/${partner.id}/edit`}
+              aria-label="相手の設定"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
+          </div>
+        }
+      />
 
       <PartnerDetailView
         partner={partner}

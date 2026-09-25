@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InterestRateBadge } from "@/components/features/ledger/interest-rate-badge";
 import { shouldShowBreakdown } from "@/lib/ledger-balance";
@@ -30,12 +28,10 @@ type Props = {
   selected?: boolean;
   /** 渡すとカードが「この口座で絞り込む」ボタンになる */
   onSelect?: () => void;
-  /** 渡すと右端に口座の設定へのリンクを出す */
-  settingsHref?: string;
 };
 
 /**
- * 相手ページ・公開ページの両方で使う口座カード。
+ * 公開ページの口座カード。
  * 残高を主役にして、利子のある口座では元本と未払利息の内訳を併記する。
  */
 export function LedgerCard({
@@ -43,7 +39,6 @@ export function LedgerCard({
   viewpoint = "owner",
   selected = false,
   onSelect,
-  settingsHref,
 }: Props) {
   const balance = viewpoint === "partner" ? -ledger.balance : ledger.balance;
   const showBreakdown = shouldShowBreakdown(
@@ -113,16 +108,6 @@ export function LedgerCard({
         </button>
       ) : (
         <div className="flex-1 min-w-0 px-3.5 py-3">{body}</div>
-      )}
-
-      {settingsHref && (
-        <Link
-          href={settingsHref}
-          aria-label={`${ledger.title}の設定`}
-          className="shrink-0 flex items-center border-l px-3 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <Settings2 className="size-4" />
-        </Link>
       )}
     </div>
   );
