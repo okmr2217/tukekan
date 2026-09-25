@@ -1,8 +1,8 @@
 import Link from "next/link";
-import type { InterestLedgerStat } from "@/actions/ledger-stats";
+import type { LedgerStat } from "@/actions/stats";
 import { formatRate, getWeekdayLabel } from "@/lib/ledger-interest";
 
-export function InterestLedgerTable({ ledgers }: { ledgers: InterestLedgerStat[] }) {
+export function InterestLedgerTable({ ledgers }: { ledgers: LedgerStat[] }) {
   if (ledgers.length === 0) {
     return (
       <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">

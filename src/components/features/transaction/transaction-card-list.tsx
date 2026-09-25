@@ -111,7 +111,7 @@ export function TransactionCardList({
             partnerHref={
               showPartnerName ? `/partners/${t.partnerId}` : undefined
             }
-            dimmed={t.isArchived || t.partnerIsArchived}
+            dimmed={t.isArchived}
           />
         ))}
       </div>

@@ -53,7 +53,10 @@ export default async function PartnerDetailPage({
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title={partner.name} backHref="/" />
+      <MobileHeader
+        title={partner.name}
+        backHref={partner.isArchived ? "/partners/archived" : "/"}
+      />
 
       <PartnerDetailView
         partner={partner}

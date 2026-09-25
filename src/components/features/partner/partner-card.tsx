@@ -25,10 +25,7 @@ export function PartnerCard({ partner }: Props) {
   return (
     <Link
       href={`/partners/${partner.id}`}
-      className={cn(
-        "flex items-center gap-2 rounded-xl border bg-card px-4 py-3 shadow-sm hover:bg-muted/50 transition-colors active:scale-[0.99]",
-        partner.isArchived && "opacity-60",
-      )}
+      className="flex items-center gap-2 rounded-xl border bg-card px-4 py-3 shadow-sm hover:bg-muted/50 transition-colors active:scale-[0.99]"
     >
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-base flex items-center gap-1.5">
@@ -36,11 +33,6 @@ export function PartnerCard({ partner }: Props) {
           {partner.ledgerCount > 1 && (
             <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
               {partner.ledgerCount}口座
-            </span>
-          )}
-          {partner.isArchived && (
-            <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-              アーカイブ済み
             </span>
           )}
         </p>

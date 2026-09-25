@@ -129,10 +129,12 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
 /(main)                       認証済みレイアウト（Header + BottomBar + FAB）
   /                           ホーム（相手ごとの残高一覧）
   /transactions               すべての取引
-  /statistics                 統計
-  /statistics/accounts        口座別の統計
+  /statistics                 全体の統計（?period= で期間を切り替え）
+  /statistics/accounts        `/statistics` へのリダイレクト（旧URL互換）
   /partners/[id]              相手の詳細（合計残高・口座一覧・共有リンク・公開ページのメモ・全口座の取引）
+  /partners/[id]/stats        相手ごとの統計（?ledger= で口座を絞り込み）
   /partners/[id]/edit         相手の編集（名前・アーカイブ・削除）
+  /partners/archived          アーカイブ済みの相手の一覧
   /partners                   `/` へのリダイレクト（旧URL互換）
   /ledgers/[id]/settings      口座の設定（口座名・年利・利息の発生曜日・単利/複利・削除）
   /menu                       メニュー
@@ -158,8 +160,8 @@ BottomBar（固定フッター）に4タブ:
 
 1. **相手** (`/`) — 相手ごとの残高・相手の追加
 2. **すべての取引** (`/transactions`) — 全取引の一覧・絞り込み
-3. **統計** (`/statistics`) — 相手別・口座別の集計
-4. **メニュー** (`/menu`) — 統計（口座別）・設定・ヘルプ
+3. **統計** (`/statistics`) — 貸し借りの流れ・推移・返済の傾向
+4. **メニュー** (`/menu`) — 設定・ヘルプ
 
 ---
 
@@ -175,6 +177,8 @@ BottomBar（固定フッター）に4タブ:
 
 ### 相手（Partner）管理
 - 相手の追加・編集・アーカイブ・削除
+- アーカイブは「ホームの一覧」と「取引フォームの相手の候補」から外すだけの機能。貸し借りの記録・残高はそのまま残り、ホームの合計・すべての取引・統計・共有リンクには含まれる。例外として、アーカイブ中の相手の口座には利息が付かない
+- アーカイブ済みの相手はホーム末尾のリンクから `/partners/archived` で見る
 - 相手ページに「合計残高」「口座ごとの残高（利子ありの口座は元本／未払利息の内訳）」「全口座の取引履歴」をまとめて表示
 - 取引履歴は口座ごとに絞り込める（口座カードをタップ。状態はURLの `?ledger=` に持つ）
 
@@ -192,7 +196,12 @@ BottomBar（固定フッター）に4タブ:
 - 有効期限切れ・失効後はアクセス不可
 
 ### 統計
-- 相手別・口座別の貸借集計、月次推移、利子付き口座の一覧
+- 今の残高はホームで見られるので、統計は「どう動いてきたか」を主役にする
+- 取引を名目（貸した／返済された／借りた／返済した／利息）に分けて集計する。残高が0をまたぐ取引は分割する（`src/lib/movement-stats.ts`）
+- 返済の傾向（信用度の目安）: 貸し借りは古いものから返済で埋まるとみなし、平均日数・1ヶ月以内に返った割合・未返済額を出す
+- 全体（`/statistics`）: 期間（直近12ヶ月／今年／全期間）ごとの流れ、月ごとの推移、月末残高の推移、返済の傾向、動きのない貸し借り、相手ごと、利息
+- 相手ごと（`/partners/[id]/stats`）: 残高の推移、返済の傾向、流れ、月ごとの推移、よく使う用途、口座ごとの内訳
+- グラフは shadcn/ui の chart（recharts）
 
 ### 管理画面（`/admin`・運営者向け）
 - 認証は Cloudflare Access。アプリ本体のログインとは独立（`docs/10-admin.md`）
@@ -213,8 +222,7 @@ BottomBar（固定フッター）に4タブ:
 | `actions/partner/share.ts` | `generatePartnerShareToken`, `revokePartnerShareToken`, `updatePartnerShareNote`, `getPartnerByShareToken` |
 | `actions/ledger.ts` | `getLedgersByPartner`, `getLedgerOptions`, `getLedgerById`, `createLedger`, `updateLedger`, `deleteLedger` |
 | `actions/transaction.ts` | `getTransactions`, `getDescriptionSuggestions`, `createTransaction`, `updateTransaction`, `archiveTransaction`, `unarchiveTransaction`, `deleteTransaction` |
-| `actions/stats.ts` | `getPartnerStats`, `getOverallStats`, `getMonthlyStats` |
-| `actions/ledger-stats.ts` | `getPartnerLedgerStats`, `getOverallLedgerStats`, `getInterestBearingLedgers` |
+| `actions/stats.ts` | `getOverallStatistics`, `getPartnerStatistics` |
 | `actions/admin/queries.ts` | `getAdminOverview`, `getAdminAccounts`, `getAdminAccountDetail`, `getAdminLedgers`, `getAdminTransactions`, `getAdminAccountOptions`, `getAdminShareLinks`, `getInterestJobStatus`, `getAdminAuditLogs` |
 | `actions/admin/mutations.ts` | `revokeShareTokenAsAdmin`, `runInterestJobAsAdmin` |
 

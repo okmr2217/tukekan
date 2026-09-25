@@ -1,16 +1,10 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import Link from "next/link";
-import { Settings, HelpCircle, ChevronRight, LineChart } from "lucide-react";
+import { Settings, HelpCircle, ChevronRight } from "lucide-react";
 import { MobileHeader } from "@/components/layouts/mobile-header";
 
 const MENU_ITEMS = [
-  {
-    href: "/statistics/accounts",
-    label: "統計（口座別・PC対応）",
-    description: "口座ごとの残高・年利・未払利息",
-    icon: LineChart,
-  },
   {
     href: "/settings",
     label: "設定",

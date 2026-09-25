@@ -42,7 +42,8 @@ export default async function TransactionsPage({
   const [partnersWithBalance, suggestions, transactions] = await Promise.all([
     getPartnersWithBalance(),
     getPurposeSuggestions(),
-    getTransactions({ partnerIds, q, sortOrder }),
+    // アーカイブ済みの相手の取引も出す（相手のアーカイブは候補から外すだけ）
+    getTransactions({ partnerIds, q, sortOrder, showArchivedPartners: true }),
   ]);
 
   return (

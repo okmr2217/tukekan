@@ -126,8 +126,20 @@ export function PartnerDetailClient({ partner }: Props) {
           {partner.isArchived ? "アーカイブを解除" : "アーカイブ"}
         </p>
         <p className="text-xs text-muted-foreground">
-          アーカイブした相手は相手一覧に表示されなくなります。取引履歴は保持されます。
+          {partner.isArchived
+            ? "この相手はアーカイブ済みです。解除すると、ホームの一覧と取引フォームの候補にまた出るようになります。"
+            : "やり取りが一段落した相手を、ホームの一覧と取引フォームの相手の候補から外します。"}
         </p>
+        <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+          <li>
+            貸し借りの記録と残高はそのまま残り、ホームの合計・すべての取引・統計にも含まれます
+          </li>
+          <li>相手のページと共有リンクはそのまま使えます</li>
+          <li>アーカイブ中は、利子を設定した口座でも利息が付きません</li>
+          <li>
+            アーカイブ済みの相手は、ホームの一番下の「アーカイブ済みの相手」から見られます
+          </li>
+        </ul>
         <LoadingButton
           variant="outline"
           size="sm"

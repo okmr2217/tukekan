@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
-import { Plus, Settings, ChevronRight } from "lucide-react";
+import { Plus, Settings, ChevronRight, BarChart2 } from "lucide-react";
 import { LedgerFormDialog } from "./ledger-form-dialog";
 import { LedgerCard } from "@/components/features/ledger/ledger-card";
 import { BalanceDisplay, buildLatestSummary } from "./balance-card";
@@ -66,11 +66,34 @@ export function PartnerDetailView({
 
   return (
     <div className="px-4 pt-3 pb-4 space-y-4 max-w-lg mx-auto w-full">
+      {partner.isArchived && (
+        <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+          アーカイブ済みの相手です。ホームの一覧と取引フォームの候補には出ません。
+          <Link
+            href={`/partners/${partner.id}/edit`}
+            className="ml-1 underline underline-offset-2 hover:text-foreground"
+          >
+            解除する
+          </Link>
+        </p>
+      )}
+
       {/* 残高 */}
       <div>
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
-          {selectedLedger ? `残高・${selectedLedger.title}` : "現在の残高"}
-        </p>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+            {selectedLedger ? `残高・${selectedLedger.title}` : "現在の残高"}
+          </p>
+          <Link
+            href={`/partners/${partner.id}/stats${
+              selectedLedger ? `?ledger=${selectedLedger.id}` : ""
+            }`}
+            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md border border-border hover:bg-muted transition-colors"
+          >
+            <BarChart2 className="size-3.5" />
+            統計
+          </Link>
+        </div>
         <BalanceDisplay
           balance={shownBreakdown.total}
           statement={ownerBalanceStatement(shownBreakdown.total, partner.name)}
