@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, List, BarChart2, Menu } from "lucide-react";
+import { Home, List, BarChart2, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/", label: "相手", icon: Users },
+  { href: "/", label: "ホーム", icon: Home },
   { href: "/transactions", label: "すべての取引", icon: List },
   { href: "/statistics", label: "統計", icon: BarChart2 },
   { href: "/menu", label: "メニュー", icon: Menu },
@@ -14,7 +14,7 @@ const NAV_ITEMS = [
 
 const MENU_TAB_PATHS = ["/menu", "/settings", "/help"];
 const MENU_TAB_PREFIXES = ["/statistics/accounts"];
-/** 相手タブから降りていく画面（相手の詳細・設定、口座の設定） */
+/** ホームタブから降りていく画面（相手の詳細・設定、口座の設定） */
 const HOME_TAB_PREFIXES = ["/partners", "/ledgers"];
 
 export function BottomBar() {

@@ -30,6 +30,11 @@ export function PartnerPickerField({
       <FieldLabel required error={error}>
         相手
       </FieldLabel>
+      {partners.length === 0 && (
+        <p className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
+          相手がまだいません。先にホームの「相手を追加」から登録してください。
+        </p>
+      )}
       <div
         className={cn(
           "grid gap-1.5 rounded-xl",

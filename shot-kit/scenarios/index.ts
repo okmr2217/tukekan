@@ -2,7 +2,7 @@ import type { Scenario } from "shot-kit";
 
 const scenarios: Scenario[] = [
   {
-    name: "相手",
+    name: "ホーム",
     path: "/",
     device: "mobile",
   },
