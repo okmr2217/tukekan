@@ -84,17 +84,17 @@ Actions タブから手動実行（`workflow_dispatch`）もできる。
 - ビルド時の `DATABASE_URL` はワークフロー内のダミー値（`prisma generate` が要求するだけで、DB にはつながない）
 - Worker の実行時シークレット（11.2）は Cloudflare 側に保存されており、デプロイしても消えない。
   変更するときは `npx wrangler secret put <名前>` かダッシュボードで行う
-- デプロイ先: `https://tukekan.okumuradaichi2007.workers.dev`（カスタムドメインを付けるまで）
+- デプロイ先: `https://tukekan.paritto.dev`（カスタムドメイン。`*.workers.dev` とプレビューURLは `wrangler.jsonc` で無効化済み）
 
 ---
 
 ## 11.5 切り替え手順（Vercel → Workers）
 
 1. Workers にデプロイし（済）、`*.workers.dev` の URL でログイン・取引登録・共有リンク・`/admin` の 403 を確認する
-2. Worker の「設定 → ドメインとルート」で本番ドメインをカスタムドメインとして追加する
+2. Worker の「設定 → ドメインとルート」で本番ドメイン（`tukekan.paritto.dev`）をカスタムドメインとして追加する（済）
    （DNS の向き先が Vercel から Worker に切り替わる）
-3. Cloudflare Access の管理画面アプリ（`<本番ドメイン>/admin`）がそのまま効いていることを確認する
-4. 問題がなければ `wrangler.jsonc` に `"workers_dev": false` と `"preview_urls": false` を足して、
+3. Cloudflare Access の管理画面アプリ（`tukekan.paritto.dev/admin`）がそのまま効いていることを確認する（済）
+4. `wrangler.jsonc` に `"workers_dev": false` と `"preview_urls": false` を足して（済）、
    Access を通らない `*.workers.dev` からの入り口を閉じる（[10-admin.md](./10-admin.md) の「オリジンへの直接アクセス」の注意に相当）
 5. しばらく並行稼働させてから Vercel のプロジェクトを削除する
 
