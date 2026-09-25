@@ -596,28 +596,35 @@ export async function getInterestJobStatus(): Promise<{
   ledgers: AdminLedgerRow[];
   lastAccruedAt: Date | null;
   lastRunLog: AdminAuditLogRow | null;
+  lastScheduledRunLog: AdminAuditLogRow | null;
 }> {
   await requireAdmin();
 
-  const [preview, ledgers, lastInterest, lastRunLog] = await Promise.all([
-    runInterestJob(prisma, { dryRun: true }),
-    getAdminLedgers(true),
-    prisma.transaction.findFirst({
-      where: { kind: "INTEREST" },
-      orderBy: { date: "desc" },
-      select: { date: true },
-    }),
-    prisma.adminAuditLog.findFirst({
-      where: { action: "RUN_INTEREST_JOB" },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
+  const [preview, ledgers, lastInterest, lastRunLog, lastScheduledRunLog] =
+    await Promise.all([
+      runInterestJob(prisma, { dryRun: true }),
+      getAdminLedgers(true),
+      prisma.transaction.findFirst({
+        where: { kind: "INTEREST" },
+        orderBy: { date: "desc" },
+        select: { date: true },
+      }),
+      prisma.adminAuditLog.findFirst({
+        where: { action: "RUN_INTEREST_JOB" },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.adminAuditLog.findFirst({
+        where: { action: "SCHEDULED_INTEREST_JOB" },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
   return {
     preview,
     ledgers,
     lastAccruedAt: lastInterest?.date ?? null,
     lastRunLog,
+    lastScheduledRunLog,
   };
 }
 

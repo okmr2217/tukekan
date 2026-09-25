@@ -1,9 +1,9 @@
 /**
  * ジョブのページ。いまのところ対象は週次の自動利子ジョブだけ。
  *
- * 平常時は GitHub Actions（.github/workflows/weekly-interest.yml）が毎日 0:00 JST に
- * 走らせる。ここではその結果を確認し、Actions が落ちているときに手動で流し直せる。
- * 実行内容は scripts/weekly-interest.ts とまったく同じ（src/lib/interest-job.ts を共用）。
+ * 平常時は Cloudflare Workers の Cron Triggers（worker.ts → /api/cron/weekly-interest）が
+ * 毎日 0:00 JST に走らせる。ここではその結果を確認し、自動実行が失敗したときに手動で流し直せる。
+ * 実行内容は自動実行とまったく同じ（src/lib/interest-job.ts を共用）。
  */
 
 import { getInterestJobStatus } from "@/actions/admin/queries";
@@ -30,7 +30,7 @@ const STATUS_LABELS = {
 } as const;
 
 export default async function AdminJobsPage() {
-  const { preview, ledgers, lastAccruedAt, lastRunLog } =
+  const { preview, ledgers, lastAccruedAt, lastRunLog, lastScheduledRunLog } =
     await getInterestJobStatus();
 
   const eligible = preview.ledgers.filter((l) => l.status === "created");
@@ -45,7 +45,7 @@ export default async function AdminJobsPage() {
 
       <Panel
         title="週次自動利子ジョブ"
-        description="毎日 0:00 JST に起動し、その日が発生曜日の口座だけを処理する"
+        description="毎日 0:00 JST に Cron Triggers で起動し、その日が発生曜日の口座だけを処理する"
         action={
           <RunInterestJobButtons
             eligibleCount={eligible.length}
@@ -83,6 +83,12 @@ export default async function AdminJobsPage() {
             「いま実行する」は本当に利息の取引を作るが、同じ日に二重で発生しない仕組み
             （<code className="font-mono">lastInterestAccruedAt</code>）が効いているので、
             すでに発生済みの口座には何も起きない。
+          </p>
+          <p className="mt-2">
+            最後の自動実行:{" "}
+            {lastScheduledRunLog
+              ? `${formatDateTimeForDisplay(lastScheduledRunLog.createdAt)} ・ ${lastScheduledRunLog.summary}`
+              : "記録なし"}
           </p>
           {lastRunLog && (
             <p className="mt-2">

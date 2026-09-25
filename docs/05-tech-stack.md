@@ -17,6 +17,7 @@
 ## 5.2 ディレクトリ構成
 
 Server Components と Server Actions のみで実装。API Routesは使用しない。
+例外は Cron Triggers から Worker 内部で呼ぶ `src/app/api/cron/`（外からは 404。[11-cloudflare-workers.md](./11-cloudflare-workers.md) の 11.5）。
 
 ```
 src/

@@ -4,11 +4,13 @@
 
 ## ワークフロー一覧
 
+> 週次自動利子ジョブ（旧 `weekly-interest.yml`）は Cloudflare Workers の Cron Triggers に移した。
+> [11-cloudflare-workers.md](./11-cloudflare-workers.md) の「11.5 定期ジョブ（Cron Triggers）」を参照。
+
 | ファイル | 名前 | トリガー | 目的 |
 | --- | --- | --- | --- |
 | [`deploy.yml`](../.github/workflows/deploy.yml) | Deploy to Cloudflare Workers | `main` への push + 手動 | OpenNext でビルドし、本番の Worker「tukekan」にデプロイする（[11-cloudflare-workers.md](./11-cloudflare-workers.md)） |
 | [`keep-supabase-alive.yml`](../.github/workflows/keep-supabase-alive.yml) | Ping Supabase to Prevent Pausing | 定期実行 (`0 0 * * 0,3`) + 手動 | Supabase の無料枠プロジェクトが一定期間アクセスなしで自動一時停止されるのを防ぐため、DBに軽いクエリを打つ |
-| [`weekly-interest.yml`](../.github/workflows/weekly-interest.yml) | Weekly Interest Job | 定期実行 (`10 15 * * *`, 毎日 00:10 JST) + 手動 | `scripts/weekly-interest.ts` を実行し、その日が発生曜日にあたる口座だけ利息を計算する（各口座につき週1回） |
 | [`migrate-to-ledgers.yml`](../.github/workflows/migrate-to-ledgers.yml) | Migrate to Ledgers (one-shot) | 手動のみ | 本番DBに対する「バックアップ → マイグレーション適用 → Ledger移行スクリプト」のワンショット移行作業。定期実行はしない |
 | [`migrate-ledger-tiered-rate.yml`](../.github/workflows/migrate-ledger-tiered-rate.yml) | Migrate Ledger Tiered Interest Rate (one-shot) | 手動のみ | 週利率の2段階化のワンショット移行作業。バックフィルはマイグレーションSQLに含まれる |
 | [`migrate-transaction-purpose.yml`](../.github/workflows/migrate-transaction-purpose.yml) | Migrate Transaction Purpose (one-shot) | 手動のみ | 取引への「用途」追加と、既存メモ（description）の用途への移植のワンショット移行作業。移植はマイグレーションSQLに含まれる |
@@ -37,26 +39,6 @@
   - `SUPABASE_URL`
   - `SUPABASE_ANON_KEY`
 - `workflow_dispatch` にも対応しているため、手動実行で疎通確認が可能
-
-## weekly-interest.yml
-
-- **cron**: 毎日 15:10 UTC（JST 翌 00:10）に実行。毎時0分は cron が混み合うため数分ずらしてある
-- `npm ci` で依存関係をインストールした後、`npx tsx scripts/weekly-interest.ts` を実行
-- 毎日起動するが、実際に処理するのは「その日（JST）が `Ledger.interestAccrualWeekday` に一致する口座」だけ。
-  各口座の利息が発生するのは週1回
-- 同じ日に二重で利息を発生させないよう、`Ledger.lastInterestAccruedAt` が当日（JST）ならスキップする。
-  そのため `workflow_dispatch` での手動再実行は安全
-- 利息額は「対象額 × 年利 ÷ 52（四捨五入）」。対象額は単利なら元本、複利なら元本＋未払利息で、
-  0以下の口座はスキップする
-- 作成される取引は `kind = "INTEREST"` で、元本には足されず未払利息としてたまる
-- 必要な Secrets:
-  - `DATABASE_URL`（本番DB接続用）。**ジョブ全体の `env` に設定する**。
-    `npm ci` の postinstall で走る `prisma generate` が `prisma.config.ts` 経由で `DATABASE_URL` を要求するため、
-    実行ステップだけに渡すと `npm ci` の時点で `PrismaConfigEnvError` で失敗する
-- ロジックの本体は `src/lib/interest-job.ts` の `runInterestJob()` にあり、管理画面（`/admin/jobs`）の手動実行と共通。
-  `scripts/weekly-interest.ts` は「DBにつないで実行し、結果をログに出す」だけの薄い入り口
-- `npx tsx scripts/weekly-interest.ts --dry-run` でDBを変更せずに結果の見積もりだけを出せる
-- Actions が落ちているときは、管理画面の「ジョブ」ページから同じ処理を手動で流せる（[docs/10-admin.md](./10-admin.md)）
 
 ## migrate-to-ledgers.yml
 

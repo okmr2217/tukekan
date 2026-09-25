@@ -1,9 +1,10 @@
 /**
- * 週次自動利子ジョブ（GitHub Actions から毎日 9:00 JST に実行）。
+ * 週次自動利子ジョブを手元から動かすためのスクリプト。
  *
+ * 本番の定期実行は Cloudflare Workers の Cron Triggers（worker.ts → /api/cron/weekly-interest）が行う。
+ * これは DATABASE_URL の DB に対して同じ処理を流したいとき（dry-run での確認など）に使う。
  * 実際のロジックは `src/lib/interest-job.ts` の runInterestJob() にあり、
- * 管理画面（/admin/jobs）の手動実行と共通。このスクリプトは
- * 「DBにつないで実行し、結果をログに出す」だけの薄い入り口。
+ * 自動実行・管理画面（/admin/jobs）の手動実行と共通。
  *
  * - 実行方法:        npx tsx scripts/weekly-interest.ts
  * - 試し打ち(dry-run): npx tsx scripts/weekly-interest.ts --dry-run

@@ -18,7 +18,8 @@ DB は引き続き **Supabase（PostgreSQL）** を使う（D1 への移行は�
 
 | ファイル | 役割 |
 | --- | --- |
-| `wrangler.jsonc` | Worker の設定（名前・互換性フラグ・静的アセット・バインディング） |
+| `wrangler.jsonc` | Worker の設定（名前・互換性フラグ・静的アセット・バインディング・Cron Triggers） |
+| `worker.ts` | Worker のエントリ。OpenNext の生成物（`.open-next/worker.js`）の `fetch` に、Cron Triggers 用の `scheduled` を足したもの（11.5） |
 | `open-next.config.ts` | OpenNext の設定。ISR 等を使っていないのでキャッシュは既定のまま |
 | `next.config.ts` | Workers 向けのトレース設定（`pg-cloudflare` と Prisma の edge 版を含める）・`serverExternalPackages` |
 | `src/lib/prisma.ts` | Workers ではリクエストごとに Prisma クライアントを作る（下記） |
@@ -88,7 +89,47 @@ Actions タブから手動実行（`workflow_dispatch`）もできる。
 
 ---
 
-## 11.5 切り替え手順（Vercel → Workers）
+## 11.5 定期ジョブ（Cron Triggers）
+
+週次自動利子ジョブは Worker の **Cron Triggers** で動かす（以前は GitHub Actions の `weekly-interest.yml`）。
+
+```
+Cron Triggers（毎日 15:00 UTC = 00:00 JST）
+  └─> worker.ts の scheduled
+        └─ Worker 内部で POST /api/cron/weekly-interest（使い捨てトークン付き）
+              └─ src/app/api/cron/weekly-interest/route.ts
+                    └─ runInterestJob()（src/lib/interest-job.ts）
+```
+
+- **スケジュール**: 毎日 00:00 JST（`0 15 * * *`）。GitHub Actions のころは cron が遅れたり混み合ったりするので 00:10 にずらしていたが、
+  Cron Triggers は予定より早く動くことはなく、ジョブは実行時の時刻で JST の日付を決めるので、日付が変わった瞬間に合わせている。
+  `wrangler.jsonc` の `triggers.crons`（UTC）と `worker.ts` の `SCHEDULED_ROUTES` で
+  cron 式 → 叩くルートを対応づけているので、**両方をそろえて変える**
+- **処理内容**: 毎日起動するが、実際に処理するのは「その日（JST）が `Ledger.interestAccrualWeekday` に一致する口座」だけ。
+  各口座の利息が発生するのは週1回
+  - 利息額は「対象額 × 年利 ÷ 52（四捨五入）」。対象額は単利なら元本、複利なら元本＋未払利息で、0以下の口座はスキップする
+  - 作成される取引は `kind = "INTEREST"` で、元本には足されず未払利息としてたまる
+  - 同じ日に二重で利息を発生させないよう、`Ledger.lastInterestAccruedAt` が当日（JST）ならスキップする
+- **なぜ Worker 内部で HTTP を経由するか**: `scheduled` は Next の外にあるので、ここから直接 Prisma を使うと
+  Prisma（WASM）を Next 側と二重にバンドルすることになる。内部 fetch にすれば、Next のルートハンドラから
+  `src/lib/prisma.ts` のクライアントをそのまま使える
+- **外から叩かれない仕組み**: `/api/cron/weekly-interest` は本番ドメインからも見えるが、
+  `scheduled` が起動のたびに発行する使い捨てトークン（`src/lib/scheduled-job-token.ts`）がないと 404 を返す。
+  トークンは同じ isolate の `globalThis` に置くだけで、シークレットの設定は要らない
+- **実行の記録**: 実行結果の1行サマリーを `AdminAuditLog`（`action = "SCHEDULED_INTEREST_JOB"`, `actorEmail = "cron"`）に残し、
+  管理画面の「ジョブ」ページに「最後の自動実行」として出す。口座ごとのログは Workers Logs（`observability`）で見られる
+- **失敗したとき**: ルートが 2xx 以外を返すと `scheduled` が例外を投げるので、
+  ダッシュボードの Worker →「Cron イベント」（またはログ）に失敗として残る。
+  GitHub Actions のような失敗メールは来ないので、管理画面の「停止の疑い」「最後の自動実行」で気づく。
+  流し直しは管理画面の「ジョブ」ページの「いま実行する」でよい（二重には発生しない）
+- **ローカルで試す**: `npx opennextjs-cloudflare build` のあと `npx wrangler dev --test-scheduled` で起動し、
+  `curl "http://localhost:8787/__scheduled?cron=0+15+*+*+*"` を叩く（`.dev.vars` の `DATABASE_URL` の DB に書き込むので注意）
+- **手元から流す**: `npx tsx scripts/weekly-interest.ts`（`--dry-run` でDBを変更せずに見積もりだけ）。
+  `DATABASE_URL` の DB に対して同じ `runInterestJob()` を動かす
+
+---
+
+## 11.6 切り替え手順（Vercel → Workers）
 
 1. Workers にデプロイし（済）、`*.workers.dev` の URL でログイン・取引登録・共有リンク・`/admin` の 403 を確認する
 2. Worker の「設定 → ドメインとルート」で本番ドメイン（`tukekan.paritto.dev`）をカスタムドメインとして追加する（済）
@@ -98,12 +139,11 @@ Actions タブから手動実行（`workflow_dispatch`）もできる。
    Access を通らない `*.workers.dev` からの入り口を閉じる（[10-admin.md](./10-admin.md) の「オリジンへの直接アクセス」の注意に相当）
 5. しばらく並行稼働させてから Vercel のプロジェクトを削除する
 
-利子ジョブ（`weekly-interest.yml`）と Supabase の ping（`keep-supabase-alive.yml`）は
-DB に直接つなぐ GitHub Actions なので、ホスティングの移行とは無関係にそのまま動く。
+Supabase の ping（`keep-supabase-alive.yml`）は DB に直接つなぐ GitHub Actions なので、
+ホスティングの移行とは無関係にそのまま動く。利子ジョブは Cron Triggers に移した（11.5）。
 
 ---
 
-## 11.6 今後の候補
+## 11.7 今後の候補
 
-- 利子ジョブを GitHub Actions から Worker の **Cron Triggers** に移す（カスタム Worker エントリで `scheduled` を足す）
 - DB を Supabase から **D1** に移す（`Decimal` の持ち替え、`mode: "insensitive"` の書き換え、トランザクションの扱いの確認が必要）
