@@ -14,10 +14,11 @@ export function FABController({ partners, suggestions }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const isHome = pathname === "/";
   const isTransactions = pathname === "/transactions";
   const partnerMatch = pathname.match(/^\/partners\/([^/]+)$/);
 
-  if (!isTransactions && !partnerMatch) return null;
+  if (!isHome && !isTransactions && !partnerMatch) return null;
 
   const defaultPartnerId = partnerMatch?.[1];
   // 相手ページで口座を絞り込んでいるときは、その口座を初期値にする

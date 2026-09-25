@@ -10,15 +10,48 @@ import {
 import { findOwnedPartner } from "./_helpers";
 import type { Partner, PartnerWithBalance, PartnerById } from "./types";
 
+/**
+ * 取引フォームの相手ピッカーに出す相手。
+ *
+ * 並び順は「最後に自分で記録した取引が新しい順」。記録する相手はたいてい
+ * 直近にやり取りした相手なので、よく使う相手ほど上に来るようにする。
+ * 週次ジョブが自動で作る利息は数えない（利子つきの相手が毎週先頭に来てしまうため）。
+ * 取引がない相手は名前順で後ろにまとめる。
+ */
 export async function getPartners(): Promise<Partner[]> {
   const session = await getSession();
   if (!session) return [];
 
-  return prisma.partner.findMany({
+  const partners = await prisma.partner.findMany({
     where: { ownerId: session.userId, isArchived: false },
-    select: { id: true, name: true },
+    select: {
+      id: true,
+      name: true,
+      transactions: {
+        where: { isArchived: false, kind: { not: "INTEREST" } },
+        select: { date: true },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        take: 1,
+      },
+    },
     orderBy: { name: "asc" },
   });
+
+  return partners
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      lastDate: p.transactions[0]?.date.getTime() ?? null,
+    }))
+    .sort((a, b) => {
+      if (a.lastDate === null && b.lastDate === null) {
+        return a.name.localeCompare(b.name, "ja");
+      }
+      if (a.lastDate === null) return 1;
+      if (b.lastDate === null) return -1;
+      return b.lastDate - a.lastDate;
+    })
+    .map(({ id, name }) => ({ id, name }));
 }
 
 export async function getPartnerById(
