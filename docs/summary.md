@@ -42,6 +42,7 @@ Account
 ├── name          表示名
 ├── passwordHash
 ├── transactionLabelPreset  取引ボタンの名目ラベル（BOTH / LENDER / BORROWER）
+├── onboardingCompletedAt   オンボーディングを終えた日時（null = 未完了）
 ├── partners[]      自分が管理するパートナー
 └── transactions[]  自分が記録した取引
 
@@ -122,7 +123,13 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
 
 ```
 /login                        ログイン画面
-/register                     新規登録
+/register                     新規登録（メールアドレス・パスワード）
+
+/onboarding                   登録直後のオンボーディング（BottomBar / FAB なし。1ステップ1ページ）
+  /profile                    1. 表示名
+  /labels                     2. 取引ボタンの表示
+  /partner                    3. 最初の相手（飛ばせる）
+  /transaction?partner=       4. 最初の取引（飛ばせる）
 
 /share/[token]                共有リンク（未認証・読み取り専用）
 
@@ -165,6 +172,13 @@ BottomBar（固定フッター）に4タブ:
 ---
 
 ## 主要機能
+
+### オンボーディング
+- 新規登録はメールアドレスとパスワードだけ。登録後は `/onboarding` で 表示名 → 取引ボタン表示 → 最初の相手 → 最初の取引 を案内する
+- 各ステップは既存の Server Action（`updateProfile` / `updateTransactionLabelPreset` / `createPartner` / `createTransaction`）でその場で保存するので、途中で離れても入力は残る
+- 最後まで進むか、相手・取引のステップで「あとで」を選ぶと `completeOnboarding` が `Account.onboardingCompletedAt` を記録してホームへ送る
+- 未完了のアカウントが (main) のページを開くと、`(main)/layout.tsx` がオンボーディングへ送る
+- 導入前からあるアカウントはマイグレーション（`drizzle/0001_onboarding.sql`）で完了扱いにしてある
 
 ### 取引管理
 - 取引の作成・編集・アーカイブ・削除（Server Actions）
@@ -211,6 +225,7 @@ BottomBar（固定フッター）に4タブ:
 | ファイル | アクション |
 |---------|-----------|
 | `actions/auth.ts` | `login`, `register`, `logout`, `getCurrentUser`, `updateProfile`, `getTransactionLabelPreset`, `updateTransactionLabelPreset` |
+| `actions/onboarding.ts` | `completeOnboarding` |
 | `actions/partner/queries.ts` | `getPartners`, `getPartnerById`, `getPartnersWithBalance`, `getPartnerBalance` |
 | `actions/partner/mutations.ts` | `createPartner`, `updatePartner`, `archivePartner`, `unarchivePartner`, `deletePartner` |
 | `actions/partner/share.ts` | `generatePartnerShareToken`, `revokePartnerShareToken`, `updatePartnerShareNote`, `getPartnerByShareToken` |
