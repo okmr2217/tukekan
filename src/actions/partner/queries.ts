@@ -1,6 +1,8 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import { and, asc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { partner as partnerTable, transaction } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import {
   calcPartnerBreakdown,
@@ -14,10 +16,13 @@ export async function getPartners(): Promise<Partner[]> {
   const session = await getSession();
   if (!session) return [];
 
-  return prisma.partner.findMany({
-    where: { ownerId: session.userId, isArchived: false },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
+  return db.query.partner.findMany({
+    where: and(
+      eq(partnerTable.ownerId, session.userId),
+      eq(partnerTable.isArchived, false),
+    ),
+    columns: { id: true, name: true },
+    orderBy: asc(partnerTable.name),
   });
 }
 
@@ -27,9 +32,9 @@ export async function getPartnerById(
   const session = await getSession();
   if (!session) return null;
 
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-    select: {
+  const partner = await db.query.partner.findFirst({
+    where: eq(partnerTable.id, partnerId),
+    columns: {
       id: true,
       name: true,
       isArchived: true,
@@ -65,17 +70,14 @@ export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
   const session = await getSession();
   if (!session) return [];
 
-  const partners = await prisma.partner.findMany({
-    where: { ownerId: session.userId },
-    select: {
-      id: true,
-      name: true,
-      isArchived: true,
-      createdAt: true,
-      _count: { select: { ledgers: true } },
+  const partners = await db.query.partner.findMany({
+    where: eq(partnerTable.ownerId, session.userId),
+    columns: { id: true, name: true, isArchived: true, createdAt: true },
+    with: {
+      ledgers: { columns: { id: true } },
       transactions: {
-        where: { isArchived: false },
-        select: {
+        where: (t, { eq }) => eq(t.isArchived, false),
+        columns: {
           amount: true,
           purpose: true,
           date: true,
@@ -83,10 +85,10 @@ export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
           createdAt: true,
           ledgerId: true,
         },
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        orderBy: (t, { desc }) => [desc(t.date), desc(t.createdAt)],
       },
     },
-    orderBy: { name: "asc" },
+    orderBy: asc(partnerTable.name),
   });
 
   return partners
@@ -98,7 +100,7 @@ export async function getPartnersWithBalance(): Promise<PartnerWithBalance[]> {
         isArchived: p.isArchived,
         createdAt: p.createdAt,
         transactionCount: p.transactions.length,
-        ledgerCount: p._count.ledgers,
+        ledgerCount: p.ledgers.length,
         balance: breakdown.total,
         breakdown,
         lastTransaction: p.transactions[0] ?? null,
@@ -132,10 +134,18 @@ export async function getPartnerBalance(
     return EMPTY_BREAKDOWN;
   }
 
-  const transactions = await prisma.transaction.findMany({
-    where: { partnerId, isArchived: false },
-    select: { amount: true, kind: true, date: true, createdAt: true, ledgerId: true },
-  });
+  const transactions = await db
+    .select({
+      amount: transaction.amount,
+      kind: transaction.kind,
+      date: transaction.date,
+      createdAt: transaction.createdAt,
+      ledgerId: transaction.ledgerId,
+    })
+    .from(transaction)
+    .where(
+      and(eq(transaction.partnerId, partnerId), eq(transaction.isArchived, false)),
+    );
 
   return calcPartnerBreakdown(transactions);
 }

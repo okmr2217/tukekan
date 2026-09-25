@@ -1,8 +1,8 @@
-# 11. ホスティング（Cloudflare Workers）
+# 11. ホスティング（Cloudflare Workers）・DB（Cloudflare D1）
 
 ツケカンは Vercel から **Cloudflare Workers** に移行した。Next.js は
 [OpenNext（`@opennextjs/cloudflare`）](https://opennext.js.org/cloudflare) で Worker に変換してデプロイする。
-DB は引き続き **Supabase（PostgreSQL）** を使う（D1 への移行は別フェーズ）。
+DB も Supabase（PostgreSQL + Prisma）から **Cloudflare D1（SQLite）+ Drizzle ORM** に移した（11.7）。
 
 ---
 
@@ -12,79 +12,101 @@ DB は引き続き **Supabase（PostgreSQL）** を使う（D1 への移行は�
 ブラウザ ──> Cloudflare（カスタムドメイン / Access）──> Worker「tukekan」
                                                          ├─ 静的ファイル: Workers Static Assets（.open-next/assets）
                                                          └─ SSR / Server Actions / proxy.ts
-                                                               └─ pg（TCP・pg-cloudflare）──> Supabase
-                                                                  （任意で Hyperdrive 経由）
+                                                               └─ Drizzle ORM ──> D1「tukekan-db」（バインディング env.DB）
 ```
 
 | ファイル | 役割 |
 | --- | --- |
-| `wrangler.jsonc` | Worker の設定（名前・互換性フラグ・静的アセット・バインディング・Cron Triggers） |
+| `wrangler.jsonc` | Worker の設定（名前・互換性フラグ・静的アセット・D1 などのバインディング・Cron Triggers） |
 | `worker.ts` | Worker のエントリ。OpenNext の生成物（`.open-next/worker.js`）の `fetch` に、Cron Triggers 用の `scheduled` を足したもの（11.5） |
 | `open-next.config.ts` | OpenNext の設定。ISR 等を使っていないのでキャッシュは既定のまま |
-| `next.config.ts` | Workers 向けのトレース設定（`pg-cloudflare` と Prisma の edge 版を含める）・`serverExternalPackages` |
-| `src/lib/prisma.ts` | Workers ではリクエストごとに Prisma クライアントを作る（下記） |
-
-### Prisma まわりの約束
-
-- 生成先は `node_modules/.prisma/client`（既定の場所）で、import は **`@prisma/client`** から行う。
-  Workers ではパッケージの `workerd` 条件で edge 版に解決され、WASM が事前コンパイル済みモジュールとして読まれる。
-  `src/generated/...` のような独自の出力先に戻すと、Workers 上で
-  `WebAssembly.Module(): Wasm code generation disallowed by embedder` になって DB に触れなくなる
-- Workers ではリクエストをまたいでソケットを使い回せないため、`src/lib/prisma.ts` は
-  Workers 上では React の `cache()` で「1リクエストに1クライアント」を作る。
-  呼び出し側は今までどおり `import prisma from "@/lib/prisma"` でよい
-- `scripts/` や `prisma/` のスクリプト（Node.js / tsx で動く）は自前で `PrismaClient` を作っており、影響を受けない
+| `next.config.ts` | `initOpenNextCloudflareForDev()` で、`next dev` でもバインディング（ローカルの D1）を使えるようにする |
+| `src/db/schema.ts` | DB スキーマ（Drizzle） |
+| `src/lib/db.ts` | DB クライアント。リクエストのコンテキストから `env.DB` を取り出して Drizzle に渡す |
+| `drizzle/` | マイグレーション SQL（`drizzle-kit` が生成し、`wrangler` が適用する） |
+| `drizzle.config.ts` | `drizzle-kit` の設定 |
+| `cloudflare-env.d.ts` | `npm run cf-typegen` が生成する `CloudflareEnv`（`env.DB` など）とランタイムの型 |
 
 ---
 
-## 11.2 環境変数・シークレット
+## 11.2 DB（D1 / Drizzle ORM）
+
+### 約束
+
+- アプリ内の DB アクセスは **`src/lib/db.ts` の `db`** を使う（`import { db } from "@/lib/db"`）。
+  D1 はバインディング経由でしかつなげないので、自前で接続を作らない
+- テーブルの定義は `src/db/schema.ts`。クエリは Drizzle のクエリビルダ（`db.select()...`）か
+  リレーショナルクエリ（`db.query.xxx.findMany({ with })`）で書く
+- **トランザクション**: D1 は `BEGIN` / `COMMIT` による対話的なトランザクションを使えない（`db.transaction()` は使わない）。
+  複数の書き込みを「全部成功か全部失敗か」にしたいときは **`db.batch([...])`** を使う。
+  D1 の batch は1つのトランザクションとして実行され、途中で1つでも失敗すれば全体がロールバックされる。
+  利子ジョブの「利息の取引の作成」と「`lastInterestAccruedAt` の更新」、相手の作成と最初の口座の作成がこれに当たる
+- **部分一致検索**は `src/db/sql.ts` の `contains()` を使う（`%` `_` をエスケープした `LIKE`）。
+  SQLite の `LIKE` は英字の大文字・小文字を区別しないので、Postgres 時代の `mode: "insensitive"` は不要になった
+- **型の持ち方**: 日時は UNIX ミリ秒の整数、真偽値は 0/1 の整数（どちらも Drizzle が `Date` / `boolean` に変換する）。
+  年利は `Ledger.annualInterestRateBp`（0.01% 単位の整数。5.25% → 525）で持ち、
+  アプリ内では `toInterestSettings()` / `toAnnualInterestRateBp()`（`src/lib/ledger-interest.ts`）で % と相互に変換する
+- **1クエリのバインドパラメータは100個まで**（D1 の制限）。`inArray()` に長い配列を渡すときは注意する
+- 外部キー制約は D1 でも有効（`Ledger` は相手の削除で一緒に消え、`Transaction.ledgerId` は口座の削除で null になる。
+  取引が残っている相手・アカウントは削除できない）
+
+### スキーマを変えるとき
+
+1. `src/db/schema.ts` を編集する
+2. `npm run db:generate` で `drizzle/` にマイグレーション SQL を生成する（生成物はコミットする）
+3. `npm run db:migrate:local` でローカルの D1 に当てて動作確認する
+4. `main` に入れると、デプロイのワークフローが本番の D1 に当ててからデプロイする（11.4）。
+   手元から当てるときは `npm run db:migrate:remote`
+
+SQLite は列の型変更や制約の追加が苦手で、`drizzle-kit` はテーブルを作り直す SQL を出すことがある。
+生成された SQL は必ず目で確認し、データを変換する移行はローカルで試してから当てる。
+
+### ローカル開発
+
+- `npm run dev`（`next dev`）で、`.wrangler/state` にあるローカルの D1 を使う。最初に `npm run db:migrate:local` でテーブルを作る
+- 中身を見る・直すときは `npx wrangler d1 execute tukekan-db --local --command 'SELECT ...'`
+- ローカルの DB を作り直したいときは `.wrangler/state/v3/d1` を消してから `npm run db:migrate:local`
+- 本番のデータを覗くときは `--remote`（書き込みは慎重に）
+
+---
+
+## 11.3 環境変数・シークレット
 
 Worker の「設定 → 変数とシークレット」、または `npx wrangler secret put <名前>` で設定する。
 `wrangler.jsonc` には書かない。
 
 | 名前 | 必須 | 内容 |
 | --- | --- | --- |
-| `DATABASE_URL` | ○ | Supabase の接続文字列。**Supavisor の Transaction モード（ポート 6543）** を推奨（Workers はリクエストごとに接続を張るため） |
 | `JWT_SECRET` | ○ | セッション JWT の署名鍵（Vercel で使っていたものと同じ値にすればログイン状態を引き継げる） |
 | `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` | ○ | 管理画面の Access 検証（[10-admin.md](./10-admin.md)） |
 | `ADMIN_EMAILS` | | 管理者の許可リスト（任意） |
 
-ローカルで Worker として動かすときは、リポジトリ直下に `.dev.vars`（git 管理外）を作って同じ名前で書く。
+DB の接続情報はない（D1 は `wrangler.jsonc` の `d1_databases` のバインディングでつながる）。
+Supabase 時代の `DATABASE_URL` は Worker のシークレットから削除してよい。
 
-### Hyperdrive（任意）
-
-Supabase へ毎回新しく TCP 接続を張るより速くしたい場合は Hyperdrive を使う。
-
-1. `npx wrangler hyperdrive create tukekan-db --connection-string="<Supabase の Session モード/直接接続の URL>"`
-2. 返ってきた ID を `wrangler.jsonc` の `hyperdrive` に `{"binding": "HYPERDRIVE", "id": "..."}` で追加
-3. `src/lib/prisma.ts` はバインディングがあれば自動でそちらを優先する（コード変更は不要）
+ローカルで開発・プレビューするときは、リポジトリ直下に `.dev.vars`（git 管理外）を作って同じ名前で書く。
 
 ---
 
-## 11.3 コマンド
+## 11.4 コマンドとデプロイ
 
 | コマンド | 内容 |
 | --- | --- |
-| `npm run dev` | 従来どおり `next dev`（Node.js）で開発 |
+| `npm run dev` | `next dev` で開発（ローカルの D1 を使う） |
 | `npm run preview` | OpenNext でビルドし、ローカルの workerd（本番と同じランタイム）で動かす。`.dev.vars` を読む |
 | `npm run deploy` | 手元からビルドして Cloudflare にデプロイ（`wrangler login` 済みか `CLOUDFLARE_API_TOKEN` が必要）。通常は GitHub Actions に任せる |
-| `npm run cf-typegen` | `wrangler.jsonc` のバインディングから `CloudflareEnv` の型を生成 |
-
-ビルド時も `postinstall` の `prisma generate` が `DATABASE_URL` を要求する（値はダミーでもよい）。
-
----
-
-## 11.4 デプロイ方法（GitHub Actions）
+| `npm run cf-typegen` | `wrangler.jsonc` のバインディングから `cloudflare-env.d.ts`（`CloudflareEnv` の型）を生成する。バインディングを変えたら流し直す |
+| `npm run db:generate` | スキーマの変更からマイグレーション SQL を生成する |
+| `npm run db:migrate:local` / `db:migrate:remote` | 未適用のマイグレーションをローカル / 本番の D1 に当てる |
 
 `main` への push で [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) が走り、
-`opennextjs-cloudflare build` → `opennextjs-cloudflare deploy` で本番の Worker「tukekan」を更新する。
-Actions タブから手動実行（`workflow_dispatch`）もできる。
+`opennextjs-cloudflare build` → `wrangler d1 migrations apply tukekan-db --remote` → `opennextjs-cloudflare deploy`
+の順で本番を更新する。Actions タブから手動実行（`workflow_dispatch`）もできる。
 
 - 必要な Repository secrets: `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN`
-  （トークンには「Workers Scripts: 編集」相当の権限が要る）
-- ビルド時の `DATABASE_URL` はワークフロー内のダミー値（`prisma generate` が要求するだけで、DB にはつながない）
-- Worker の実行時シークレット（11.2）は Cloudflare 側に保存されており、デプロイしても消えない。
-  変更するときは `npx wrangler secret put <名前>` かダッシュボードで行う
+  （トークンには「Workers Scripts: 編集」と「D1: 編集」相当の権限が要る）
+- マイグレーションはデプロイより先に当たる。**古いコードでも動く形（列の追加など）で変える**と、デプロイが失敗しても本番が壊れない
+- Worker の実行時シークレット（11.3）は Cloudflare 側に保存されており、デプロイしても消えない
 - デプロイ先: `https://tukekan.paritto.dev`（カスタムドメイン。`*.workers.dev` とプレビューURLは `wrangler.jsonc` で無効化済み）
 
 ---
@@ -109,10 +131,10 @@ Cron Triggers（毎日 15:00 UTC = 00:00 JST）
   各口座の利息が発生するのは週1回
   - 利息額は「対象額 × 年利 ÷ 52（四捨五入）」。対象額は単利なら元本、複利なら元本＋未払利息で、0以下の口座はスキップする
   - 作成される取引は `kind = "INTEREST"` で、元本には足されず未払利息としてたまる
-  - 同じ日に二重で利息を発生させないよう、`Ledger.lastInterestAccruedAt` が当日（JST）ならスキップする
-- **なぜ Worker 内部で HTTP を経由するか**: `scheduled` は Next の外にあるので、ここから直接 Prisma を使うと
-  Prisma（WASM）を Next 側と二重にバンドルすることになる。内部 fetch にすれば、Next のルートハンドラから
-  `src/lib/prisma.ts` のクライアントをそのまま使える
+  - 同じ日に二重で利息を発生させないよう、`Ledger.lastInterestAccruedAt` が当日（JST）ならスキップする。
+    利息の取引と `lastInterestAccruedAt` は `db.batch()` で同時に書くので、片方だけが残ることはない
+- **なぜ Worker 内部で HTTP を経由するか**: `scheduled` は Next の外にあるので、内部 fetch にして
+  Next のルートハンドラから `src/lib/db.ts` や `revalidatePath` をそのまま使えるようにしている
 - **外から叩かれない仕組み**: `/api/cron/weekly-interest` は本番ドメインからも見えるが、
   `scheduled` が起動のたびに発行する使い捨てトークン（`src/lib/scheduled-job-token.ts`）がないと 404 を返す。
   トークンは同じ isolate の `globalThis` に置くだけで、シークレットの設定は要らない
@@ -123,9 +145,9 @@ Cron Triggers（毎日 15:00 UTC = 00:00 JST）
   GitHub Actions のような失敗メールは来ないので、管理画面の「停止の疑い」「最後の自動実行」で気づく。
   流し直しは管理画面の「ジョブ」ページの「いま実行する」でよい（二重には発生しない）
 - **ローカルで試す**: `npx opennextjs-cloudflare build` のあと `npx wrangler dev --test-scheduled` で起動し、
-  `curl "http://localhost:8787/__scheduled?cron=0+15+*+*+*"` を叩く（`.dev.vars` の `DATABASE_URL` の DB に書き込むので注意）
+  `curl "http://localhost:8787/__scheduled?cron=0+15+*+*+*"` を叩く（ローカルの D1 に書き込む）
 - **手元から流す**: `npx tsx scripts/weekly-interest.ts`（`--dry-run` でDBを変更せずに見積もりだけ）。
-  `DATABASE_URL` の DB に対して同じ `runInterestJob()` を動かす
+  ローカルの D1 に対して同じ `runInterestJob()` を動かす。本番 DB での見積もりは管理画面の「ジョブ」ページで行う
 
 ---
 
@@ -139,11 +161,29 @@ Cron Triggers（毎日 15:00 UTC = 00:00 JST）
    Access を通らない `*.workers.dev` からの入り口を閉じる（[10-admin.md](./10-admin.md) の「オリジンへの直接アクセス」の注意に相当）
 5. しばらく並行稼働させてから Vercel のプロジェクトを削除する
 
-Supabase の ping（`keep-supabase-alive.yml`）は DB に直接つなぐ GitHub Actions なので、
-ホスティングの移行とは無関係にそのまま動く。利子ジョブは Cron Triggers に移した（11.5）。
-
 ---
 
-## 11.7 今後の候補
+## 11.7 Supabase から D1 へのデータ移行
 
-- DB を Supabase から **D1** に移す（`Decimal` の持ち替え、`mode: "insensitive"` の書き換え、トランザクションの扱いの確認が必要）
+一度だけ行う作業。移行中に旧環境（Supabase を向いた Worker）で書かれたデータは D1 に入らないので、
+使われていない時間帯に、`main` へのマージ（= D1 を向いたコードのデプロイ）の直前に行う。
+
+1. **D1 を作る**: `npx wrangler d1 create tukekan-db` を実行し、出力された `database_id` を
+   `wrangler.jsonc` の `d1_databases` に書く（済。リージョンは APAC）
+2. **テーブルを作る**: `npm run db:migrate:remote`（済）
+3. **バックアップ**: 念のため Supabase のダッシュボードか `pg_dump` で移行元を保存しておく
+4. **書き出す**: `DATABASE_URL="<Supabase の接続文字列（Session モード / 直接接続）>" npx tsx scripts/migrate-supabase-to-d1.ts`
+   - 全テーブルを `.d1-import.sql`（git 管理外。パスワードハッシュを含むので扱いに注意）に書き出す
+   - 日時は UTC のミリ秒、真偽値は 0/1、年利は % からベーシスポイントに変換する
+   - 最後に移行元の件数・金額合計などの検算値と、D1 側で同じ値を出すコマンドを表示する
+5. **流し込む**: `npx wrangler d1 execute tukekan-db --remote --file=.d1-import.sql`
+   （SQL は先頭で D1 側の全行を消してから入れ直すので、やり直しても同じ結果になる）
+6. **検算**: 手順4で表示されたコマンドを実行し、件数・合計が一致することを確かめる
+   （済: 取引 516 件・金額合計 168,060・口座 30・年利合計 52000bp・アカウント 8・相手 33 が一致。
+   旧スキーマの残骸 `PartnerNote`（2行・アプリからは未使用）は移していない。Supabase 側には残っている）
+7. **切り替え**: `main` にマージしてデプロイする。本番でログイン・残高・利子つき口座の年利・共有リンク・`/admin` を確認する
+8. **片付け**:
+   - `.d1-import.sql` を削除する
+   - Worker のシークレット `DATABASE_URL`、GitHub の Secrets `DATABASE_URL` / `DIRECT_URL` / `SUPABASE_URL` / `SUPABASE_ANON_KEY` を削除する
+   - しばらく様子を見てから Supabase のプロジェクトを削除する（ping のワークフローは消したので、放っておくと1週間ほどで一時停止する）
+   - `scripts/migrate-supabase-to-d1.ts` と devDependencies の `pg` / `@types/pg` を削除する

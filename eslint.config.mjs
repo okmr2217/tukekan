@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     // Cloudflare Workers のビルド成果物（OpenNext / wrangler）
     ".open-next/**",
     ".wrangler/**",
+    // `npm run cf-typegen`（wrangler types）が生成する型定義
+    "cloudflare-env.d.ts",
   ]),
   {
     rules: {

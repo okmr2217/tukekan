@@ -15,19 +15,19 @@
 | --- | --- |
 | [docs/01-overview.md](./docs/01-overview.md) | プロジェクト概要、ユーザー要件 |
 | [docs/02-features.md](./docs/02-features.md) | 機能要件（MVP + 将来機能） |
-| [docs/03-data-design.md](./docs/03-data-design.md) | データ設計（ER図、テーブル、Prisma Schema） |
+| [docs/03-data-design.md](./docs/03-data-design.md) | データ設計（ER図、テーブル、D1 / Drizzle のスキーマ） |
 | [docs/04-screens.md](./docs/04-screens.md) | 画面設計（画面一覧、レイアウト） |
 | [docs/05-tech-stack.md](./docs/05-tech-stack.md) | 技術スタック、ディレクトリ構成 |
 | [docs/06-security.md](./docs/06-security.md) | セキュリティ、非機能要件 |
 | [docs/07-phases.md](./docs/07-phases.md) | 開発フェーズ |
 | [docs/09-github-actions.md](./docs/09-github-actions.md) | GitHub Actions ワークフロー一覧・詳細 |
 | [docs/10-admin.md](./docs/10-admin.md) | 管理画面（/admin）・Cloudflare Access 認証 |
-| [docs/11-cloudflare-workers.md](./docs/11-cloudflare-workers.md) | ホスティング（Cloudflare Workers / OpenNext）・デプロイ手順 |
+| [docs/11-cloudflare-workers.md](./docs/11-cloudflare-workers.md) | ホスティング（Cloudflare Workers / OpenNext）・DB（D1）・デプロイ手順 |
 | [docs/summary.md](./docs/summary.md) | アプリ全体のサマリー（技術スタック・データモデル・画面構成など） |
 
 ## GitHub Actions
 
-`.github/workflows/` に定期実行・手動実行のワークフローが定義されている。内容・トリガー・必要な Secrets などの詳細は [docs/09-github-actions.md](./docs/09-github-actions.md) を参照すること。特に `migrate-to-ledgers.yml`・`migrate-ledger-annual-interest.yml`・`migrate-partner-share-token.yml`・`migrate-partner-share-note.yml` は本番DBに対する不可逆なワンショット移行作業なので、実行前に必ず同ドキュメントの注意事項を確認する。
+`.github/workflows/` には本番デプロイ（`deploy.yml`）だけがある。`main` への push で D1 のマイグレーションを当ててから Worker をデプロイする。詳細は [docs/09-github-actions.md](./docs/09-github-actions.md) を参照すること。
 
 ## 管理画面
 
@@ -35,14 +35,17 @@
 
 - 管理画面のページとServer Actionは、**必ず先頭で `requireAdmin()`（`src/lib/admin-auth.ts`）を呼ぶ**。`src/proxy.ts` のゲートがあっても省かない
 - 管理画面からの書き込みは「共有リンクの失効」「利子ジョブの手動実行」の2つだけ。**書き込みを足すときは必ず `AdminAuditLog` に記録する**
-- `src/lib/cf-access.ts` は Edge ランタイム（proxy）からも読むので、`next/headers` や prisma を import しない
+- `src/lib/cf-access.ts` は Edge ランタイム（proxy）からも読むので、`next/headers` や DB クライアント（`src/lib/db.ts`）を import しない
 
-## ホスティング（Cloudflare Workers）
+## ホスティング（Cloudflare Workers）・DB（Cloudflare D1）
 
-本番は OpenNext で Cloudflare Workers にデプロイしている。詳細は [docs/11-cloudflare-workers.md](./docs/11-cloudflare-workers.md)。実装時の約束:
+本番は OpenNext で Cloudflare Workers にデプロイし、DB は Cloudflare D1（SQLite）を Drizzle ORM で使っている。詳細は [docs/11-cloudflare-workers.md](./docs/11-cloudflare-workers.md)。実装時の約束:
 
-- Prisma クライアントは **`@prisma/client` から import する**（生成先は `node_modules/.prisma/client`）。独自の出力先に戻すと Workers 上で WASM が読めなくなる
-- アプリ内の DB アクセスは `src/lib/prisma.ts` の `prisma` を使う（Workers ではリクエストごとにクライアントを作るため、自前でグローバルな `PrismaClient` を作らない）
+- アプリ内の DB アクセスは **`src/lib/db.ts` の `db`** を使う。スキーマは `src/db/schema.ts`
+- **`db.transaction()` は使わない**（D1 は対話的なトランザクションを使えない）。まとめて成功/失敗させたい書き込みは `db.batch([...])` にする
+- スキーマを変えたら `npm run db:generate` で `drizzle/` にマイグレーションを生成してコミットする（本番へはデプロイ時に自動で当たる）
+- 年利は DB では整数のベーシスポイント（`Ledger.annualInterestRateBp`）。アプリ内では `toInterestSettings()` / `toAnnualInterestRateBp()`（`src/lib/ledger-interest.ts`）で % と変換する
+- 部分一致検索は `src/db/sql.ts` の `contains()` を使う（`%` `_` をエスケープする）
 - 定期ジョブ（週次自動利子ジョブ）は GitHub Actions ではなく **Cron Triggers** で動く。`wrangler.jsonc` の `triggers.crons` と `worker.ts` の `SCHEDULED_ROUTES` は必ずそろえる
 
 ## 開発時の参照ガイド
@@ -52,7 +55,7 @@
 | タスク種別 | 参照ドキュメント |
 | --- | --- |
 | 画面実装 | `docs/04-screens.md` + `docs/05-tech-stack.md` |
-| DB操作 | `docs/03-data-design.md` |
+| DB操作 | `docs/03-data-design.md` + `docs/11-cloudflare-workers.md` |
 | 認証実装 | `docs/06-security.md` + `docs/05-tech-stack.md` |
 | 機能確認 | `docs/02-features.md` |
 | ディレクトリ確認 | `docs/05-tech-stack.md` |

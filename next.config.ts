@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import { version } from "./package.json";
 
 const nextConfig: NextConfig = {
@@ -6,18 +7,6 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // pg は Workers 上では pg-cloudflare（"workerd" 条件の export）でTCP接続する。
-  // Next のファイルトレースは既定の空実装しか拾わないので、本体を明示的に含める。
-  // Prisma の生成クライアント（node_modules/.prisma/client）も同様に、Workers 用の edge 版と
-  // WASM がトレースから漏れるので丸ごと含める。
-  outputFileTracingIncludes: {
-    "/*": [
-      "./node_modules/pg-cloudflare/**/*",
-      "./node_modules/.prisma/client/**/*",
-    ],
-  },
-  // Next にはバンドルさせず、OpenNext 側で "workerd" 条件つきで解決させる（src/lib/prisma.ts）
-  serverExternalPackages: ["@prisma/client", ".prisma/client"],
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
   },
@@ -33,3 +22,7 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// `next dev` でも getCloudflareContext() から wrangler.jsonc のバインディング（D1 の env.DB など）を
+// 使えるようにする。D1 はローカルの .wrangler/state に作られる（docs/11-cloudflare-workers.md）
+initOpenNextCloudflareForDev();

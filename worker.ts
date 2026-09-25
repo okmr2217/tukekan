@@ -5,8 +5,8 @@
  * Cron Triggers 用の scheduled を足している。詳細は docs/11-cloudflare-workers.md。
  *
  * scheduled からは Worker 内部で Next のルートハンドラ（/api/cron/...）を呼ぶ。
- * ジョブ本体をここに直接書かないのは、Prisma（WASM）を Next 側と二重にバンドルせず、
- * src/lib/prisma.ts のリクエストごとのクライアントをそのまま使うため。
+ * ジョブ本体をここに直接書かないのは、DB クライアント（src/lib/db.ts）や revalidatePath など
+ * Next 側のリクエストコンテキストをそのまま使うため。
  */
 
 // `opennextjs-cloudflare build` が生成し、wrangler のバンドル時に解決される。

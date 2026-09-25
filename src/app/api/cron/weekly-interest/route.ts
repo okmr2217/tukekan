@@ -11,7 +11,8 @@
  */
 
 import { revalidatePath } from "next/cache";
-import prisma from "@/lib/prisma";
+import { db } from "@/lib/db";
+import { adminAuditLog } from "@/db/schema";
 import {
   describeJobResult,
   describeLedgerResult,
@@ -29,21 +30,19 @@ export async function POST(request: Request) {
     return new Response("Not Found", { status: 404 });
   }
 
-  const result = await runInterestJob(prisma);
+  const result = await runInterestJob(db);
   for (const ledger of result.ledgers) {
     console.log(describeLedgerResult(ledger));
   }
   const summary = describeJobResult(result);
 
   // 管理画面の「ジョブ」ページで最後の自動実行を確認できるように残す
-  await prisma.adminAuditLog.create({
-    data: {
-      actorEmail: "cron",
-      action: "SCHEDULED_INTEREST_JOB",
-      summary,
-      targetType: "Job",
-      targetId: "weekly-interest",
-    },
+  await db.insert(adminAuditLog).values({
+    actorEmail: "cron",
+    action: "SCHEDULED_INTEREST_JOB",
+    summary,
+    targetType: "Job",
+    targetId: "weekly-interest",
   });
 
   if (result.created > 0) {

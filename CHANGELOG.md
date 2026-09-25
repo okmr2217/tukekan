@@ -4,6 +4,18 @@
 
 ### 追加
 
+- DB を Supabase（PostgreSQL）から Cloudflare D1（SQLite）に、ORM を Prisma から Drizzle ORM に移行
+  - スキーマは `src/db/schema.ts`、マイグレーションは `drizzle/`（`npm run db:generate` / `db:migrate:local` / `db:migrate:remote`）。
+    デプロイのワークフローで本番の D1 にマイグレーションを当ててからデプロイする
+  - DB クライアントは `src/lib/db.ts`（`env.DB` のバインディングから作る）。`next dev` でもローカルの D1 を使う
+  - 年利を `Decimal(6,2)` の % から、整数のベーシスポイント `Ledger.annualInterestRateBp`（5.25% → 525）に持ち替え
+  - 利子ジョブの「利息の取引の作成」と「`lastInterestAccruedAt` の更新」を `db.batch()` で1つのトランザクションに
+    （Prisma の D1 アダプタは `$transaction` を無視して別々に実行するため、Drizzle に移した）。相手と最初の口座の作成も同様
+  - 管理画面の検索の `mode: "insensitive"` を、`%` `_` をエスケープした `LIKE`（`src/db/sql.ts` の `contains()`）に置き換え
+  - 統計の相手ごとの集計を、相手1人につき4クエリから `GROUP BY` の1クエリに
+  - Supabase のデータを D1 に移す `scripts/migrate-supabase-to-d1.ts` を追加（手順は `docs/11-cloudflare-workers.md` の 11.7）
+  - `keep-supabase-alive.yml`、本番 DB へのワンショット移行ワークフロー（`migrate-*.yml`）、`prisma/`（スキーマ・移行履歴・
+    `seed.ts`・`import-csv.ts`）、`supabase/` を削除
 - ホスティングを Vercel から Cloudflare Workers に移行（OpenNext / `@opennextjs/cloudflare`）。DB は Supabase のまま
   - `wrangler.jsonc`・`open-next.config.ts` を追加し、`npm run preview` / `npm run deploy` でビルド・デプロイできるように
   - Next.js を 16.3 系に更新（OpenNext の対応バージョン）

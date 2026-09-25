@@ -24,7 +24,7 @@ Phase 3: UX向上
 ## Phase 1-1: 基盤構築
 
 - [ ] プロジェクトセットアップ（Next.js 16 + TypeScript + Tailwind）
-- [ ] Prismaスキーマ定義・マイグレーション
+- [ ] DBスキーマ定義・マイグレーション（当初は Prisma + Supabase。現在は Drizzle + D1）
 - [ ] shadcn/ui導入
 - [ ] 基本レイアウト（ヘッダー、ボトムバー、FAB）
 
@@ -37,7 +37,7 @@ Phase 3: UX向上
 - [ ] セッション取得ユーティリティ
 - [ ] ログイン画面UI
 - [ ] 新規登録画面UI
-- [ ] 初期ユーザー作成（prisma/seed.ts）
+- [ ] 初期ユーザー作成（当初は prisma/seed.ts。D1 移行時に廃止）
 
 ---
 

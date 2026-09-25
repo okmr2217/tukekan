@@ -11,14 +11,14 @@
 | ---------------------------------------- | ------------------------------------------- |
 | [01-overview.md](./01-overview.md)       | プロジェクト概要、ユーザー要件              |
 | [02-features.md](./02-features.md)       | 機能要件（MVP + 将来機能）                  |
-| [03-data-design.md](./03-data-design.md) | データ設計（ER図、テーブル、Prisma Schema） |
+| [03-data-design.md](./03-data-design.md) | データ設計（ER図、テーブル、D1 / Drizzle のスキーマ） |
 | [04-screens.md](./04-screens.md)         | 画面設計（画面一覧、レイアウト）            |
 | [05-tech-stack.md](./05-tech-stack.md)   | 技術スタック、ディレクトリ構成              |
 | [06-security.md](./06-security.md)       | セキュリティ、非機能要件                    |
 | [07-phases.md](./07-phases.md)           | 開発フェーズ                                |
 | [09-github-actions.md](./09-github-actions.md) | GitHub Actions ワークフロー一覧・詳細  |
 | [10-admin.md](./10-admin.md)             | 管理画面（/admin）・Cloudflare Access 認証  |
-| [11-cloudflare-workers.md](./11-cloudflare-workers.md) | ホスティング（Cloudflare Workers / OpenNext）・デプロイ手順 |
+| [11-cloudflare-workers.md](./11-cloudflare-workers.md) | ホスティング（Cloudflare Workers / OpenNext）・DB（D1）・デプロイ手順 |
 
 ## 用語定義
 
@@ -61,7 +61,7 @@
 | タスク種別       | 参照ドキュメント                      |
 | ---------------- | ------------------------------------- |
 | 画面実装         | `04-screens.md` + `05-tech-stack.md`  |
-| DB操作           | `03-data-design.md`                   |
+| DB操作           | `03-data-design.md` + `11-cloudflare-workers.md` |
 | 認証実装         | `06-security.md` + `05-tech-stack.md` |
 | 機能確認         | `02-features.md`                      |
 | ディレクトリ確認 | `05-tech-stack.md`                    |

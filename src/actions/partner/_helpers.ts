@@ -1,26 +1,32 @@
-import prisma from "@/lib/prisma";
+import { asc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { ledger, partner } from "@/db/schema";
 
 export async function findOwnedPartner(partnerId: string, userId: string) {
-  const partner = await prisma.partner.findUnique({ where: { id: partnerId } });
-  if (!partner || partner.ownerId !== userId) return null;
-  return partner;
+  const found = await db.query.partner.findFirst({
+    where: eq(partner.id, partnerId),
+  });
+  if (!found || found.ownerId !== userId) return null;
+  return found;
 }
 
 /** その相手の最初の口座（デフォルト口座）を取得。存在しなければ無利子の「通常」口座を作成する。 */
 export async function getOrCreateDefaultLedger(partnerId: string) {
-  const existing = await prisma.ledger.findFirst({
-    where: { partnerId },
-    orderBy: { createdAt: "asc" },
+  const existing = await db.query.ledger.findFirst({
+    where: eq(ledger.partnerId, partnerId),
+    orderBy: asc(ledger.createdAt),
   });
   if (existing) return existing;
 
-  return prisma.ledger.create({
-    data: {
+  const [created] = await db
+    .insert(ledger)
+    .values({
       partnerId,
       title: "通常",
-      annualInterestRate: 0,
-    },
-  });
+      annualInterestRateBp: 0,
+    })
+    .returning();
+  return created;
 }
 
 /**
@@ -35,9 +41,10 @@ export async function resolveLedgerId(
   if (!requestedLedgerId) {
     return (await getOrCreateDefaultLedger(partnerId)).id;
   }
-  const ledger = await prisma.ledger.findUnique({
-    where: { id: requestedLedgerId },
+  const found = await db.query.ledger.findFirst({
+    where: eq(ledger.id, requestedLedgerId),
+    columns: { id: true, partnerId: true },
   });
-  if (!ledger || ledger.partnerId !== partnerId) return null;
-  return ledger.id;
+  if (!found || found.partnerId !== partnerId) return null;
+  return found.id;
 }

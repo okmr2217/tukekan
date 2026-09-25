@@ -2,7 +2,9 @@
 
 import { createId } from "@paralleldrive/cuid2";
 import { revalidatePath } from "next/cache";
-import prisma from "@/lib/prisma";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { partner as partnerTable } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { findOwnedPartner } from "./_helpers";
 import {
@@ -37,10 +39,10 @@ export async function generatePartnerShareToken(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + SHARE_TOKEN_VALID_DAYS);
 
-  await prisma.partner.update({
-    where: { id: partnerId },
-    data: { shareToken: token, shareTokenExpiresAt: expiresAt },
-  });
+  await db
+    .update(partnerTable)
+    .set({ shareToken: token, shareTokenExpiresAt: expiresAt })
+    .where(eq(partnerTable.id, partnerId));
 
   revalidatePath(`/partners/${partnerId}`);
   return { success: true, token };
@@ -55,10 +57,10 @@ export async function revokePartnerShareToken(
     return { error: "相手が見つかりません" };
   }
 
-  await prisma.partner.update({
-    where: { id: partnerId },
-    data: { shareToken: null, shareTokenExpiresAt: null },
-  });
+  await db
+    .update(partnerTable)
+    .set({ shareToken: null, shareTokenExpiresAt: null })
+    .where(eq(partnerTable.id, partnerId));
 
   revalidatePath(`/partners/${partnerId}`);
   return { success: true };
@@ -84,10 +86,10 @@ export async function updatePartnerShareNote(
     return { error: `メモは${SHARE_NOTE_MAX_LENGTH}文字以内で入力してください` };
   }
 
-  await prisma.partner.update({
-    where: { id: partnerId },
-    data: { shareNote: trimmed.length === 0 ? null : trimmed },
-  });
+  await db
+    .update(partnerTable)
+    .set({ shareNote: trimmed.length === 0 ? null : trimmed })
+    .where(eq(partnerTable.id, partnerId));
 
   revalidatePath(`/partners/${partnerId}`);
   return { success: true };
@@ -101,26 +103,24 @@ export async function updatePartnerShareNote(
 export async function getPartnerByShareToken(
   token: string,
 ): Promise<{ data?: SharedPartnerData; error?: string }> {
-  const partner = await prisma.partner.findUnique({
-    where: { shareToken: token },
-    select: {
-      name: true,
-      shareNote: true,
-      shareTokenExpiresAt: true,
-      owner: { select: { name: true } },
+  const partner = await db.query.partner.findFirst({
+    where: eq(partnerTable.shareToken, token),
+    columns: { name: true, shareNote: true, shareTokenExpiresAt: true },
+    with: {
+      owner: { columns: { name: true } },
       ledgers: {
-        orderBy: { createdAt: "asc" },
-        select: {
+        orderBy: (l, { asc }) => asc(l.createdAt),
+        columns: {
           id: true,
           title: true,
-          annualInterestRate: true,
+          annualInterestRateBp: true,
           interestAccrualWeekday: true,
           interestCompounding: true,
         },
       },
       transactions: {
-        where: { isArchived: false },
-        select: {
+        where: (t, { eq }) => eq(t.isArchived, false),
+        columns: {
           id: true,
           amount: true,
           purpose: true,

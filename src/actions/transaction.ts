@@ -1,7 +1,10 @@
 "use server";
 
 import { z } from "zod";
-import prisma from "@/lib/prisma";
+import { and, asc, count, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { contains } from "@/db/sql";
+import { partner as partnerTable, transaction as transactionTable } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { revalidateTransactionScope } from "@/lib/revalidate";
 import { resolveLedgerId } from "@/actions/partner/_helpers";
@@ -50,34 +53,41 @@ export async function getTransactions(
     sortOrder = "date_desc",
   } = params;
 
-  const dbOrderBy =
-    sortOrder === "date_asc"
-      ? [{ date: "asc" as const }, { createdAt: "desc" as const }]
-      : [{ date: "desc" as const }, { createdAt: "desc" as const }];
+  const rows = await db
+    .select({
+      transaction: transactionTable,
+      partnerName: partnerTable.name,
+      partnerIsArchived: partnerTable.isArchived,
+    })
+    .from(transactionTable)
+    .innerJoin(partnerTable, eq(transactionTable.partnerId, partnerTable.id))
+    .where(
+      and(
+        eq(transactionTable.ownerId, session.userId),
+        showArchived ? undefined : eq(transactionTable.isArchived, false),
+        q
+          ? or(
+              contains(transactionTable.purpose, q),
+              contains(transactionTable.description, q),
+            )
+          : undefined,
+        ledgerIds && ledgerIds.length > 0
+          ? inArray(transactionTable.ledgerId, ledgerIds)
+          : undefined,
+        showArchivedPartners ? undefined : eq(partnerTable.isArchived, false),
+        partnerIds && partnerIds.length > 0
+          ? inArray(partnerTable.id, partnerIds)
+          : undefined,
+      ),
+    )
+    .orderBy(
+      sortOrder === "date_asc"
+        ? asc(transactionTable.date)
+        : desc(transactionTable.date),
+      desc(transactionTable.createdAt),
+    );
 
-  const rows = await prisma.transaction.findMany({
-    where: {
-      ownerId: session.userId,
-      ...(showArchived ? {} : { isArchived: false }),
-      ...(q
-        ? {
-            OR: [
-              { purpose: { contains: q } },
-              { description: { contains: q } },
-            ],
-          }
-        : {}),
-      ...(ledgerIds && ledgerIds.length > 0 ? { ledgerId: { in: ledgerIds } } : {}),
-      partner: {
-        ...(showArchivedPartners ? {} : { isArchived: false }),
-        ...(partnerIds && partnerIds.length > 0 ? { id: { in: partnerIds } } : {}),
-      },
-    },
-    orderBy: dbOrderBy,
-    include: { partner: { select: { name: true, isArchived: true } } },
-  });
-
-  const mapped = rows.map((t) => ({
+  const mapped = rows.map(({ transaction: t, partnerName, partnerIsArchived }) => ({
     id: t.id,
     amount: t.amount,
     purpose: t.purpose,
@@ -86,8 +96,8 @@ export async function getTransactions(
     kind: toTransactionKind(t.kind),
     isArchived: t.isArchived,
     partnerId: t.partnerId,
-    partnerName: t.partner.name,
-    partnerIsArchived: t.partner.isArchived,
+    partnerName,
+    partnerIsArchived,
     ledgerId: t.ledgerId,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
@@ -102,24 +112,34 @@ export async function getTransactions(
   return mapped;
 }
 
+/** 権限チェック用に取引を1件読む（持ち主と相手だけ） */
+async function findTransaction(transactionId: string) {
+  return db.query.transaction.findFirst({
+    where: eq(transactionTable.id, transactionId),
+    columns: { ownerId: true, partnerId: true },
+  });
+}
+
 export async function getPurposeSuggestions(): Promise<string[]> {
   const session = await getSession();
   if (!session) {
     return [];
   }
 
-  const suggestions = await prisma.transaction.groupBy({
-    by: ["purpose"],
-    where: {
-      ownerId: session.userId,
-      purpose: { not: null },
-      // 利息の自動 purpose（「利子（年利X%）」）はユーザーが入力するものではないので除外する
-      kind: "NORMAL",
-    },
-    _count: { purpose: true },
-    orderBy: { _count: { purpose: "desc" } },
-    take: 10,
-  });
+  const suggestions = await db
+    .select({ purpose: transactionTable.purpose })
+    .from(transactionTable)
+    .where(
+      and(
+        eq(transactionTable.ownerId, session.userId),
+        isNotNull(transactionTable.purpose),
+        // 利息の自動 purpose（「利子（年利X%）」）はユーザーが入力するものではないので除外する
+        eq(transactionTable.kind, "NORMAL"),
+      ),
+    )
+    .groupBy(transactionTable.purpose)
+    .orderBy(desc(count()))
+    .limit(10);
 
   return suggestions
     .map((s) => s.purpose)
@@ -212,8 +232,9 @@ export async function createTransaction(
   } = result.data;
 
   // partnerが存在し、かつ自分が所有しているかチェック
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
+  const partner = await db.query.partner.findFirst({
+    where: eq(partnerTable.id, partnerId),
+    columns: { ownerId: true },
   });
 
   if (!partner) {
@@ -229,17 +250,15 @@ export async function createTransaction(
     return { error: "指定された口座が見つかりません" };
   }
 
-  await prisma.transaction.create({
-    data: {
-      amount: validAmount,
-      purpose: purpose || null,
-      description: description || null,
-      date: validDate,
-      kind: "NORMAL",
-      ownerId: session.userId,
-      partnerId: partnerId,
-      ledgerId,
-    },
+  await db.insert(transactionTable).values({
+    amount: validAmount,
+    purpose: purpose || null,
+    description: description || null,
+    date: validDate,
+    kind: "NORMAL",
+    ownerId: session.userId,
+    partnerId: partnerId,
+    ledgerId,
   });
 
   revalidateTransactionScope(partnerId);
@@ -310,9 +329,7 @@ export async function updateTransaction(
   } = result.data;
 
   // 取引が存在し、自分のものかチェック
-  const transaction = await prisma.transaction.findUnique({
-    where: { id: transactionId },
-  });
+  const transaction = await findTransaction(transactionId);
 
   if (!transaction) {
     return { error: "取引が見つかりません" };
@@ -324,8 +341,9 @@ export async function updateTransaction(
 
   // 相手が変更される場合、相手が自分のものかチェック
   if (partnerId && partnerId !== transaction.partnerId) {
-    const partner = await prisma.partner.findUnique({
-      where: { id: partnerId },
+    const partner = await db.query.partner.findFirst({
+      where: eq(partnerTable.id, partnerId),
+      columns: { ownerId: true },
     });
     if (!partner || partner.ownerId !== session.userId) {
       return { error: "相手が見つかりません" };
@@ -344,17 +362,17 @@ export async function updateTransaction(
     ledgerId = resolved;
   }
 
-  await prisma.transaction.update({
-    where: { id: transactionId },
-    data: {
+  await db
+    .update(transactionTable)
+    .set({
       ...(partnerId ? { partnerId } : {}),
       ...(ledgerId ? { ledgerId } : {}),
       amount: validAmount,
       purpose: purpose || null,
       description: description || null,
       date: validDate,
-    },
-  });
+    })
+    .where(eq(transactionTable.id, transactionId));
 
   const extraIds =
     partnerId && partnerId !== transaction.partnerId ? [partnerId] : [];
@@ -370,19 +388,17 @@ export async function archiveTransaction(
   const session = await getSession();
   if (!session) return { error: "ログインが必要です" };
 
-  const transaction = await prisma.transaction.findUnique({
-    where: { id: transactionId },
-  });
+  const transaction = await findTransaction(transactionId);
 
   if (!transaction) return { error: "取引が見つかりません" };
   if (transaction.ownerId !== session.userId) {
     return { error: "この取引を操作する権限がありません" };
   }
 
-  await prisma.transaction.update({
-    where: { id: transactionId },
-    data: { isArchived: true },
-  });
+  await db
+    .update(transactionTable)
+    .set({ isArchived: true })
+    .where(eq(transactionTable.id, transactionId));
 
   revalidateTransactionScope(transaction.partnerId);
   return {};
@@ -395,19 +411,17 @@ export async function unarchiveTransaction(
   const session = await getSession();
   if (!session) return { error: "ログインが必要です" };
 
-  const transaction = await prisma.transaction.findUnique({
-    where: { id: transactionId },
-  });
+  const transaction = await findTransaction(transactionId);
 
   if (!transaction) return { error: "取引が見つかりません" };
   if (transaction.ownerId !== session.userId) {
     return { error: "この取引を操作する権限がありません" };
   }
 
-  await prisma.transaction.update({
-    where: { id: transactionId },
-    data: { isArchived: false },
-  });
+  await db
+    .update(transactionTable)
+    .set({ isArchived: false })
+    .where(eq(transactionTable.id, transactionId));
 
   revalidateTransactionScope(transaction.partnerId);
   return {};
@@ -427,9 +441,7 @@ export async function deleteTransaction(
     return { error: "ログインが必要です" };
   }
 
-  const transaction = await prisma.transaction.findUnique({
-    where: { id: transactionId },
-  });
+  const transaction = await findTransaction(transactionId);
 
   if (!transaction) {
     return { error: "取引が見つかりません" };
@@ -439,9 +451,9 @@ export async function deleteTransaction(
     return { error: "この取引を削除する権限がありません" };
   }
 
-  await prisma.transaction.delete({
-    where: { id: transactionId },
-  });
+  await db
+    .delete(transactionTable)
+    .where(eq(transactionTable.id, transactionId));
 
   revalidateTransactionScope(transaction.partnerId);
 

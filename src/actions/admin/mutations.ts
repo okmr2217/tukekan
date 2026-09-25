@@ -12,7 +12,9 @@
  */
 
 import { revalidatePath } from "next/cache";
-import prisma from "@/lib/prisma";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { adminAuditLog, partner as partnerTable } from "@/db/schema";
 import { requireAdmin, type AdminIdentity } from "@/lib/admin-auth";
 import { describeJobResult, runInterestJob } from "@/lib/interest-job";
 import type { AdminAuditAction } from "@/lib/admin-audit";
@@ -25,14 +27,12 @@ async function recordAdminAction(
   summary: string,
   target?: { type: string; id: string },
 ): Promise<void> {
-  await prisma.adminAuditLog.create({
-    data: {
-      actorEmail: actor.email,
-      action,
-      summary,
-      targetType: target?.type ?? null,
-      targetId: target?.id ?? null,
-    },
+  await db.insert(adminAuditLog).values({
+    actorEmail: actor.email,
+    action,
+    summary,
+    targetType: target?.type ?? null,
+    targetId: target?.id ?? null,
   });
 }
 
@@ -47,14 +47,10 @@ export async function revokeShareTokenAsAdmin(
 ): Promise<AdminActionState> {
   const actor = await requireAdmin();
 
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-    select: {
-      id: true,
-      name: true,
-      shareToken: true,
-      owner: { select: { name: true, email: true } },
-    },
+  const partner = await db.query.partner.findFirst({
+    where: eq(partnerTable.id, partnerId),
+    columns: { id: true, name: true, shareToken: true },
+    with: { owner: { columns: { name: true, email: true } } },
   });
 
   if (!partner) return { error: "相手が見つかりません" };
@@ -62,10 +58,10 @@ export async function revokeShareTokenAsAdmin(
     return { error: "この相手には有効な共有リンクがありません" };
   }
 
-  await prisma.partner.update({
-    where: { id: partnerId },
-    data: { shareToken: null, shareTokenExpiresAt: null },
-  });
+  await db
+    .update(partnerTable)
+    .set({ shareToken: null, shareTokenExpiresAt: null })
+    .where(eq(partnerTable.id, partnerId));
 
   await recordAdminAction(
     actor,
@@ -96,7 +92,7 @@ export async function runInterestJobAsAdmin(
 ): Promise<AdminActionState> {
   const actor = await requireAdmin();
 
-  const result = await runInterestJob(prisma, { dryRun });
+  const result = await runInterestJob(db, { dryRun });
   const summary = describeJobResult(result);
 
   await recordAdminAction(

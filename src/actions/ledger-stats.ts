@@ -1,6 +1,8 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import { and, asc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { partner as partnerTable } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { toJST } from "@/lib/date-utils";
 import {
@@ -67,7 +69,7 @@ function elapsedDaysSince(date: Date): number {
 function buildLedgerStat(ledger: {
   id: string;
   title: string;
-  annualInterestRate: unknown;
+  annualInterestRateBp: number;
   interestAccrualWeekday: number;
   interestCompounding: boolean;
   createdAt: Date;
@@ -112,24 +114,28 @@ export async function getPartnerLedgerStats(): Promise<PartnerLedgerStat[]> {
   const session = await getSession();
   if (!session) return [];
 
-  const partners = await prisma.partner.findMany({
-    where: { ownerId: session.userId, isArchived: false },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
+  const partners = await db.query.partner.findMany({
+    where: and(
+      eq(partnerTable.ownerId, session.userId),
+      eq(partnerTable.isArchived, false),
+    ),
+    orderBy: asc(partnerTable.name),
+    columns: { id: true, name: true },
+    with: {
       ledgers: {
-        orderBy: { createdAt: "asc" },
-        select: {
+        orderBy: (l, { asc }) => asc(l.createdAt),
+        columns: {
           id: true,
           title: true,
-          annualInterestRate: true,
+          annualInterestRateBp: true,
           interestAccrualWeekday: true,
           interestCompounding: true,
           createdAt: true,
+        },
+        with: {
           transactions: {
-            where: { isArchived: false },
-            select: { amount: true, kind: true, date: true, createdAt: true },
+            where: (t, { eq }) => eq(t.isArchived, false),
+            columns: { amount: true, kind: true, date: true, createdAt: true },
           },
         },
       },

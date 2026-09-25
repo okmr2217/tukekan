@@ -3,7 +3,7 @@
  *
  * 管理画面は他人のデータに触れるため、書き込み操作は必ず監査ログに残す。
  * 例外的に、Cron Triggers による利子ジョブの自動実行もここに残す（実行履歴の確認用）。
- * 操作の種別は Prisma の enum ではなく文字列で持つ（Transaction.kind などと同じ方針）。
+ * 操作の種別は DB の enum ではなく文字列で持つ（Transaction.kind などと同じ方針）。
  */
 
 export const ADMIN_AUDIT_ACTIONS = [

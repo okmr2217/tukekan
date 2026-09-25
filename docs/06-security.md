@@ -27,11 +27,9 @@ export async function createTransaction(formData: FormData) {
   }
 
   // ownerId は必ず session.userId を使用
-  await prisma.transaction.create({
-    data: {
-      ...data,
-      ownerId: session.userId, // 自分のデータのみ作成可能
-    },
+  await db.insert(transaction).values({
+    ...data,
+    ownerId: session.userId, // 自分のデータのみ作成可能
   });
 }
 ```
@@ -49,8 +47,8 @@ export async function revokeShareTokenAsAdmin(partnerId: string) {
   const actor = await requireAdmin(); // Cloudflare Access の JWT を検証する
 
   // ... 変更を加えたあと、必ず監査ログに残す
-  await prisma.adminAuditLog.create({
-    data: { actorEmail: actor.email, action: "REVOKE_SHARE_TOKEN", summary, ... },
+  await db.insert(adminAuditLog).values({
+    actorEmail: actor.email, action: "REVOKE_SHARE_TOKEN", summary, ...
   });
 }
 ```
@@ -106,7 +104,7 @@ const transactionSchema = z.object({
 | レスポンス   | 画面表示 2秒以内                       |
 | 対応デバイス | スマートフォン（iOS/Android）、PC      |
 | ブラウザ     | Chrome, Safari, Edge (最新2バージョン) |
-| 可用性       | Cloudflare Workers/Supabaseの標準SLA               |
+| 可用性       | Cloudflare Workers / D1 の標準SLA                  |
 
 ---
 
@@ -123,7 +121,7 @@ const transactionSchema = z.object({
 
 - [ ] 全ての書き込み操作で認証チェック
 - [ ] ownerId は必ずセッションから取得（リクエストパラメータを信用しない）
-- [ ] SQLインジェクション対策（Prismaの使用で自動対応）
+- [ ] SQLインジェクション対策（Drizzle のクエリビルダ・`sql` テンプレートはすべてプレースホルダで値を渡す。`sql.raw()` にユーザー入力を渡さない）
 
 ### 入力処理
 
@@ -139,7 +137,6 @@ const transactionSchema = z.object({
 
 ### 環境変数
 
-- [ ] DATABASE_URL
 - [ ] JWT_SECRET
 - [ ] NODE_ENV
 - [ ] CF_ACCESS_TEAM_DOMAIN（管理画面）
