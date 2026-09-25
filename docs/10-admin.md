@@ -169,23 +169,15 @@ src/
 
 ## 10.5 データモデル
 
-```prisma
-model AdminAuditLog {
-  id         String   @id @default(cuid())
-  actorEmail String   // Cloudflare Access が認証したメールアドレス
-  action     String   // REVOKE_SHARE_TOKEN | RUN_INTEREST_JOB | DRY_RUN_INTEREST_JOB
-  targetType String?  // "Partner" | "Job"
-  targetId   String?
-  summary    String   // 人が読むための要約
-  createdAt  DateTime @default(now())
+`AdminAuditLog` テーブル（定義は [`src/db/schema.ts`](../src/db/schema.ts)、列の説明は [03-data-design.md](./03-data-design.md) の 3.3）。
 
-  @@index([createdAt])
-  @@index([actorEmail])
-}
-```
-
-本番への適用は [`migrate-admin-audit-log.yml`](../.github/workflows/migrate-admin-audit-log.yml)。
-テーブルを1つ足すだけで、既存データの書き換えはない。
+| 列 | 内容 |
+| --- | --- |
+| `actorEmail` | Cloudflare Access が認証したメールアドレス（Cron からの自動実行は `"cron"`） |
+| `action` | `REVOKE_SHARE_TOKEN` / `RUN_INTEREST_JOB` / `DRY_RUN_INTEREST_JOB` / `SCHEDULED_INTEREST_JOB` |
+| `targetType` / `targetId` | `"Partner"` / `"Job"` とその識別子 |
+| `summary` | 人が読むための要約 |
+| `createdAt` | 記録日時（索引あり。`actorEmail` にも索引） |
 
 ---
 

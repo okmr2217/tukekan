@@ -6,135 +6,32 @@
 
 > 週次自動利子ジョブ（旧 `weekly-interest.yml`）は Cloudflare Workers の Cron Triggers に移した。
 > [11-cloudflare-workers.md](./11-cloudflare-workers.md) の「11.5 定期ジョブ（Cron Triggers）」を参照。
+>
+> DB を Supabase から Cloudflare D1 に移したので、Supabase 向けのワークフロー
+> （`keep-supabase-alive.yml` と、本番 DB へのワンショット移行 `migrate-*.yml`）は削除した。
+> 移行の記録は git の履歴に残っている。D1 のスキーマ変更は `deploy.yml` の中で当てる。
 
 | ファイル | 名前 | トリガー | 目的 |
 | --- | --- | --- | --- |
-| [`deploy.yml`](../.github/workflows/deploy.yml) | Deploy to Cloudflare Workers | `main` への push + 手動 | OpenNext でビルドし、本番の Worker「tukekan」にデプロイする（[11-cloudflare-workers.md](./11-cloudflare-workers.md)） |
-| [`keep-supabase-alive.yml`](../.github/workflows/keep-supabase-alive.yml) | Ping Supabase to Prevent Pausing | 定期実行 (`0 0 * * 0,3`) + 手動 | Supabase の無料枠プロジェクトが一定期間アクセスなしで自動一時停止されるのを防ぐため、DBに軽いクエリを打つ |
-| [`migrate-to-ledgers.yml`](../.github/workflows/migrate-to-ledgers.yml) | Migrate to Ledgers (one-shot) | 手動のみ | 本番DBに対する「バックアップ → マイグレーション適用 → Ledger移行スクリプト」のワンショット移行作業。定期実行はしない |
-| [`migrate-ledger-tiered-rate.yml`](../.github/workflows/migrate-ledger-tiered-rate.yml) | Migrate Ledger Tiered Interest Rate (one-shot) | 手動のみ | 週利率の2段階化のワンショット移行作業。バックフィルはマイグレーションSQLに含まれる |
-| [`migrate-transaction-purpose.yml`](../.github/workflows/migrate-transaction-purpose.yml) | Migrate Transaction Purpose (one-shot) | 手動のみ | 取引への「用途」追加と、既存メモ（description）の用途への移植のワンショット移行作業。移植はマイグレーションSQLに含まれる |
-| [`migrate-transaction-label-preset.yml`](../.github/workflows/migrate-transaction-label-preset.yml) | Migrate Transaction Label Preset (one-shot) | 手動のみ | `Account.transactionLabelPreset`（取引ボタンの名目ラベルのプリセット）追加のワンショット移行作業。既存行は既定値 `BOTH` で埋まる |
-| [`migrate-ledger-annual-interest.yml`](../.github/workflows/migrate-ledger-annual-interest.yml) | Migrate Ledger Annual Interest (one-shot) | 手動のみ | 利子システム改修（年利への一本化・発生曜日/単複利の追加・`Transaction.kind` 追加）のワンショット移行作業。**不可逆なデータ変換を含む** |
-| [`migrate-partner-share-token.yml`](../.github/workflows/migrate-partner-share-token.yml) | Migrate Partner Share Token (one-shot) | 手動のみ | 公開ページを口座単位から相手単位へ移すワンショット移行作業。**不可逆なデータ変換を含む** |
-| [`migrate-admin-audit-log.yml`](../.github/workflows/migrate-admin-audit-log.yml) | Migrate Admin Audit Log (one-shot) | 手動のみ | 管理画面（/admin）の監査ログ用 `AdminAuditLog` テーブル追加のワンショット移行作業。テーブルを足すだけで**不可逆なデータ変換は含まない** |
-| [`migrate-partner-share-note.yml`](../.github/workflows/migrate-partner-share-note.yml) | Migrate Partner Share Note (one-shot) | 手動のみ | メモ機能（`LedgerNote`）の廃止と、公開ページ用メモ `Partner.shareNote` への作り直しのワンショット移行作業。**不可逆なデータ変換を含む**（相手ごとに最新1件だけを引き継ぎ、テーブルは削除） |
+| [`deploy.yml`](../.github/workflows/deploy.yml) | Deploy to Cloudflare Workers | `main` への push + 手動 | OpenNext でビルドし、D1 のマイグレーションを当ててから本番の Worker「tukekan」にデプロイする（[11-cloudflare-workers.md](./11-cloudflare-workers.md)） |
 
 ---
 
 ## deploy.yml
 
 - **トリガー**: `main` への push と `workflow_dispatch`。`concurrency` でデプロイ同士が並行しないようにしている
-- `npm ci` → `npx opennextjs-cloudflare build` → `npx opennextjs-cloudflare deploy`
+- `npm ci` → `npx opennextjs-cloudflare build` → `npx wrangler d1 migrations apply tukekan-db --remote` → `npx opennextjs-cloudflare deploy`
+  - マイグレーションは `drizzle/` の SQL のうち未適用のものだけが当たる（適用済みは D1 の `d1_migrations` テーブルで管理）
+  - マイグレーションはデプロイより先に当たるので、古いコードでも動く形でスキーマを変える
 - 必要な Secrets:
   - `CLOUDFLARE_ACCOUNT_ID`
-  - `CLOUDFLARE_API_TOKEN`
-- ビルド時の `DATABASE_URL` はダミー（`prisma generate` 用）。Worker の実行時シークレットは Cloudflare 側にあり、このワークフローでは扱わない
-
-## keep-supabase-alive.yml
-
-- **cron**: 日曜・水曜の 00:00 UTC に実行（`0 0 * * 0,3`）
-- Node.js をセットアップし `@supabase/supabase-js` をインストールした上で、`Account` テーブルに `select().limit(1)` を投げるだけの軽量ジョブ
-- 必要な Secrets:
-  - `SUPABASE_URL`
-  - `SUPABASE_ANON_KEY`
-- `workflow_dispatch` にも対応しているため、手動実行で疎通確認が可能
-
-## migrate-to-ledgers.yml
-
-- **トリガー**: `workflow_dispatch` のみ（定期実行なし）。実行時に `confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
-- 本番DBに対する不可逆な操作を含むため、実行前に以下を確認すること:
-  - `DATABASE_URL` / `DIRECT_URL` の両方が GitHub Secrets に設定されていること
-    - `DATABASE_URL`: pgbouncer 経由（6543番ポート、通常はアプリ実行時に使用）
-    - `DIRECT_URL`: 直接接続（5432番ポート、`pg_dump` 用）
-  - このジョブ内では Prisma migrate CLI がプーラー経由だとハングするため、`DATABASE_URL` にも `DIRECT_URL`（セッションモード）を上書きして使っている
-- 主なステップ:
-  1. `confirm` 入力の検証
-  2. チェックアウト・依存関係インストール
-  3. サーバー側 PostgreSQL 17 に合わせて `pg_dump` を PGDG からインストール（Ubuntu標準は v16のため）
-  4. DB疎通確認（`pg_isready`）
-  5. マイグレーション適用前の状態確認（`prisma migrate status`）
-  6. `pg_dump` で本番DBをバックアップし、`actions/upload-artifact@v4` で14日間保持
-  7. `prisma migrate deploy` でマイグレーション適用
-  8. `prisma/migrations/migrate-to-ledgers.ts` で Ledger 移行スクリプトを実行
-  9. マイグレーション適用後の状態確認
-  10. `GITHUB_STEP_SUMMARY` に Partner / Ledger / Transaction の件数サマリーを出力
-- 実行後は必ずジョブサマリーとバックアップアーティファクトを確認すること
-
-## migrate-transaction-purpose.yml
-
-- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
-- `migrate-ledger-tiered-rate.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
-- `prisma/migrations/20260917000000_add_transaction_purpose/migration.sql` が以下を実行する:
-  - `Transaction` に `purpose` カラムを追加
-  - 既存の `description` の値を `purpose` へコピーし、`description` を `NULL` にリセット
-- **不可逆な操作**であり、`description` の内容は移植後に消える。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
-- ジョブサマリーに取引件数・`purpose` ありの件数・`description` ありの件数（移行後は0件になるはず）が出力される
-
-## migrate-transaction-label-preset.yml
-
-- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
-- `migrate-transaction-purpose.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
-- `prisma/migrations/20260918000000_add_transaction_label_preset/migration.sql` が `Account` に `transactionLabelPreset TEXT NOT NULL DEFAULT 'BOTH'` を追加する
-- 既存データの書き換えはなく、既存アカウントはすべて既定の `BOTH`（貸した・返済した / 借りた・返済された）になる。**他の移行ワークフローと違い不可逆なデータ変換は含まない**
-- ジョブサマリーにアカウント件数とプリセットの分布が出力される
-
-## migrate-ledger-annual-interest.yml
-
-- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
-- `migrate-transaction-label-preset.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
-- `prisma/migrations/20260919000000_ledger_annual_interest_and_transaction_kind/migration.sql` が以下を実行する:
-  - `Ledger` に `annualInterestRate` / `interestAccrualWeekday` / `interestCompounding` / `lastInterestAccruedAt` を追加
-  - 年利を「`weeklyInterestRateFrom5000` × 52」でバックフィル
-  - `Ledger` から `weeklyInterestRateUnder5000` / `weeklyInterestRateFrom5000` を削除
-  - `Transaction` に `kind TEXT NOT NULL DEFAULT 'NORMAL'` を追加
-- **不可逆な操作**。特に「5000円未満」の週利率は移行後に復元できない。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
-- 既存取引の `kind` はすべて `NORMAL` のままで、**過去の利子取引を遡って分離することはしない**。
-  ジョブサマリーに `purpose` が「利子」で始まる取引の件数を出力するので、
-  **ここが0でない場合は** 過去の利子が元本に混ざったままであることを意味する。
-  遡って分離したい場合は `UPDATE "Transaction" SET "kind" = 'INTEREST' WHERE "purpose" LIKE '利子%'` 相当のバックフィルを別途検討する
-  （合計残高は変わらず、元本と未払利息の内訳だけが変わる）
-- ジョブサマリーに各口座の年利・発生曜日・単複利の一覧も出力される
-
-## migrate-partner-share-token.yml
-
-- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
-- `migrate-ledger-annual-interest.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
-- `prisma/migrations/20260920000000_partner_share_token/migration.sql` が以下を実行する:
-  - `Partner` の `shareToken` / `shareTokenExpiresAt` を（無ければ）追加する。
-    この2列はベースラインから残ったままになっていた（口座へ移したときに削除マイグレーションが書かれなかった）ため、`IF NOT EXISTS` で扱う
-  - `Partner` に残っていた**古い共有トークンを破棄する**。そのままにすると、失効させたつもりの古いURLが相手ページとして復活してしまう
-  - 生きている口座のトークンを相手へ引き継ぐ（トークンの値はそのまま。配布済みのURLは相手ページとして使える）。
-    1人の相手が複数の口座でリンクを発行していた場合は**有効期限がいちばん先のものだけが残り、他は失効する**
-  - `Ledger` から `shareToken` / `shareTokenExpiresAt` を削除する
-- **不可逆な操作**。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
-- ジョブサマリーに移行後に共有リンクを持つ相手の一覧（名前・有効期限・口座数）が出力される
-
-## migrate-admin-audit-log.yml
-
-- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
-- `migrate-transaction-label-preset.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
-- `prisma/migrations/20260921000000_add_admin_audit_log/migration.sql` が `AdminAuditLog` テーブルと
-  `createdAt` / `actorEmail` のインデックスを作る
-- 既存テーブルへの変更・既存データの書き換えはない。**他の移行ワークフローと違い不可逆なデータ変換は含まない**
-- 管理画面（`/admin`）はこのテーブルがないと監査ログの読み書きで失敗するので、**管理画面をデプロイする前に実行すること**
-- ジョブサマリーに監査ログの件数（新規テーブルなので通常は0）とアカウント件数が出力される
-
-## migrate-partner-share-note.yml
-
-- **トリガー**: `workflow_dispatch` のみ。`confirm` 入力欄へ `migrate-production` と入力しないとジョブが失敗して止まる安全装置がある
-- `migrate-admin-audit-log.yml` と同じ「確認 → バックアップ → `prisma migrate deploy`」の構成。追加のスクリプト実行はない
-- `prisma/migrations/20260921010000_partner_share_note/migration.sql` が以下を実行する:
-  - `Partner` に公開ページ用のメモ `shareNote` を追加する
-  - 相手ごとに**いちばん新しいメモ1件だけ**を `shareNote` へ引き継ぐ（100文字を超える分は切り詰める）
-  - `LedgerNote` テーブルを削除する
-- **不可逆な操作**。引き継がれなかったメモは消える。実行前にジョブが取得するバックアップアーティファクトを必ず確認すること
-- ジョブサマリーに相手の件数とメモを持つ相手の件数が出力される
+  - `CLOUDFLARE_API_TOKEN`（「Workers Scripts: 編集」と「D1: 編集」相当の権限）
+- Worker の実行時シークレット（`JWT_SECRET` など）は Cloudflare 側にあり、このワークフローでは扱わない
 
 ---
 
 ## 運用上の注意
 
-- `keep-supabase-alive.yml` と `weekly-interest.yml` は定期実行ジョブなので、Secrets の失効やDBスキーマ変更時は動作確認が必要
-- `migrate-to-ledgers.yml` は一度限りの移行用ワークフローであり、通常の開発フローでは触れない。誤って再実行しないよう注意する
-- Secrets はすべてリポジトリの GitHub Actions Secrets に設定されている前提。ローカルの `.env` とは別管理
+- Secrets はすべてリポジトリの GitHub Actions Secrets に設定されている前提。ローカルの `.env` / `.dev.vars` とは別管理
+- Supabase 時代の Secrets（`DATABASE_URL` / `DIRECT_URL` / `SUPABASE_URL` / `SUPABASE_ANON_KEY`）はどのワークフローも使っていない。
+  データ移行が終わったら削除する（[11-cloudflare-workers.md](./11-cloudflare-workers.md) の 11.7）

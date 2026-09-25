@@ -6,7 +6,7 @@
 各ユーザーが「自分視点」で取引を記録し、相手（Partner）ごと・口座（Ledger）ごとの残高を追跡する。
 
 - **バージョン**: 2.1.0
-- **ホスティング**: Cloudflare Workers（OpenNext）+ Supabase (PostgreSQL)。詳細は `docs/11-cloudflare-workers.md`
+- **ホスティング**: Cloudflare Workers（OpenNext）+ Cloudflare D1（SQLite）。詳細は `docs/11-cloudflare-workers.md`
 - **対象デバイス**: スマートフォン中心
 
 ---
@@ -17,8 +17,8 @@
 |------|------|
 | フレームワーク | Next.js 16.1.0 (App Router) |
 | 言語 | TypeScript 5 |
-| DB ORM | Prisma 7.8 |
-| DB | PostgreSQL (via `@prisma/adapter-pg`) |
+| DB ORM | Drizzle ORM（マイグレーションは drizzle-kit） |
+| DB | Cloudflare D1（SQLite。Worker のバインディング `env.DB`） |
 | ホスティング | Cloudflare Workers（`@opennextjs/cloudflare`） |
 | 認証 | JWT (jose) + HttpOnly Cookie |
 | UI | Radix UI + Tailwind CSS v4 |
@@ -59,7 +59,7 @@ Partner
 Ledger（口座）
 ├── id
 ├── title                    自由記述（例: "通常", "利子つき"）
-├── annualInterestRate       年利(%)。0 = 無利子。週の利息額は 年利 ÷ 52
+├── annualInterestRateBp     年利のベーシスポイント（0.01%単位の整数。5.25% → 525）。0 = 無利子。週の利息額は 年利 ÷ 52
 ├── interestAccrualWeekday   利息が発生する曜日（JST。0=日 〜 6=土。既定 3=水）
 ├── interestCompounding      true = 複利（元本+未払利息に課金） / false = 単利
 ├── lastInterestAccruedAt    最後に利息を発生させた日時（同日二重発生の防止）
@@ -227,6 +227,7 @@ BottomBar（固定フッター）に4タブ:
 ```
 src/
 ├── actions/          Server Actions（DB操作・バリデーション）
+├── db/               DB スキーマ（schema.ts）・クエリ用ヘルパー（sql.ts）
 ├── app/
 │   ├── (auth)/       login, register
 │   ├── (main)/       認証済みページ群
@@ -245,7 +246,7 @@ src/
 ├── lib/
 │   ├── auth.ts             JWT / Cookie処理
 │   ├── password.ts         bcrypt
-│   ├── prisma.ts           Prismaクライアントシングルトン
+│   ├── db.ts               DB クライアント（Drizzle + D1。リクエストのコンテキストから env.DB を取り出す）
 │   ├── ledger-interest.ts  年利⇄週利の換算・次回利子日の算出・説明文の生成
 │   ├── ledger-balance.ts   元本／未払利息の内訳計算（返済の利息充当・相手単位の合算）
 │   ├── transaction-kind.ts 取引種別（NORMAL / INTEREST）

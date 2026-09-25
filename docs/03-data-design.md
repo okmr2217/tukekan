@@ -28,6 +28,8 @@
 
 ## 3.2 テーブル定義
 
+> 型は概念上のもの。DB は Cloudflare D1（SQLite）で、実際の列の持ち方は 3.3 を参照。
+
 ### Account（認証ユーザー）
 
 | カラム       | 型            | 説明                                       |
@@ -58,14 +60,16 @@ Partner ごとに複数持てる「貸し借りのまとまり」。利子のル
 | ---------------------- | ------------- | ------------------------------------------------------------ |
 | id                     | String (cuid) | 一意のID                                                     |
 | title                  | String        | 口座名（例: "通常", "利子つき"）                             |
-| annualInterestRate     | Decimal(6,2)? | 年利(%)。0 = 無利子。1週間ぶんの利息は「年利 ÷ 52」で計算する |
+| annualInterestRateBp   | Int           | 年利をベーシスポイント（0.01% 単位の整数）で持つ。例: 5.25% → 525。0 = 無利子。1週間ぶんの利息は「年利 ÷ 52」で計算する |
 | interestAccrualWeekday | Int           | 利息が発生する曜日（JST。0=日 〜 6=土）。既定は 3（水）        |
 | interestCompounding    | Boolean       | true = 複利（元本＋未払利息に課金） / false = 単利（元本のみ） |
 | lastInterestAccruedAt  | DateTime?     | 最後に利息を発生させた日時。同じ日の二重発生を防ぐために使う  |
 | partnerId              | String        | 相手（Partner）のID                                          |
 
-> 公開リンクは相手（Partner）単位。口座ごとの `shareToken` は
-> [`20260920000000_partner_share_token`](../prisma/migrations/20260920000000_partner_share_token/migration.sql) で Partner へ移した。
+> 公開リンクは相手（Partner）単位。以前は口座ごとに `shareToken` を持っていたが、Partner へ移した。
+>
+> 年利は Supabase（PostgreSQL）時代は `annualInterestRate Decimal(6,2)`（%）だった。SQLite には Decimal がないため、
+> D1 への移行で整数のベーシスポイントに持ち替えた。アプリ内では `toInterestSettings()` で % に直してから使う。
 
 ### Transaction（取引）
 
@@ -86,78 +90,46 @@ Partner ごとに複数持てる「貸し借りのまとまり」。利子のル
 
 ---
 
-## 3.3 Prisma Schema
+## 3.3 スキーマ（Drizzle ORM / Cloudflare D1）
 
-> このセクションは初期設計時のスナップショット。Ledger や `kind`・`isArchived` などの
-> 後から追加されたフィールドは含まれていない。**実際のスキーマは
-> [`prisma/schema.prisma`](../prisma/schema.prisma) が正**。
+**実際のスキーマは [`src/db/schema.ts`](../src/db/schema.ts) が正**。マイグレーション SQL は `drizzle/` にある
+（手順は [11-cloudflare-workers.md](./11-cloudflare-workers.md) の 11.2）。
+テーブル名・カラム名は Supabase（PostgreSQL + Prisma）時代と同じ。
 
-```prisma
-model Account {
-  id           String   @id @default(cuid())
-  name         String   @unique  // ログイン用・表示用
-  passwordHash String
-  createdAt    DateTime @default(now())
+| 概念上の型 | SQLite の列 | Drizzle の定義 | 備考 |
+| --- | --- | --- | --- |
+| String (cuid) | `text` | `text().primaryKey().$defaultFn(createId)` | ID はアプリ側で `@paralleldrive/cuid2` で振る |
+| DateTime | `integer` | `integer({ mode: "timestamp_ms" })` | UNIX ミリ秒。Drizzle が `Date` に変換する |
+| Boolean | `integer` | `integer({ mode: "boolean" })` | 0 / 1 |
+| 年利 | `integer` | `integer("annualInterestRateBp")` | ベーシスポイント（3.2） |
+| `updatedAt` | `integer` | `$onUpdateFn(() => new Date())` | 更新時にアプリ側で入れる |
 
-  // Relations
-  transactions Transaction[]
-  partners     Partner[]
-}
+外部キー:
 
-model Partner {
-  id              String   @id @default(cuid())
-  name            String
-  createdAt       DateTime @default(now())
+| 列 | 参照先 | 削除時 |
+| --- | --- | --- |
+| `Partner.ownerId` | `Account.id` | 制限（相手が残っているアカウントは消せない） |
+| `Ledger.partnerId` | `Partner.id` | 連動して削除 |
+| `Transaction.ownerId` | `Account.id` | 制限 |
+| `Transaction.partnerId` | `Partner.id` | 制限（取引が残っている相手は消せない） |
+| `Transaction.ledgerId` | `Ledger.id` | null にする |
 
-  // Relations
-  ownerId         String
-  owner           Account  @relation(fields: [ownerId], references: [id])
-
-  transactions    Transaction[]
-
-  @@unique([ownerId, name]) // 同一オーナー内で名前の重複を防ぐ
-}
-
-model Transaction {
-  id          String   @id @default(cuid())
-  amount      Int      // +は貸し、-は借り/返済
-  purpose     String?
-  description String?
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now())
-
-  // Relations
-  ownerId     String
-  owner       Account  @relation(fields: [ownerId], references: [id])
-
-  partnerId   String
-  partner     Partner  @relation(fields: [partnerId], references: [id])
-
-  @@index([ownerId])
-  @@index([partnerId])
-  @@index([date])
-}
-```
+一意制約: `Account.email`、`Partner.shareToken`、`Partner(ownerId, name)`。
 
 ### AdminAuditLog（管理画面の操作記録）
 
-管理画面（`/admin`）から行った書き込み操作の記録。操作者は Cloudflare Access が認証した
-メールアドレスで、`Account` とはひも付かないためリレーションを張らない。詳細は [10-admin.md](./10-admin.md)。
+管理画面（`/admin`）から行った書き込み操作と、Cron からの自動実行の記録。操作者は Cloudflare Access が認証した
+メールアドレス（自動実行は `"cron"`）で、`Account` とはひも付かないためリレーションを張らない。詳細は [10-admin.md](./10-admin.md)。
 
-```prisma
-model AdminAuditLog {
-  id         String   @id @default(cuid())
-  actorEmail String   // Cloudflare Access が認証したメールアドレス
-  action     String   // REVOKE_SHARE_TOKEN | RUN_INTEREST_JOB | DRY_RUN_INTEREST_JOB
-  targetType String?  // "Partner" | "Job"
-  targetId   String?
-  summary    String   // 人が読むための要約
-  createdAt  DateTime @default(now())
-
-  @@index([createdAt])
-  @@index([actorEmail])
-}
-```
+| カラム | 型 | 説明 |
+| --- | --- | --- |
+| id | String (cuid) | 一意のID |
+| actorEmail | String | Cloudflare Access が認証したメールアドレス。自動実行は `"cron"` |
+| action | String | `REVOKE_SHARE_TOKEN` / `RUN_INTEREST_JOB` / `DRY_RUN_INTEREST_JOB` / `SCHEDULED_INTEREST_JOB` |
+| targetType | String? | `"Partner"` / `"Job"` |
+| targetId | String? | 対象のID |
+| summary | String | 人が読むための要約 |
+| createdAt | DateTime | 作成日時（索引あり。`actorEmail` にも索引） |
 
 ---
 
@@ -185,66 +157,69 @@ model AdminAuditLog {
 
 ---
 
-## 3.5 データアクセスパターン（Prisma）
+## 3.5 データアクセスパターン（Drizzle）
+
+`db` は `src/lib/db.ts`、テーブルは `src/db/schema.ts` から import する。
 
 ### 自分の相手ごとの貸借残高を取得
 
 ```typescript
-const balances = await prisma.transaction.groupBy({
-  by: ["partnerId"],
-  where: { ownerId: currentUserId },
-  _sum: { amount: true },
-});
-
-// Partner情報と結合
-const partnersWithBalance = await Promise.all(
-  balances.map(async (b) => {
-    const partner = await prisma.partner.findUnique({
-      where: { id: b.partnerId },
-    });
-    return {
-      partner,
-      balance: b._sum.amount ?? 0,
-    };
-  }),
-);
+const balances = await db
+  .select({
+    partnerId: transaction.partnerId,
+    balance: sql<number>`coalesce(sum(${transaction.amount}), 0)`.mapWith(Number),
+  })
+  .from(transaction)
+  .where(and(eq(transaction.ownerId, currentUserId), eq(transaction.isArchived, false)))
+  .groupBy(transaction.partnerId);
 ```
 
-### 特定の相手との取引履歴を取得
+### 特定の相手との取引履歴を取得（相手の名前つき）
 
 ```typescript
-const transactions = await prisma.transaction.findMany({
-  where: {
-    ownerId: currentUserId,
-    partnerId: partnerId,
+const rows = await db
+  .select({ transaction, partnerName: partner.name })
+  .from(transaction)
+  .innerJoin(partner, eq(transaction.partnerId, partner.id))
+  .where(and(eq(transaction.ownerId, currentUserId), eq(transaction.partnerId, partnerId)))
+  .orderBy(desc(transaction.date), desc(transaction.createdAt));
+```
+
+### 口座と取引をまとめて取得（リレーショナルクエリ）
+
+```typescript
+const ledgers = await db.query.ledger.findMany({
+  where: eq(ledger.partnerId, partnerId),
+  orderBy: asc(ledger.createdAt),
+  with: {
+    transactions: {
+      where: (t, { eq }) => eq(t.isArchived, false),
+      columns: { amount: true, kind: true, date: true, createdAt: true },
+    },
   },
-  orderBy: { date: "desc" },
-  include: { partner: true },
 });
 ```
 
-### 自分の全取引履歴を取得
+### 用途のサジェスト（過去履歴から頻度順）
 
 ```typescript
-const allTransactions = await prisma.transaction.findMany({
-  where: { ownerId: currentUserId },
-  orderBy: { date: "desc" },
-  include: { partner: true },
-});
-```
-
-### 説明のサジェスト（過去履歴から頻度順）
-
-```typescript
-const suggestions = await prisma.transaction.groupBy({
-  by: ["purpose"],
-  where: {
-    ownerId: currentUserId,
-    purpose: { not: null },
-  },
-  _count: { purpose: true },
-  orderBy: { _count: { purpose: "desc" } },
-  take: 10,
-});
+const suggestions = await db
+  .select({ purpose: transaction.purpose })
+  .from(transaction)
+  .where(and(eq(transaction.ownerId, currentUserId), isNotNull(transaction.purpose)))
+  .groupBy(transaction.purpose)
+  .orderBy(desc(count()))
+  .limit(10);
 // → ["麻雀", "ドライブ", "ランチ", ...]
+```
+
+### 複数の書き込みをまとめる
+
+D1 は対話的なトランザクション（`db.transaction()`）を使えない。全部成功か全部失敗かにしたい書き込みは `db.batch()` にまとめる。
+
+```typescript
+await db.batch([
+  db.insert(transaction).values({ amount, kind: "INTEREST", /* ... */ }),
+  db.update(ledger).set({ lastInterestAccruedAt: now }).where(eq(ledger.id, ledgerId)),
+]);
 ```

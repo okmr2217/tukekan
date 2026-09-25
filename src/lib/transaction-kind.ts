@@ -5,7 +5,7 @@
  *   INTEREST : 週次ジョブが自動発生させた利息
  *
  * 利息は元本とは別勘定（未払利息）として扱うため、金額の符号だけでは区別できない。
- * Account.transactionLabelPreset と同じく、Prisma の enum ではなく文字列で持つ。
+ * Account.transactionLabelPreset と同じく、DB の enum ではなく文字列で持つ。
  */
 
 export const TRANSACTION_KINDS = ["NORMAL", "INTEREST"] as const;

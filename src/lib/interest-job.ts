@@ -14,7 +14,9 @@
  * dryRun: true なら「何が起きるか」だけを計算し、DBは一切変更しない。
  */
 
-import type { PrismaClient } from "@prisma/client";
+import { and, eq, gt } from "drizzle-orm";
+import type { Database } from "@/lib/db";
+import { ledger as ledgerTable, transaction } from "@/db/schema";
 import { calcLedgerBreakdown } from "@/lib/ledger-balance";
 import { formatDateToJST, toJST } from "@/lib/date-utils";
 import {
@@ -72,7 +74,7 @@ export type RunInterestJobOptions = {
 };
 
 export async function runInterestJob(
-  prisma: PrismaClient,
+  db: Database,
   options: RunInterestJobOptions = {},
 ): Promise<InterestJobResult> {
   const now = options.now ?? new Date();
@@ -80,24 +82,19 @@ export async function runInterestJob(
   const weekday = toJST(now).getDay();
   const dateJST = formatDateToJST(now);
 
-  const ledgers = await prisma.ledger.findMany({
-    where: {
-      annualInterestRate: { gt: 0 },
-      interestAccrualWeekday: weekday,
-    },
-    include: {
+  const ledgers = await db.query.ledger.findMany({
+    where: and(
+      gt(ledgerTable.annualInterestRateBp, 0),
+      eq(ledgerTable.interestAccrualWeekday, weekday),
+    ),
+    with: {
       partner: {
-        select: {
-          id: true,
-          name: true,
-          ownerId: true,
-          isArchived: true,
-          owner: { select: { name: true } },
-        },
+        columns: { id: true, name: true, ownerId: true, isArchived: true },
+        with: { owner: { columns: { name: true } } },
       },
       transactions: {
-        where: { isArchived: false },
-        select: { amount: true, kind: true, date: true, createdAt: true },
+        where: (t, { eq }) => eq(t.isArchived, false),
+        columns: { amount: true, kind: true, date: true, createdAt: true },
       },
     },
   });
@@ -141,22 +138,23 @@ export async function runInterestJob(
     }
 
     if (!dryRun) {
-      await prisma.$transaction([
-        prisma.transaction.create({
-          data: {
-            amount,
-            kind: "INTEREST",
-            purpose: `利子（年利${formatRate(settings.annualInterestRate)}%）`,
-            date: now,
-            ownerId: ledger.partner.ownerId,
-            partnerId: ledger.partner.id,
-            ledgerId: ledger.id,
-          },
+      // 利息の記録と lastInterestAccruedAt の更新は必ずセットで反映させる（片方だけだと
+      // 再実行時に二重発生する）。D1 の batch は1つのトランザクションとして実行され、
+      // どれか1つでも失敗すれば全体がロールバックされる
+      await db.batch([
+        db.insert(transaction).values({
+          amount,
+          kind: "INTEREST",
+          purpose: `利子（年利${formatRate(settings.annualInterestRate)}%）`,
+          date: now,
+          ownerId: ledger.partner.ownerId,
+          partnerId: ledger.partner.id,
+          ledgerId: ledger.id,
         }),
-        prisma.ledger.update({
-          where: { id: ledger.id },
-          data: { lastInterestAccruedAt: now },
-        }),
+        db
+          .update(ledgerTable)
+          .set({ lastInterestAccruedAt: now })
+          .where(eq(ledgerTable.id, ledger.id)),
       ]);
     }
 

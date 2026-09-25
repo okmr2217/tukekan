@@ -1,6 +1,8 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import { and, asc, count, eq, gte, sql } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { partner as partnerTable, transaction } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { toJST } from "@/lib/date-utils";
 
@@ -36,55 +38,58 @@ export type MonthlyStat = {
   net: number;
 };
 
+/** 取引の金額の集計（残高・貸した合計・借りた合計・件数）を1回のクエリで出す列 */
+const amountTotals = {
+  balance: sql<number>`coalesce(sum(${transaction.amount}), 0)`.mapWith(Number),
+  totalLent: sql<number>`coalesce(sum(case when ${transaction.amount} > 0 then ${transaction.amount} else 0 end), 0)`.mapWith(
+    Number,
+  ),
+  totalBorrowed: sql<number>`coalesce(sum(case when ${transaction.amount} < 0 then -${transaction.amount} else 0 end), 0)`.mapWith(
+    Number,
+  ),
+  transactionCount: count(),
+};
+
 export async function getPartnerStats(): Promise<PartnerStat[]> {
   const session = await getSession();
   if (!session) {
     return [];
   }
 
-  const partners = await prisma.partner.findMany({
-    where: { ownerId: session.userId, isArchived: false },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
-
-  const stats = await Promise.all(
-    partners.map(async (partner) => {
-      const baseWhere = {
-        ownerId: session.userId,
-        partnerId: partner.id,
-        isArchived: false,
-      };
-
-      const [aggregate, lentAggregate, borrowedAggregate, count] =
-        await Promise.all([
-          prisma.transaction.aggregate({
-            where: baseWhere,
-            _sum: { amount: true },
-          }),
-          prisma.transaction.aggregate({
-            where: { ...baseWhere, amount: { gt: 0 } },
-            _sum: { amount: true },
-          }),
-          prisma.transaction.aggregate({
-            where: { ...baseWhere, amount: { lt: 0 } },
-            _sum: { amount: true },
-          }),
-          prisma.transaction.count({ where: baseWhere }),
-        ]);
-
-      return {
-        partnerId: partner.id,
-        partnerName: partner.name,
-        balance: aggregate._sum.amount ?? 0,
-        totalLent: lentAggregate._sum.amount ?? 0,
-        totalBorrowed: Math.abs(borrowedAggregate._sum.amount ?? 0),
-        transactionCount: count,
-      };
+  const [partners, totals] = await Promise.all([
+    db.query.partner.findMany({
+      where: and(
+        eq(partnerTable.ownerId, session.userId),
+        eq(partnerTable.isArchived, false),
+      ),
+      columns: { id: true, name: true },
+      orderBy: asc(partnerTable.name),
     }),
-  );
+    db
+      .select({ partnerId: transaction.partnerId, ...amountTotals })
+      .from(transaction)
+      .where(
+        and(
+          eq(transaction.ownerId, session.userId),
+          eq(transaction.isArchived, false),
+        ),
+      )
+      .groupBy(transaction.partnerId),
+  ]);
 
-  return stats;
+  const totalsByPartner = new Map(totals.map((t) => [t.partnerId, t]));
+
+  return partners.map((partner) => {
+    const t = totalsByPartner.get(partner.id);
+    return {
+      partnerId: partner.id,
+      partnerName: partner.name,
+      balance: t?.balance ?? 0,
+      totalLent: t?.totalLent ?? 0,
+      totalBorrowed: t?.totalBorrowed ?? 0,
+      transactionCount: t?.transactionCount ?? 0,
+    };
+  });
 }
 
 export async function getOverallStats(): Promise<OverallStat> {
@@ -93,35 +98,20 @@ export async function getOverallStats(): Promise<OverallStat> {
     return { balance: 0, totalLent: 0, totalBorrowed: 0, transactionCount: 0 };
   }
 
-  const baseWhere = {
-    ownerId: session.userId,
-    isArchived: false,
-    partner: { ownerId: session.userId, isArchived: false },
-  };
+  const [totals] = await db
+    .select(amountTotals)
+    .from(transaction)
+    .innerJoin(partnerTable, eq(transaction.partnerId, partnerTable.id))
+    .where(
+      and(
+        eq(transaction.ownerId, session.userId),
+        eq(transaction.isArchived, false),
+        eq(partnerTable.ownerId, session.userId),
+        eq(partnerTable.isArchived, false),
+      ),
+    );
 
-  const [aggregate, lentAggregate, borrowedAggregate, transactionCount] =
-    await Promise.all([
-      prisma.transaction.aggregate({
-        where: baseWhere,
-        _sum: { amount: true },
-      }),
-      prisma.transaction.aggregate({
-        where: { ...baseWhere, amount: { gt: 0 } },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.aggregate({
-        where: { ...baseWhere, amount: { lt: 0 } },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.count({ where: baseWhere }),
-    ]);
-
-  return {
-    balance: aggregate._sum.amount ?? 0,
-    totalLent: lentAggregate._sum.amount ?? 0,
-    totalBorrowed: Math.abs(borrowedAggregate._sum.amount ?? 0),
-    transactionCount,
-  };
+  return totals;
 }
 
 export async function getMonthlyStats(): Promise<MonthlyStat[]> {
@@ -140,15 +130,19 @@ export async function getMonthlyStats(): Promise<MonthlyStat[]> {
     startOfEarliestMonthJST.getTime() - 9 * 60 * 60 * 1000,
   );
 
-  const transactions = await prisma.transaction.findMany({
-    where: {
-      ownerId: session.userId,
-      isArchived: false,
-      partner: { ownerId: session.userId, isArchived: false },
-      date: { gte: startUTC },
-    },
-    select: { amount: true, date: true },
-  });
+  const transactions = await db
+    .select({ amount: transaction.amount, date: transaction.date })
+    .from(transaction)
+    .innerJoin(partnerTable, eq(transaction.partnerId, partnerTable.id))
+    .where(
+      and(
+        eq(transaction.ownerId, session.userId),
+        eq(transaction.isArchived, false),
+        eq(partnerTable.ownerId, session.userId),
+        eq(partnerTable.isArchived, false),
+        gte(transaction.date, startUTC),
+      ),
+    );
 
   // 直近12ヶ月分のキーを初期化
   const monthMap = new Map<string, { totalLent: number; totalBorrowed: number }>();

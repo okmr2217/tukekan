@@ -13,7 +13,7 @@
  * ことになるので、必ず拒否する。
  *
  * このファイルは Edge ランタイム（middleware）からも読むため、
- * next/headers や prisma など Node 依存のものを import しないこと。
+ * next/headers や DB クライアント（src/lib/db.ts）など Node・リクエスト依存のものを import しないこと。
  */
 
 import { createRemoteJWKSet, jwtVerify } from "jose";

@@ -1,12 +1,15 @@
 "use server";
 
 import { z } from "zod";
-import prisma from "@/lib/prisma";
+import { asc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { ledger as ledgerTable } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { findOwnedPartner } from "@/actions/partner/_helpers";
 import {
   getNextInterestPreview,
+  toAnnualInterestRateBp,
   toInterestSettings,
   DEFAULT_INTEREST_WEEKDAY,
   MAX_ANNUAL_INTEREST_RATE,
@@ -44,13 +47,13 @@ export async function getLedgersByPartner(
   if (!session) return [];
   if (!(await findOwnedPartner(partnerId, session.userId))) return [];
 
-  const ledgers = await prisma.ledger.findMany({
-    where: { partnerId },
-    orderBy: { createdAt: "asc" },
-    include: {
+  const ledgers = await db.query.ledger.findMany({
+    where: eq(ledgerTable.partnerId, partnerId),
+    orderBy: asc(ledgerTable.createdAt),
+    with: {
       transactions: {
-        where: { isArchived: false },
-        select: { amount: true, kind: true, date: true, createdAt: true },
+        where: (t, { eq }) => eq(t.isArchived, false),
+        columns: { amount: true, kind: true, date: true, createdAt: true },
       },
     },
   });
@@ -98,10 +101,10 @@ export async function getLedgerOptions(
   if (!session) return [];
   if (!(await findOwnedPartner(partnerId, session.userId))) return [];
 
-  const ledgers = await prisma.ledger.findMany({
-    where: { partnerId },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, title: true, annualInterestRate: true },
+  const ledgers = await db.query.ledger.findMany({
+    where: eq(ledgerTable.partnerId, partnerId),
+    orderBy: asc(ledgerTable.createdAt),
+    columns: { id: true, title: true, annualInterestRateBp: true },
   });
 
   return ledgers.map((l) => ({
@@ -127,19 +130,21 @@ export async function getLedgerById(ledgerId: string): Promise<LedgerById | null
   const session = await getSession();
   if (!session) return null;
 
-  const ledger = await prisma.ledger.findUnique({
-    where: { id: ledgerId },
-    select: {
+  const ledger = await db.query.ledger.findFirst({
+    where: eq(ledgerTable.id, ledgerId),
+    columns: {
       id: true,
       title: true,
-      annualInterestRate: true,
+      annualInterestRateBp: true,
       interestAccrualWeekday: true,
       interestCompounding: true,
       partnerId: true,
-      partner: { select: { name: true, isArchived: true, ownerId: true } },
+    },
+    with: {
+      partner: { columns: { name: true, isArchived: true, ownerId: true } },
       transactions: {
-        where: { isArchived: false },
-        select: { amount: true, kind: true, date: true, createdAt: true },
+        where: (t, { eq }) => eq(t.isArchived, false),
+        columns: { amount: true, kind: true, date: true, createdAt: true },
       },
     },
   });
@@ -186,6 +191,14 @@ const ledgerSchema = z.object({
 /** 口座の追加時は曜日・単複利を省略できる（既定値が入る） */
 export type LedgerInput = z.input<typeof ledgerSchema>;
 
+/** 入力（年利は %）を DB の列（年利はベーシスポイント）に直す */
+function toLedgerValues({
+  annualInterestRate,
+  ...rest
+}: z.output<typeof ledgerSchema>) {
+  return { ...rest, annualInterestRateBp: toAnnualInterestRateBp(annualInterestRate) };
+}
+
 export type LedgerFormState = { error?: string; success?: boolean };
 
 export async function createLedger(
@@ -201,9 +214,7 @@ export async function createLedger(
   const result = ledgerSchema.safeParse(input);
   if (!result.success) return { error: result.error.issues[0].message };
 
-  await prisma.ledger.create({
-    data: { partnerId, ...result.data },
-  });
+  await db.insert(ledgerTable).values({ partnerId, ...toLedgerValues(result.data) });
 
   revalidatePath(`/partners/${partnerId}`);
   revalidatePath("/");
@@ -218,9 +229,9 @@ export async function updateLedger(
   const session = await getSession();
   if (!session) return { error: "ログインが必要です" };
 
-  const ledger = await prisma.ledger.findUnique({
-    where: { id: ledgerId },
-    include: { partner: true },
+  const ledger = await db.query.ledger.findFirst({
+    where: eq(ledgerTable.id, ledgerId),
+    with: { partner: { columns: { ownerId: true } } },
   });
   if (!ledger || ledger.partner.ownerId !== session.userId) {
     return { error: "口座が見つかりません" };
@@ -229,10 +240,10 @@ export async function updateLedger(
   const result = ledgerSchema.safeParse(input);
   if (!result.success) return { error: result.error.issues[0].message };
 
-  await prisma.ledger.update({
-    where: { id: ledgerId },
-    data: result.data,
-  });
+  await db
+    .update(ledgerTable)
+    .set(toLedgerValues(result.data))
+    .where(eq(ledgerTable.id, ledgerId));
 
   revalidatePath(`/partners/${ledger.partnerId}`);
   revalidatePath(`/ledgers/${ledgerId}/settings`);
@@ -245,9 +256,12 @@ export async function deleteLedger(ledgerId: string): Promise<LedgerFormState> {
   const session = await getSession();
   if (!session) return { error: "ログインが必要です" };
 
-  const ledger = await prisma.ledger.findUnique({
-    where: { id: ledgerId },
-    include: { partner: true, transactions: { select: { id: true }, take: 1 } },
+  const ledger = await db.query.ledger.findFirst({
+    where: eq(ledgerTable.id, ledgerId),
+    with: {
+      partner: { columns: { ownerId: true } },
+      transactions: { columns: { id: true }, limit: 1 },
+    },
   });
   if (!ledger || ledger.partner.ownerId !== session.userId) {
     return { error: "口座が見つかりません" };
@@ -256,14 +270,15 @@ export async function deleteLedger(ledgerId: string): Promise<LedgerFormState> {
     return { error: "取引が記録されている口座は削除できません" };
   }
 
-  const ledgerCount = await prisma.ledger.count({
-    where: { partnerId: ledger.partnerId },
-  });
+  const ledgerCount = await db.$count(
+    ledgerTable,
+    eq(ledgerTable.partnerId, ledger.partnerId),
+  );
   if (ledgerCount <= 1) {
     return { error: "最後の1つの口座は削除できません" };
   }
 
-  await prisma.ledger.delete({ where: { id: ledgerId } });
+  await db.delete(ledgerTable).where(eq(ledgerTable.id, ledgerId));
 
   revalidatePath(`/partners/${ledger.partnerId}`);
   revalidatePath("/");

@@ -8,8 +8,30 @@
  * 先頭で requireAdmin() を呼んで管理者であることを確かめる。
  */
 
-import type { Prisma } from "@prisma/client";
-import prisma from "@/lib/prisma";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  lte,
+  max,
+  or,
+  type SQL,
+} from "drizzle-orm";
+import { db } from "@/lib/db";
+import { contains } from "@/db/sql";
+import {
+  account,
+  adminAuditLog,
+  ledger as ledgerTable,
+  partner as partnerTable,
+  transaction,
+} from "@/db/schema";
 import { requireAdmin } from "@/lib/admin-auth";
 import {
   calcLedgerBreakdown,
@@ -75,20 +97,20 @@ function calcBreakdownAcrossLedgers(rows: BalanceRow[]): LedgerBalanceBreakdown 
 
 /** アーカイブされていない取引のうち、残高計算に必要な列だけを読む */
 async function loadBalanceRows(
-  where: Prisma.TransactionWhereInput = {},
+  where?: SQL,
 ): Promise<Array<BalanceRow & { ownerId: string }>> {
-  return prisma.transaction.findMany({
-    where: { ...where, isArchived: false },
-    select: {
-      amount: true,
-      kind: true,
-      date: true,
-      createdAt: true,
-      ledgerId: true,
-      partnerId: true,
-      ownerId: true,
-    },
-  });
+  return db
+    .select({
+      amount: transaction.amount,
+      kind: transaction.kind,
+      date: transaction.date,
+      createdAt: transaction.createdAt,
+      ledgerId: transaction.ledgerId,
+      partnerId: transaction.partnerId,
+      ownerId: transaction.ownerId,
+    })
+    .from(transaction)
+    .where(and(where, eq(transaction.isArchived, false)));
 }
 
 function sumLent(rows: Array<{ amount: number }>): number {
@@ -99,44 +121,45 @@ function sumBorrowed(rows: Array<{ amount: number }>): number {
   return rows.reduce((sum, r) => (r.amount < 0 ? sum - r.amount : sum), 0);
 }
 
-const TRANSACTION_ROW_SELECT = {
-  id: true,
-  amount: true,
-  purpose: true,
-  description: true,
-  date: true,
-  kind: true,
-  isArchived: true,
-  createdAt: true,
-  ownerId: true,
-  partnerId: true,
-  ledgerId: true,
-  owner: { select: { name: true } },
-  partner: { select: { name: true } },
-  ledger: { select: { title: true } },
-} satisfies Prisma.TransactionSelect;
+/**
+ * 取引の一覧（持ち主・相手・口座の名前つき）を新しい順に読む。
+ * where では partner の列（相手の名前など）も使える。
+ */
+async function loadTransactionRows(options: {
+  where?: SQL;
+  limit: number;
+  offset?: number;
+}): Promise<AdminTransactionRow[]> {
+  return db
+    .select({
+      id: transaction.id,
+      amount: transaction.amount,
+      purpose: transaction.purpose,
+      description: transaction.description,
+      date: transaction.date,
+      kind: transaction.kind,
+      isArchived: transaction.isArchived,
+      createdAt: transaction.createdAt,
+      ownerId: transaction.ownerId,
+      ownerName: account.name,
+      partnerId: transaction.partnerId,
+      partnerName: partnerTable.name,
+      ledgerId: transaction.ledgerId,
+      ledgerTitle: ledgerTable.title,
+    })
+    .from(transaction)
+    .innerJoin(account, eq(transaction.ownerId, account.id))
+    .innerJoin(partnerTable, eq(transaction.partnerId, partnerTable.id))
+    .leftJoin(ledgerTable, eq(transaction.ledgerId, ledgerTable.id))
+    .where(options.where)
+    .orderBy(desc(transaction.date), desc(transaction.createdAt))
+    .limit(options.limit)
+    .offset(options.offset ?? 0);
+}
 
-type TransactionWithRelations = Prisma.TransactionGetPayload<{
-  select: typeof TRANSACTION_ROW_SELECT;
-}>;
-
-function toTransactionRow(t: TransactionWithRelations): AdminTransactionRow {
-  return {
-    id: t.id,
-    amount: t.amount,
-    purpose: t.purpose,
-    description: t.description,
-    date: t.date,
-    kind: t.kind,
-    isArchived: t.isArchived,
-    createdAt: t.createdAt,
-    ownerId: t.ownerId,
-    ownerName: t.owner.name,
-    partnerId: t.partnerId,
-    partnerName: t.partner.name,
-    ledgerId: t.ledgerId,
-    ledgerTitle: t.ledger?.title ?? null,
-  };
+/** キーごとの件数を Map にする（groupBy の結果を引きやすくする） */
+function toCountMap<K>(rows: Array<{ key: K; count: number }>): Map<K, number> {
+  return new Map(rows.map((r) => [r.key, r.count]));
 }
 
 /**
@@ -144,25 +167,20 @@ function toTransactionRow(t: TransactionWithRelations): AdminTransactionRow {
  * 口座ページ・アカウント詳細・ダッシュボードの「止まっている口座」で共用する。
  */
 async function buildLedgerRows(
-  where: Prisma.LedgerWhereInput = {},
+  where?: SQL,
   now: Date = new Date(),
 ): Promise<AdminLedgerRow[]> {
-  const ledgers = await prisma.ledger.findMany({
+  const ledgers = await db.query.ledger.findMany({
     where,
-    orderBy: { createdAt: "desc" },
-    include: {
+    orderBy: desc(ledgerTable.createdAt),
+    with: {
       partner: {
-        select: {
-          id: true,
-          name: true,
-          isArchived: true,
-          ownerId: true,
-          owner: { select: { name: true, email: true } },
-        },
+        columns: { id: true, name: true, isArchived: true, ownerId: true },
+        with: { owner: { columns: { name: true, email: true } } },
       },
       transactions: {
-        where: { isArchived: false },
-        select: { amount: true, kind: true, date: true, createdAt: true },
+        where: (t, { eq }) => eq(t.isArchived, false),
+        columns: { amount: true, kind: true, date: true, createdAt: true },
       },
     },
   });
@@ -200,6 +218,23 @@ async function buildLedgerRows(
   });
 }
 
+/** 直近で発生した利息の取引（ジョブが動いているかの目安） */
+async function findLastInterest() {
+  return db.query.transaction.findFirst({
+    where: eq(transaction.kind, "INTEREST"),
+    orderBy: desc(transaction.date),
+    columns: { date: true },
+  });
+}
+
+/** 指定した操作の最新の監査ログ */
+async function findLastAuditLog(action: string) {
+  return db.query.adminAuditLog.findFirst({
+    where: eq(adminAuditLog.action, action),
+    orderBy: desc(adminAuditLog.createdAt),
+  });
+}
+
 /** ダッシュボード用の全体サマリー */
 export async function getAdminOverview(): Promise<AdminOverview> {
   await requireAdmin();
@@ -225,50 +260,43 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     recentAccounts,
     ledgerRows,
   ] = await Promise.all([
-    prisma.account.count(),
-    prisma.partner.count(),
-    prisma.partner.count({ where: { isArchived: true } }),
-    prisma.ledger.count(),
-    prisma.ledger.count({ where: { annualInterestRate: { gt: 0 } } }),
-    prisma.transaction.count(),
-    prisma.transaction.count({ where: { isArchived: true } }),
-    prisma.partner.count({
-      where: { shareToken: { not: null }, shareTokenExpiresAt: { gt: now } },
-    }),
-    prisma.partner.count({
-      where: {
-        shareToken: { not: null },
-        shareTokenExpiresAt: {
-          gt: now,
-          lte: new Date(now.getTime() + SHARE_LINK_EXPIRING_DAYS * DAY_MS),
-        },
-      },
-    }),
-    prisma.account.count({ where: { createdAt: { gte: since30Days } } }),
-    prisma.transaction.count({ where: { createdAt: { gte: since30Days } } }),
-    prisma.transaction.findFirst({
-      where: { kind: "INTEREST" },
-      orderBy: { date: "desc" },
-      select: { date: true },
-    }),
+    db.$count(account),
+    db.$count(partnerTable),
+    db.$count(partnerTable, eq(partnerTable.isArchived, true)),
+    db.$count(ledgerTable),
+    db.$count(ledgerTable, gt(ledgerTable.annualInterestRateBp, 0)),
+    db.$count(transaction),
+    db.$count(transaction, eq(transaction.isArchived, true)),
+    db.$count(
+      partnerTable,
+      and(
+        isNotNull(partnerTable.shareToken),
+        gt(partnerTable.shareTokenExpiresAt, now),
+      ),
+    ),
+    db.$count(
+      partnerTable,
+      and(
+        isNotNull(partnerTable.shareToken),
+        gt(partnerTable.shareTokenExpiresAt, now),
+        lte(
+          partnerTable.shareTokenExpiresAt,
+          new Date(now.getTime() + SHARE_LINK_EXPIRING_DAYS * DAY_MS),
+        ),
+      ),
+    ),
+    db.$count(account, gte(account.createdAt, since30Days)),
+    db.$count(transaction, gte(transaction.createdAt, since30Days)),
+    findLastInterest(),
     loadBalanceRows(),
-    prisma.transaction.findMany({
-      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      take: 8,
-      select: TRANSACTION_ROW_SELECT,
+    loadTransactionRows({ limit: 8 }),
+    db.query.account.findMany({
+      orderBy: desc(account.createdAt),
+      limit: 5,
+      columns: { id: true, name: true, email: true, createdAt: true },
+      with: { partners: { columns: { id: true } } },
     }),
-    prisma.account.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        createdAt: true,
-        _count: { select: { partners: true } },
-      },
-    }),
-    buildLedgerRows({}, now),
+    buildLedgerRows(undefined, now),
   ]);
 
   return {
@@ -289,13 +317,13 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     lastInterestAccruedAt: lastInterest?.date ?? null,
     stalledInterestLedgerCount: ledgerRows.filter((l) => l.isInterestStalled)
       .length,
-    recentTransactions: recentTransactions.map(toTransactionRow),
+    recentTransactions,
     recentAccounts: recentAccounts.map((a) => ({
       id: a.id,
       name: a.name,
       email: a.email,
       createdAt: a.createdAt,
-      partnerCount: a._count.partners,
+      partnerCount: a.partners.length,
     })),
   };
 }
@@ -305,42 +333,36 @@ export async function getAdminAccounts(q?: string): Promise<AdminAccountRow[]> {
   await requireAdmin();
 
   const keyword = q?.trim();
-  const where: Prisma.AccountWhereInput = keyword
-    ? {
-        OR: [
-          { name: { contains: keyword, mode: "insensitive" } },
-          { email: { contains: keyword, mode: "insensitive" } },
-        ],
-      }
-    : {};
+  const where = keyword
+    ? or(contains(account.name, keyword), contains(account.email, keyword))
+    : undefined;
 
   const now = new Date();
-  const [accounts, balanceRows] = await Promise.all([
-    prisma.account.findMany({
+  const [accounts, transactionStats, balanceRows] = await Promise.all([
+    db.query.account.findMany({
       where,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        createdAt: true,
-        _count: { select: { partners: true, transactions: true } },
+      orderBy: desc(account.createdAt),
+      columns: { id: true, name: true, email: true, createdAt: true },
+      with: {
         partners: {
-          select: {
-            shareToken: true,
-            shareTokenExpiresAt: true,
-            _count: { select: { ledgers: true } },
-          },
-        },
-        transactions: {
-          orderBy: { date: "desc" },
-          take: 1,
-          select: { date: true },
+          columns: { shareToken: true, shareTokenExpiresAt: true },
+          with: { ledgers: { columns: { id: true } } },
         },
       },
     }),
+    // 取引の件数（アーカイブ済みも含む）と最後の取引日をアカウントごとに
+    db
+      .select({
+        ownerId: transaction.ownerId,
+        count: count(),
+        lastDate: max(transaction.date),
+      })
+      .from(transaction)
+      .groupBy(transaction.ownerId),
     loadBalanceRows(),
   ]);
+
+  const statsByOwner = new Map(transactionStats.map((t) => [t.ownerId, t]));
 
   const byOwner = new Map<string, BalanceRow[]>();
   for (const row of balanceRows) {
@@ -354,11 +376,11 @@ export async function getAdminAccounts(q?: string): Promise<AdminAccountRow[]> {
     name: account.name,
     email: account.email,
     createdAt: account.createdAt,
-    partnerCount: account._count.partners,
-    ledgerCount: account.partners.reduce((sum, p) => sum + p._count.ledgers, 0),
-    transactionCount: account._count.transactions,
+    partnerCount: account.partners.length,
+    ledgerCount: account.partners.reduce((sum, p) => sum + p.ledgers.length, 0),
+    transactionCount: statsByOwner.get(account.id)?.count ?? 0,
     breakdown: calcBreakdownAcrossLedgers(byOwner.get(account.id) ?? []),
-    lastTransactionAt: account.transactions[0]?.date ?? null,
+    lastTransactionAt: statsByOwner.get(account.id)?.lastDate ?? null,
     shareLinkCount: account.partners.filter(
       (p) =>
         p.shareToken !== null &&
@@ -375,42 +397,59 @@ export async function getAdminAccountDetail(
   await requireAdmin();
 
   const now = new Date();
-  const account = await prisma.account.findUnique({
-    where: { id: accountId },
-    select: {
+  const found = await db.query.account.findFirst({
+    where: eq(account.id, accountId),
+    columns: {
       id: true,
       name: true,
       email: true,
       createdAt: true,
       transactionLabelPreset: true,
-      _count: { select: { transactions: true } },
+    },
+    with: {
       partners: {
-        orderBy: { createdAt: "asc" },
-        select: {
+        orderBy: (p, { asc }) => asc(p.createdAt),
+        columns: {
           id: true,
           name: true,
           isArchived: true,
           createdAt: true,
           shareToken: true,
           shareTokenExpiresAt: true,
-          _count: { select: { ledgers: true, transactions: true } },
         },
+        with: { ledgers: { columns: { id: true } } },
       },
     },
   });
 
-  if (!account) return null;
+  if (!found) return null;
 
-  const [balanceRows, ledgers, recentTransactions] = await Promise.all([
-    loadBalanceRows({ ownerId: accountId }),
-    buildLedgerRows({ partner: { ownerId: accountId } }, now),
-    prisma.transaction.findMany({
-      where: { ownerId: accountId },
-      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      take: 15,
-      select: TRANSACTION_ROW_SELECT,
-    }),
-  ]);
+  const [balanceRows, ledgers, recentTransactions, transactionCounts] =
+    await Promise.all([
+      loadBalanceRows(eq(transaction.ownerId, accountId)),
+      buildLedgerRows(
+        inArray(
+          ledgerTable.partnerId,
+          db
+            .select({ id: partnerTable.id })
+            .from(partnerTable)
+            .where(eq(partnerTable.ownerId, accountId)),
+        ),
+        now,
+      ),
+      loadTransactionRows({
+        where: eq(transaction.ownerId, accountId),
+        limit: 15,
+      }),
+      // 相手ごとの取引の件数（アーカイブ済みも含む）
+      db
+        .select({ key: transaction.partnerId, count: count() })
+        .from(transaction)
+        .where(eq(transaction.ownerId, accountId))
+        .groupBy(transaction.partnerId),
+    ]);
+
+  const countByPartner = toCountMap(transactionCounts);
 
   const byPartner = new Map<string, BalanceRow[]>();
   for (const row of balanceRows) {
@@ -420,28 +459,28 @@ export async function getAdminAccountDetail(
   }
 
   return {
-    id: account.id,
-    name: account.name,
-    email: account.email,
-    createdAt: account.createdAt,
-    transactionLabelPreset: account.transactionLabelPreset,
+    id: found.id,
+    name: found.name,
+    email: found.email,
+    createdAt: found.createdAt,
+    transactionLabelPreset: found.transactionLabelPreset,
     breakdown: calcBreakdownAcrossLedgers(balanceRows),
     totalLent: sumLent(balanceRows),
     totalBorrowed: sumBorrowed(balanceRows),
-    transactionCount: account._count.transactions,
-    partners: account.partners.map((p) => ({
+    transactionCount: [...countByPartner.values()].reduce((a, b) => a + b, 0),
+    partners: found.partners.map((p) => ({
       id: p.id,
       name: p.name,
       isArchived: p.isArchived,
       createdAt: p.createdAt,
-      ledgerCount: p._count.ledgers,
-      transactionCount: p._count.transactions,
+      ledgerCount: p.ledgers.length,
+      transactionCount: countByPartner.get(p.id) ?? 0,
       breakdown: calcBreakdownAcrossLedgers(byPartner.get(p.id) ?? []),
       shareToken: p.shareToken,
       shareTokenExpiresAt: p.shareTokenExpiresAt,
     })),
     ledgers,
-    recentTransactions: recentTransactions.map(toTransactionRow),
+    recentTransactions,
   };
 }
 
@@ -452,7 +491,7 @@ export async function getAdminLedgers(
   await requireAdmin();
 
   const rows = await buildLedgerRows(
-    onlyInterest ? { annualInterestRate: { gt: 0 } } : {},
+    onlyInterest ? gt(ledgerTable.annualInterestRateBp, 0) : undefined,
   );
 
   // 止まっている口座 → 利子つき → 残高の大きい順。異常を先に見せる
@@ -476,45 +515,44 @@ export async function getAdminTransactions(
   const keyword = filters.q?.trim();
   const page = Math.max(1, filters.page ?? 1);
 
-  const dateFilter: Prisma.DateTimeFilter = {};
-  if (filters.from) {
-    const from = new Date(`${filters.from}T00:00:00+09:00`);
-    if (!Number.isNaN(from.getTime())) dateFilter.gte = from;
-  }
-  if (filters.to) {
-    const to = new Date(`${filters.to}T23:59:59+09:00`);
-    if (!Number.isNaN(to.getTime())) dateFilter.lte = to;
-  }
+  const from = filters.from
+    ? new Date(`${filters.from}T00:00:00+09:00`)
+    : null;
+  const to = filters.to ? new Date(`${filters.to}T23:59:59+09:00`) : null;
 
-  const where: Prisma.TransactionWhereInput = {
-    ...(filters.includeArchived ? {} : { isArchived: false }),
-    ...(filters.ownerId ? { ownerId: filters.ownerId } : {}),
-    ...(filters.kind ? { kind: filters.kind } : {}),
-    ...(Object.keys(dateFilter).length > 0 ? { date: dateFilter } : {}),
-    ...(keyword
-      ? {
-          OR: [
-            { purpose: { contains: keyword, mode: "insensitive" } },
-            { description: { contains: keyword, mode: "insensitive" } },
-            { partner: { name: { contains: keyword, mode: "insensitive" } } },
-          ],
-        }
-      : {}),
-  };
+  // 相手の名前でも探すので、partner を join した上で使う条件
+  const where = and(
+    filters.includeArchived ? undefined : eq(transaction.isArchived, false),
+    filters.ownerId ? eq(transaction.ownerId, filters.ownerId) : undefined,
+    filters.kind ? eq(transaction.kind, filters.kind) : undefined,
+    from && !Number.isNaN(from.getTime())
+      ? gte(transaction.date, from)
+      : undefined,
+    to && !Number.isNaN(to.getTime()) ? lte(transaction.date, to) : undefined,
+    keyword
+      ? or(
+          contains(transaction.purpose, keyword),
+          contains(transaction.description, keyword),
+          contains(partnerTable.name, keyword),
+        )
+      : undefined,
+  );
 
-  const [total, rows] = await Promise.all([
-    prisma.transaction.count({ where }),
-    prisma.transaction.findMany({
+  const [[{ total }], rows] = await Promise.all([
+    db
+      .select({ total: count() })
+      .from(transaction)
+      .innerJoin(partnerTable, eq(transaction.partnerId, partnerTable.id))
+      .where(where),
+    loadTransactionRows({
       where,
-      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      skip: (page - 1) * ADMIN_TRANSACTIONS_PAGE_SIZE,
-      take: ADMIN_TRANSACTIONS_PAGE_SIZE,
-      select: TRANSACTION_ROW_SELECT,
+      limit: ADMIN_TRANSACTIONS_PAGE_SIZE,
+      offset: (page - 1) * ADMIN_TRANSACTIONS_PAGE_SIZE,
     }),
   ]);
 
   return {
-    rows: rows.map(toTransactionRow),
+    rows,
     total,
     page,
     pageCount: Math.max(1, Math.ceil(total / ADMIN_TRANSACTIONS_PAGE_SIZE)),
@@ -527,9 +565,9 @@ export async function getAdminAccountOptions(): Promise<
 > {
   await requireAdmin();
 
-  return prisma.account.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, email: true },
+  return db.query.account.findMany({
+    orderBy: asc(account.name),
+    columns: { id: true, name: true, email: true },
   });
 }
 
@@ -540,21 +578,23 @@ export async function getAdminShareLinks(): Promise<AdminShareLinkRow[]> {
   const now = new Date();
   const soon = new Date(now.getTime() + SHARE_LINK_EXPIRING_DAYS * DAY_MS);
 
-  const partners = await prisma.partner.findMany({
-    where: { shareToken: { not: null } },
-    orderBy: { shareTokenExpiresAt: "asc" },
-    select: {
+  const partners = await db.query.partner.findMany({
+    where: isNotNull(partnerTable.shareToken),
+    orderBy: asc(partnerTable.shareTokenExpiresAt),
+    columns: {
       id: true,
       name: true,
       isArchived: true,
       ownerId: true,
       shareToken: true,
       shareTokenExpiresAt: true,
-      owner: { select: { name: true, email: true } },
-      _count: { select: { ledgers: true } },
+    },
+    with: {
+      owner: { columns: { name: true, email: true } },
+      ledgers: { columns: { id: true } },
       transactions: {
-        where: { isArchived: false },
-        select: {
+        where: (t, { eq }) => eq(t.isArchived, false),
+        columns: {
           amount: true,
           kind: true,
           date: true,
@@ -581,7 +621,7 @@ export async function getAdminShareLinks(): Promise<AdminShareLinkRow[]> {
       expiresAt,
       isExpired,
       isExpiringSoon: !isExpired && !!expiresAt && expiresAt <= soon,
-      ledgerCount: partner._count.ledgers,
+      ledgerCount: partner.ledgers.length,
       balance: calcBreakdownAcrossLedgers(partner.transactions).total,
     };
   });
@@ -602,29 +642,19 @@ export async function getInterestJobStatus(): Promise<{
 
   const [preview, ledgers, lastInterest, lastRunLog, lastScheduledRunLog] =
     await Promise.all([
-      runInterestJob(prisma, { dryRun: true }),
+      runInterestJob(db, { dryRun: true }),
       getAdminLedgers(true),
-      prisma.transaction.findFirst({
-        where: { kind: "INTEREST" },
-        orderBy: { date: "desc" },
-        select: { date: true },
-      }),
-      prisma.adminAuditLog.findFirst({
-        where: { action: "RUN_INTEREST_JOB" },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.adminAuditLog.findFirst({
-        where: { action: "SCHEDULED_INTEREST_JOB" },
-        orderBy: { createdAt: "desc" },
-      }),
+      findLastInterest(),
+      findLastAuditLog("RUN_INTEREST_JOB"),
+      findLastAuditLog("SCHEDULED_INTEREST_JOB"),
     ]);
 
   return {
     preview,
     ledgers,
     lastAccruedAt: lastInterest?.date ?? null,
-    lastRunLog,
-    lastScheduledRunLog,
+    lastRunLog: lastRunLog ?? null,
+    lastScheduledRunLog: lastScheduledRunLog ?? null,
   };
 }
 
@@ -632,8 +662,8 @@ export async function getInterestJobStatus(): Promise<{
 export async function getAdminAuditLogs(limit = 100): Promise<AdminAuditLogRow[]> {
   await requireAdmin();
 
-  return prisma.adminAuditLog.findMany({
-    orderBy: { createdAt: "desc" },
-    take: limit,
+  return db.query.adminAuditLog.findMany({
+    orderBy: desc(adminAuditLog.createdAt),
+    limit,
   });
 }

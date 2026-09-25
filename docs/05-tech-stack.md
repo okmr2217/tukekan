@@ -7,8 +7,8 @@
 | Framework | Next.js 16 (App Router)  | SSR/SSG対応、Server Components/Actions活用 |
 | Language  | TypeScript               | 型安全性、開発効率                         |
 | UI        | Tailwind CSS + shadcn/ui | 高速開発、一貫したデザイン                 |
-| Database  | Supabase (PostgreSQL)    | マネージドDB、スケーラビリティ             |
-| ORM       | Prisma 7                 | 型安全なDB操作                             |
+| Database  | Cloudflare D1 (SQLite)   | Worker からバインディングで直接つながる。接続の管理が要らない（[11-cloudflare-workers.md](./11-cloudflare-workers.md)） |
+| ORM       | Drizzle ORM              | 型安全なDB操作。Workers で軽く、D1 の batch をそのまま使える |
 | Auth      | 自前実装（bcrypt + JWT） | シンプルな要件に適合、依存を減らす         |
 | Hosting   | Cloudflare Workers（OpenNext） | Cloudflare Access と一体で運用できる（[11-cloudflare-workers.md](./11-cloudflare-workers.md)） |
 
@@ -72,7 +72,7 @@ src/
 │       ├── bottom-bar.tsx                # ボトムバーナビゲーション
 │       └── fab.tsx
 ├── lib/
-│   ├── prisma.ts                 # Prismaクライアント
+│   ├── db.ts                     # DB クライアント（Drizzle + D1）
 │   ├── auth.ts                   # JWT検証・生成、セッション管理
 │   ├── password.ts               # bcryptハッシュ化
 │   ├── cf-access.ts              # Cloudflare Access の JWT 検証（管理画面）
@@ -80,11 +80,13 @@ src/
 │   ├── admin-audit.ts            # 管理画面の監査ログの操作種別
 │   ├── interest-job.ts           # 週次利子ジョブの本体（cron と管理画面で共用）
 │   └── utils.ts                  # 汎用ユーティリティ
-├── types/
-│   └── index.ts                  # 共通型定義
-└── prisma/
-    ├── schema.prisma
-    └── seed.ts                   # 初期ユーザー作成
+├── db/
+│   ├── schema.ts                 # DB スキーマ（Drizzle）
+│   └── sql.ts                    # クエリ用の小さなヘルパー（部分一致検索など）
+└── types/
+    └── index.ts                  # 共通型定義
+
+drizzle/                          # マイグレーション SQL（drizzle-kit が生成、wrangler が適用）
 ```
 
 ---
@@ -149,51 +151,31 @@ export async function createTransaction(formData: FormData) {
 
 ## 5.4 データ取得の設計
 
-読み取り操作は Server Components で直接 Prisma を呼び出す。
+読み取り操作は Server Components から `actions/` の関数を呼び、その中で `src/lib/db.ts` の `db`（Drizzle）を使う。
+クエリの書き方は [03-data-design.md](./03-data-design.md) の 3.5 を参照。
 
 ```typescript
-// app/(main)/page.tsx
-import { prisma } from '@/lib/prisma'
-import { getSession } from '@/actions/auth'
+// actions/partner/queries.ts
+import { and, asc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { partner } from "@/db/schema";
 
-export default async function HomePage() {
-  const session = await getSession()
-  if (!session) redirect('/login')
+export async function getPartners() {
+  const session = await getSession();
+  if (!session) return [];
 
-  const balances = await prisma.transaction.groupBy({
-    by: ['partnerId'],
-    where: { ownerId: session.userId },
-    _sum: { amount: true },
-  })
-
-  return <PartnerBalanceList balances={balances} />
+  return db.query.partner.findMany({
+    where: and(eq(partner.ownerId, session.userId), eq(partner.isArchived, false)),
+    columns: { id: true, name: true },
+    orderBy: asc(partner.name),
+  });
 }
 ```
 
 ---
 
-## 5.5 初期ユーザーの作成
+## 5.5 開発用のデータ
 
-開発・検証用の初期ユーザーは seedスクリプトで作成する。
-
-```typescript
-// prisma/seed.ts
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
-
-const prisma = new PrismaClient();
-
-async function main() {
-  const passwordHash = await bcrypt.hash("password123", 12);
-
-  await prisma.account.createMany({
-    data: [
-      { name: "user1", passwordHash },
-      { name: "user2", passwordHash },
-      { name: "user3", passwordHash },
-    ],
-  });
-}
-
-main();
-```
+seed スクリプトはない。ローカルでは `npm run db:migrate:local` でテーブルを作ったあと、
+`npm run dev` で起動して画面から登録する（`/register`）。まとまったデータが必要なときは
+`npx wrangler d1 execute tukekan-db --local --command 'INSERT ...'` で直接入れる。

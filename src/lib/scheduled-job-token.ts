@@ -2,7 +2,7 @@
  * Cron Triggers（worker.ts の scheduled）から Next のルートハンドラを呼ぶときの合言葉。
  *
  * scheduled ハンドラは Next の外にあるので、ジョブ本体は Worker 内部から
- * `/api/cron/...` を fetch して動かす（Prisma やリクエストコンテキストを Next 側と共有するため）。
+ * `/api/cron/...` を fetch して動かす（DB クライアントやリクエストコンテキストを Next 側と共有するため）。
  * このルートは本番ドメインからも見えてしまうので、外から叩かれても動かないように、
  * scheduled が起動のたびに使い捨てのトークンを発行し、ルート側で照合する。
  *

@@ -3,7 +3,9 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import prisma from "@/lib/prisma";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { account as accountTable } from "@/db/schema";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import {
   generateJWT,
@@ -55,8 +57,8 @@ export async function login(
 
   const { email, password } = result.data;
 
-  const account = await prisma.account.findUnique({
-    where: { email },
+  const account = await db.query.account.findFirst({
+    where: eq(accountTable.email, email),
   });
 
   if (!account) {
@@ -94,15 +96,19 @@ export async function register(
 
   const { name, email, password } = result.data;
 
-  const existing = await prisma.account.findUnique({ where: { email } });
+  const existing = await db.query.account.findFirst({
+    where: eq(accountTable.email, email),
+    columns: { id: true },
+  });
   if (existing) {
     return { error: "このメールアドレスはすでに登録されています" };
   }
 
   const passwordHash = await hashPassword(password);
-  const account = await prisma.account.create({
-    data: { name, email, passwordHash },
-  });
+  const [account] = await db
+    .insert(accountTable)
+    .values({ name, email, passwordHash })
+    .returning();
 
   const token = await generateJWT({
     userId: account.id,
@@ -124,9 +130,9 @@ export async function getCurrentUser() {
   const session = await getSession();
   if (!session) return null;
 
-  const account = await prisma.account.findUnique({
-    where: { id: session.userId },
-    select: {
+  const account = await db.query.account.findFirst({
+    where: eq(accountTable.id, session.userId),
+    columns: {
       id: true,
       email: true,
       name: true,
@@ -150,9 +156,9 @@ export async function getTransactionLabelPreset(): Promise<TransactionLabelPrese
   const session = await getSession();
   if (!session) return DEFAULT_TRANSACTION_LABEL_PRESET;
 
-  const account = await prisma.account.findUnique({
-    where: { id: session.userId },
-    select: { transactionLabelPreset: true },
+  const account = await db.query.account.findFirst({
+    where: eq(accountTable.id, session.userId),
+    columns: { transactionLabelPreset: true },
   });
 
   return toTransactionLabelPreset(account?.transactionLabelPreset);
@@ -179,10 +185,10 @@ export async function updateTransactionLabelPreset(
     return { error: "不正な選択肢です" };
   }
 
-  await prisma.account.update({
-    where: { id: session.userId },
-    data: { transactionLabelPreset: result.data },
-  });
+  await db
+    .update(accountTable)
+    .set({ transactionLabelPreset: result.data })
+    .where(eq(accountTable.id, session.userId));
 
   // 取引フォームは (main) レイアウトでプリセットを読んでいるので全体を無効化する
   revalidatePath("/", "layout");
@@ -226,8 +232,8 @@ export async function updateProfile(
 
   const { name, currentPassword, newPassword } = result.data;
 
-  const currentAccount = await prisma.account.findUnique({
-    where: { id: session.userId },
+  const currentAccount = await db.query.account.findFirst({
+    where: eq(accountTable.id, session.userId),
   });
 
   if (!currentAccount) {
@@ -252,15 +258,15 @@ export async function updateProfile(
     }
 
     const newPasswordHash = await hashPassword(newPassword);
-    await prisma.account.update({
-      where: { id: session.userId },
-      data: { name, passwordHash: newPasswordHash },
-    });
+    await db
+      .update(accountTable)
+      .set({ name, passwordHash: newPasswordHash })
+      .where(eq(accountTable.id, session.userId));
   } else {
-    await prisma.account.update({
-      where: { id: session.userId },
-      data: { name },
-    });
+    await db
+      .update(accountTable)
+      .set({ name })
+      .where(eq(accountTable.id, session.userId));
   }
 
   const token = await generateJWT({

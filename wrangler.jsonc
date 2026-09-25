@@ -26,12 +26,19 @@
     // 毎日 00:00 JST: 週次自動利子ジョブ
     "crons": ["0 15 * * *"]
   },
+  // DB（Cloudflare D1）。アプリからは env.DB として使う（src/lib/db.ts）。
+  // マイグレーションは drizzle-kit が drizzle/ に生成し、wrangler が適用する（docs/11-cloudflare-workers.md）
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tukekan-db",
+      "database_id": "05e9f098-7563-4df4-b455-54ec05e9196f",
+      "migrations_dir": "drizzle"
+    }
+  ],
   "observability": {
     "enabled": true
   }
-  // DB 接続（DATABASE_URL）・JWT_SECRET・CF_ACCESS_* などは
+  // JWT_SECRET・CF_ACCESS_* などは
   // `wrangler secret put` かダッシュボードの「変数とシークレット」で設定する（ここには書かない）。
-  //
-  // Hyperdrive を使う場合は次を追加する（src/lib/prisma.ts が自動で優先して使う）:
-  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<Hyperdrive の ID>" }]
 }

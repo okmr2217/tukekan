@@ -31,18 +31,31 @@ export type LedgerInterestSettings = {
   interestCompounding: boolean;
 };
 
+/** 年利1%あたりのベーシスポイント。DB では年利を 0.01% 単位の整数で持つ */
+const BASIS_POINTS_PER_PERCENT = 100;
+
+/** 年利(%) → DB に保存するベーシスポイント（例: 5.25 → 525）。小数3桁目以下は四捨五入 */
+export function toAnnualInterestRateBp(annualRate: number): number {
+  return Math.round(annualRate * BASIS_POINTS_PER_PERCENT);
+}
+
+/** DB のベーシスポイント → 年利(%)（例: 525 → 5.25） */
+export function fromAnnualInterestRateBp(bp: number | null | undefined): number {
+  return bp ? bp / BASIS_POINTS_PER_PERCENT : 0;
+}
+
 /**
- * Prisma の行（Decimal や null を含む）から利子の設定を読み出す。
+ * DB の Ledger 行から利子の設定を読み出す。年利はベーシスポイントから % に直す。
  * 各サーバーアクションで同じ変換を繰り返さないための共通ヘルパー。
  */
 export function toInterestSettings(ledger: {
-  annualInterestRate?: unknown;
+  annualInterestRateBp?: number | null;
   interestAccrualWeekday?: number | null;
   interestCompounding?: boolean | null;
 }): LedgerInterestSettings {
   const weekday = Number(ledger.interestAccrualWeekday);
   return {
-    annualInterestRate: ledger.annualInterestRate ? Number(ledger.annualInterestRate) : 0,
+    annualInterestRate: fromAnnualInterestRateBp(ledger.annualInterestRateBp),
     interestAccrualWeekday: isValidWeekday(weekday) ? weekday : DEFAULT_INTEREST_WEEKDAY,
     interestCompounding: ledger.interestCompounding === true,
   };
