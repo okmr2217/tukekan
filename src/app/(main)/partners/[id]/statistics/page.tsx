@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getPartnerStatistics } from "@/actions/stats";
 import { MobileHeader } from "@/components/layouts/mobile-header";
+import { GuideHeaderLink } from "@/components/features/help/guide-header-link";
 import { cn } from "@/lib/utils";
 import { describeBalanceRole, formatYen } from "@/lib/transaction-wording";
 import { TONE_TEXT } from "@/components/features/transaction/transaction-tone";
@@ -85,7 +86,11 @@ export default async function PartnerStatisticsPage({
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title={`${partner.name}さんの統計`} backHref={detailHref} />
+      <MobileHeader
+        title={`${partner.name}さんの統計`}
+        backHref={detailHref}
+        action={<div className="-mr-1.5"><GuideHeaderLink slug="statistics" /></div>}
+      />
 
       <div className="mx-auto w-full max-w-lg space-y-6 px-4 pt-3 pb-6">
         {stats.ledgers.length > 1 && (

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { getLedgerById } from "@/actions/ledger";
 import { LedgerSettingsForm } from "@/components/features/ledger/ledger-settings-form";
 import { MobileHeader } from "@/components/layouts/mobile-header";
+import { GuideHeaderLink } from "@/components/features/help/guide-header-link";
 
 export default async function LedgerSettingsPage({
   params,
@@ -26,6 +27,7 @@ export default async function LedgerSettingsPage({
       <MobileHeader
         title="口座の設定"
         backHref={`/partners/${ledger.partnerId}?ledger=${ledger.id}`}
+        action={<div className="-mr-1.5"><GuideHeaderLink slug="interest" /></div>}
       />
 
       <div className="px-4 pt-3 pb-4 max-w-lg mx-auto w-full">

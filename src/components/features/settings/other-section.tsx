@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { LogOut, HelpCircle, ChevronRight } from "lucide-react";
+import { LogOut, BookOpen, ChevronRight } from "lucide-react";
 import { logout } from "@/actions/auth";
 
 export function OtherSection() {
@@ -23,8 +23,8 @@ export function OtherSection() {
           className="w-full flex items-center justify-between gap-3 p-4 hover:bg-accent transition-colors"
         >
           <div className="flex items-center gap-3">
-            <HelpCircle className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm font-medium">ヘルプ</span>
+            <BookOpen className="h-5 w-5 text-muted-foreground" />
+            <span className="text-sm font-medium">使い方ガイド</span>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>

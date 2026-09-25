@@ -245,8 +245,8 @@ export async function updateProfile(
       return { error: "現在のパスワードを入力してください" };
     }
 
-    if (newPassword.length < 6) {
-      return { error: "新しいパスワードは6文字以上で入力してください" };
+    if (newPassword.length < 8) {
+      return { error: "新しいパスワードは8文字以上で入力してください" };
     }
 
     const isValid = await verifyPassword(
