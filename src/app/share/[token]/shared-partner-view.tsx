@@ -53,7 +53,7 @@ export function SharedPartnerView({ data }: Props) {
   const ledgerTitles = new Map(ledgers.map((l) => [l.id, l.title]));
 
   return (
-    <main className="mx-auto w-full max-w-lg px-4 py-6 space-y-6">
+    <main className="mx-auto w-full max-w-lg px-4 pt-3 pb-6 space-y-6">
       {/* 残高（口座ごとの内訳つき） */}
       <BalanceCard
         balance={balance}
