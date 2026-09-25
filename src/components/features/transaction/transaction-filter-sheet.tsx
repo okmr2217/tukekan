@@ -41,31 +41,40 @@ export const transactionFilterParsers = {
   ] as const).withDefault("date_desc"),
 };
 
+const DEFAULT_FILTERS = {
+  q: "",
+  partnerIds: [] as string[],
+  sortOrder: "date_desc" as const,
+};
+
 type Props = {
   partners: Partner[];
 };
 
-function FilterForm({
-  partners,
-  onApply,
-  onClose,
-}: {
-  partners: Partner[];
-  onApply: () => void;
-  onClose: () => void;
-}) {
-  const [committed, setCommitted] = useQueryStates(transactionFilterParsers, {
+/**
+ * すべての取引ページの検索・絞り込み。
+ * 条件はURLに持たせ、ダイアログ内では「絞り込む」を押すまで下書きとして扱う。
+ */
+export function TransactionFilterSheet({ partners }: Props) {
+  const [open, setOpen] = useState(false);
+  const [filters, setFilters] = useQueryStates(transactionFilterParsers, {
     shallow: false,
   });
+  const [draft, setDraft] = useState(filters);
 
-  const [draft, setDraft] = useState(committed);
-
+  // 開くたびに、いま適用中の条件から下書きを作り直す
   useEffect(() => {
-    setDraft(committed);
+    if (open) {
+      setDraft(filters);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [open]);
 
-  const activePartners = partners;
+  const activeCount = [
+    filters.q !== "",
+    filters.partnerIds.length > 0,
+    filters.sortOrder !== "date_desc",
+  ].filter(Boolean).length;
 
   const togglePartner = (id: string) => {
     setDraft((prev) => ({
@@ -77,120 +86,105 @@ function FilterForm({
   };
 
   const handleApply = () => {
-    setCommitted(draft);
-    onApply();
+    setFilters(draft);
+    setOpen(false);
   };
 
   const handleReset = () => {
-    const defaults = { q: "", partnerIds: [], sortOrder: "date_desc" as const };
-    setDraft(defaults);
-    setCommitted(defaults);
-    onClose();
+    setFilters(DEFAULT_FILTERS);
+    setOpen(false);
   };
 
-  return (
-    <>
-      <ResponsiveDialogBody className="flex flex-col gap-5">
-        {/* テキスト検索 */}
-        <div className="space-y-1.5">
-          <Label>用途・メモで検索</Label>
-          <Input
-            placeholder="キーワードを入力"
-            value={draft.q}
-            onChange={(e) =>
-              setDraft((prev) => ({ ...prev, q: e.target.value }))
-            }
-          />
-        </div>
-
-        {/* 相手フィルター */}
-        {activePartners.length > 0 && (
-          <div className="space-y-1.5">
-            <Label>相手で絞り込む</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {activePartners.map((partner) => {
-                const selected = draft.partnerIds.includes(partner.id);
-                return (
-                  <button
-                    key={partner.id}
-                    type="button"
-                    onClick={() => togglePartner(partner.id)}
-                    className={cn(
-                      "inline-flex items-center rounded-full border px-3 py-1 text-sm transition-colors",
-                      selected
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-foreground hover:bg-muted",
-                    )}
-                  >
-                    {partner.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 並び替え */}
-        <div className="space-y-1.5">
-          <Label>並び替え</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {SORT_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() =>
-                  setDraft((prev) => ({ ...prev, sortOrder: opt.value }))
-                }
-                className={cn(
-                  "rounded-lg border px-3 py-2 text-sm transition-colors text-left",
-                  draft.sortOrder === opt.value
-                    ? "border-primary bg-primary/10 text-primary font-medium"
-                    : "border-border bg-background hover:bg-muted",
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </ResponsiveDialogBody>
-
-      <ResponsiveDialogFooter className="flex-row gap-2">
-        <Button variant="outline" className="flex-1" onClick={handleReset}>
-          リセット
-        </Button>
-        <Button className="flex-1" onClick={handleApply}>
-          絞り込む
-        </Button>
-      </ResponsiveDialogFooter>
-    </>
-  );
-}
-
-export function TransactionFilterSheet({ partners }: Props) {
-  const [open, setOpen] = useState(false);
-
-  const [filters] = useQueryStates(transactionFilterParsers);
-  const activeCount = [
-    filters.q !== "",
-    filters.partnerIds.length > 0,
-    filters.sortOrder !== "date_desc",
-  ].filter(Boolean).length;
-
-  // スマホではドロワー、PCではダイアログ（ResponsiveDialog が切り替える）
   return (
     <>
       <FilterButton activeCount={activeCount} onClick={() => setOpen(true)} />
       <ResponsiveDialog open={open} onOpenChange={setOpen}>
-        <ResponsiveDialogContent className="max-w-md">
+        <ResponsiveDialogContent>
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>検索・絞り込み</ResponsiveDialogTitle>
           </ResponsiveDialogHeader>
-          <FilterForm
-            partners={partners}
-            onApply={() => setOpen(false)}
-            onClose={() => setOpen(false)}
-          />
+          <ResponsiveDialogBody>
+            <div className="space-y-5 pb-2">
+              {/* テキスト検索 */}
+              <div className="space-y-1.5">
+                <Label htmlFor="filter-q">用途・メモで検索</Label>
+                <Input
+                  id="filter-q"
+                  placeholder="キーワードを入力"
+                  value={draft.q}
+                  onChange={(e) =>
+                    setDraft((prev) => ({ ...prev, q: e.target.value }))
+                  }
+                />
+              </div>
+
+              {/* 相手フィルター */}
+              {partners.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>相手で絞り込む</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {partners.map((partner) => {
+                      const selected = draft.partnerIds.includes(partner.id);
+                      return (
+                        <button
+                          key={partner.id}
+                          type="button"
+                          onClick={() => togglePartner(partner.id)}
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-3 py-1 text-sm transition-colors",
+                            selected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background text-foreground hover:bg-muted",
+                          )}
+                        >
+                          {partner.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 並び替え */}
+              <div className="space-y-1.5">
+                <Label>並び替え</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() =>
+                        setDraft((prev) => ({ ...prev, sortOrder: opt.value }))
+                      }
+                      className={cn(
+                        "rounded-lg border px-3 py-2 text-sm transition-colors text-left",
+                        draft.sortOrder === opt.value
+                          ? "border-primary bg-primary/10 text-primary font-medium"
+                          : "border-border bg-background hover:bg-muted",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter>
+            <div className="flex gap-2 w-full">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleReset}
+                className="flex-1"
+              >
+                リセット
+              </Button>
+              <Button type="button" onClick={handleApply} className="flex-1">
+                絞り込む
+              </Button>
+            </div>
+          </ResponsiveDialogFooter>
         </ResponsiveDialogContent>
       </ResponsiveDialog>
     </>
