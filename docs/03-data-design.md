@@ -32,12 +32,15 @@
 
 ### Account（認証ユーザー）
 
-| カラム       | 型            | 説明                                       |
-| ------------ | ------------- | ------------------------------------------ |
-| id           | String (cuid) | 一意のID                                   |
-| name         | String        | ユーザー名（ログイン用・表示用、ユニーク） |
-| passwordHash | String        | bcryptでハッシュ化されたパスワード         |
-| createdAt    | DateTime      | 作成日時                                   |
+| カラム                 | 型            | 説明                                                                 |
+| ---------------------- | ------------- | -------------------------------------------------------------------- |
+| id                     | String (cuid) | 一意のID                                                             |
+| email                  | String        | ログインID（ユニーク）                                               |
+| name                   | String        | 表示名（共有ページに出る）。登録直後はメールの @ より前が仮に入る     |
+| passwordHash           | String        | bcryptでハッシュ化されたパスワード                                   |
+| transactionLabelPreset | String        | 取引ボタンの名目ラベル（BOTH / LENDER / BORROWER）                   |
+| onboardingCompletedAt  | DateTime?     | オンボーディングを終えた日時。null の間はアプリ本体に入るとオンボーディングへ送る |
+| createdAt              | DateTime      | 作成日時                                                             |
 
 ### Partner（貸借相手）
 

@@ -16,8 +16,11 @@ const MOVEMENTS: MovementKey[] = [
   "interestDebt",
 ];
 
-/** 相手ごとの統計の口座の絞り込み。相手ページと同じく URL の ?ledger= に持たせる */
-export function LedgerFilterChips({
+/**
+ * 相手ごとの統計の口座の絞り込み。相手ページと同じく URL の ?ledger= に持たせる。
+ * 見た目は相手ページの LedgerFilterChips にそろえ、ここではリンクにしている（サーバー側で集計し直すため）
+ */
+export function StatsLedgerChips({
   partnerId,
   ledgers,
   selectedLedgerId,
@@ -26,9 +29,9 @@ export function LedgerFilterChips({
   ledgers: LedgerStat[];
   selectedLedgerId: string | null;
 }) {
-  const base = `/partners/${partnerId}/stats`;
+  const base = `/partners/${partnerId}/statistics`;
   const chips = [
-    { id: null, label: "すべての口座", href: base },
+    { id: null, label: "すべて", href: base },
     ...ledgers.map((l) => ({
       id: l.ledgerId,
       label: l.title,
@@ -37,7 +40,10 @@ export function LedgerFilterChips({
   ];
 
   return (
-    <nav aria-label="口座" className="flex gap-1.5 overflow-x-auto pb-1">
+    <nav
+      aria-label="口座"
+      className="-mx-4 px-4 flex gap-1.5 overflow-x-auto [scrollbar-width:none]"
+    >
       {chips.map((chip) => {
         const active = chip.id === selectedLedgerId;
         return (
@@ -47,10 +53,10 @@ export function LedgerFilterChips({
             scroll={false}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "shrink-0 rounded-full border px-3 py-1 text-xs transition-colors",
+              "shrink-0 max-w-40 truncate text-xs px-3 py-1.5 rounded-full border transition-colors",
               active
                 ? "border-primary bg-primary text-primary-foreground"
-                : "bg-card text-muted-foreground hover:bg-muted",
+                : "border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             {chip.label}
@@ -77,7 +83,7 @@ export function LedgerBreakdown({
         return (
           <Link
             key={ledger.ledgerId}
-            href={`/partners/${partnerId}/stats?ledger=${ledger.ledgerId}`}
+            href={`/partners/${partnerId}/statistics?ledger=${ledger.ledgerId}`}
             scroll={false}
             className="block rounded-xl border bg-card px-4 py-3 shadow-sm transition-colors hover:bg-muted/50"
           >

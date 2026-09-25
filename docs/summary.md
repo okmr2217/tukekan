@@ -42,6 +42,7 @@ Account
 ├── name          表示名
 ├── passwordHash
 ├── transactionLabelPreset  取引ボタンの名目ラベル（BOTH / LENDER / BORROWER）
+├── onboardingCompletedAt   オンボーディングを終えた日時（null = 未完了）
 ├── partners[]      自分が管理するパートナー
 └── transactions[]  自分が記録した取引
 
@@ -122,17 +123,23 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
 
 ```
 /login                        ログイン画面
-/register                     新規登録
+/register                     新規登録（メールアドレス・パスワード）
+
+/onboarding                   登録直後のオンボーディング（BottomBar / FAB なし。1ステップ1ページ）
+  /profile                    1. 表示名
+  /labels                     2. 取引ボタンの表示
+  /partner                    3. 最初の相手（飛ばせる）
+  /transaction?partner=       4. 最初の取引（飛ばせる）
 
 /share/[token]                共有リンク（未認証・読み取り専用）
 
 /(main)                       認証済みレイアウト（Header + BottomBar + FAB）
-  /                           ホーム（相手ごとの残高一覧）
+  /                           ホーム（全体の残高・相手ごとの残高・最近の取引5件）
   /transactions               すべての取引
   /statistics                 全体の統計（?period= で期間を切り替え）
   /statistics/accounts        `/statistics` へのリダイレクト（旧URL互換）
-  /partners/[id]              相手の詳細（合計残高・口座一覧・共有リンク・公開ページのメモ・全口座の取引）
-  /partners/[id]/stats        相手ごとの統計（?ledger= で口座を絞り込み）
+  /partners/[id]              相手の詳細（合計残高と口座ごとの内訳・共有リンクと共有メモ・全口座の取引）
+  /partners/[id]/statistics   相手ごとの統計（?ledger= で口座を絞り込み）
   /partners/[id]/edit         相手の編集（名前・アーカイブ・削除）
   /partners/archived          アーカイブ済みの相手の一覧
   /partners                   `/` へのリダイレクト（旧URL互換）
@@ -158,7 +165,7 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
 
 BottomBar（固定フッター）に4タブ:
 
-1. **相手** (`/`) — 相手ごとの残高・相手の追加
+1. **ホーム** (`/`) — 全体の残高・相手ごとの残高・相手の追加・最近の取引
 2. **すべての取引** (`/transactions`) — 全取引の一覧・絞り込み
 3. **統計** (`/statistics`) — 貸し借りの流れ・推移・返済の傾向
 4. **メニュー** (`/menu`) — 設定・ヘルプ
@@ -167,8 +174,17 @@ BottomBar（固定フッター）に4タブ:
 
 ## 主要機能
 
+### オンボーディング
+- 新規登録はメールアドレスとパスワードだけ。登録後は `/onboarding` で 表示名 → 取引ボタン表示 → 最初の相手 → 最初の取引 を案内する
+- 各ステップは既存の Server Action（`updateProfile` / `updateTransactionLabelPreset` / `createPartner` / `createTransaction`）でその場で保存するので、途中で離れても入力は残る
+- 最後まで進むか、相手・取引のステップで「あとで」を選ぶと `completeOnboarding` が `Account.onboardingCompletedAt` を記録してホームへ送る
+- 未完了のアカウントが (main) のページを開くと、`(main)/layout.tsx` がオンボーディングへ送る
+- 導入前からあるアカウントはマイグレーション（`drizzle/0001_onboarding.sql`）で完了扱いにしてある
+
 ### 取引管理
 - 取引の作成・編集・アーカイブ・削除（Server Actions）
+- 取引の作成は FAB（右下の＋）から。ホーム・すべての取引・相手ページで表示し、相手ページではその相手（と絞り込み中の口座）を初期選択する
+- 取引フォームの相手は「最後に自分で記録した取引が新しい順」に並べる（自動発生の利息は数えない）
 - 相手・口座・金額・用途・メモ・日付を入力
 - 金額の符号は「名目ラベル」の2ボタンで選ぶ。ラベルの言い方は設定から3プリセットで切替（`src/lib/transaction-labels.ts`）
 - 用途は1行、メモは複数行（1000文字以内）の詳細テキスト
@@ -177,8 +193,8 @@ BottomBar（固定フッター）に4タブ:
 
 ### 相手（Partner）管理
 - 相手の追加・編集・アーカイブ・削除
-- アーカイブは「ホームの一覧」と「取引フォームの相手の候補」から外すだけの機能。貸し借りの記録・残高はそのまま残り、ホームの合計・すべての取引・統計・共有リンクには含まれる。例外として、アーカイブ中の相手の口座には利息が付かない
-- アーカイブ済みの相手はホーム末尾のリンクから `/partners/archived` で見る
+- アーカイブは「ホームの一覧」と「取引フォームの相手の候補」から外すだけの機能。貸し借りの記録・残高はそのまま残り、ホームの合計・取引の一覧・統計・共有リンクには含まれる。例外として、アーカイブ中の相手の口座には利息が付かない
+- アーカイブ済みの相手はホームの相手一覧の下のリンクから `/partners/archived` で見る
 - 相手ページに「合計残高」「口座ごとの残高（利子ありの口座は元本／未払利息の内訳）」「全口座の取引履歴」をまとめて表示
 - 取引履歴は口座ごとに絞り込める（口座カードをタップ。状態はURLの `?ledger=` に持つ）
 
@@ -192,7 +208,7 @@ BottomBar（固定フッター）に4タブ:
 - 相手ごとに共有トークンを発行・失効
 - `/share/[token]` で相手にすべての口座の残高・取引履歴を読み取り専用で共有
 - 公開ページに表示するメモを相手ごとに1つ持てる（`Partner.shareNote`・100文字以内）。相手ページから書き換え、空にすると公開ページに出ない
-- 公開ページでも口座ごとに絞り込める
+- 公開ページでも口座ごとに絞り込める（取引履歴の上のチップ。相手ページと同じ `LedgerFilterChips`）
 - 有効期限切れ・失効後はアクセス不可
 
 ### 統計
@@ -200,7 +216,7 @@ BottomBar（固定フッター）に4タブ:
 - 取引を名目（貸した／返済された／借りた／返済した／利息）に分けて集計する。残高が0をまたぐ取引は分割する（`src/lib/movement-stats.ts`）
 - 返済の傾向（信用度の目安）: 貸し借りは古いものから返済で埋まるとみなし、平均日数・1ヶ月以内に返った割合・未返済額を出す
 - 全体（`/statistics`）: 期間（直近12ヶ月／今年／全期間）ごとの流れ、月ごとの推移、月末残高の推移、返済の傾向、動きのない貸し借り、相手ごと、利息
-- 相手ごと（`/partners/[id]/stats`）: 残高の推移、返済の傾向、流れ、月ごとの推移、よく使う用途、口座ごとの内訳
+- 相手ごと（`/partners/[id]/statistics`）: 残高の推移、返済の傾向、流れ、月ごとの推移、よく使う用途、口座ごとの内訳
 - グラフは shadcn/ui の chart（recharts）
 
 ### 管理画面（`/admin`・運営者向け）
@@ -217,6 +233,7 @@ BottomBar（固定フッター）に4タブ:
 | ファイル | アクション |
 |---------|-----------|
 | `actions/auth.ts` | `login`, `register`, `logout`, `getCurrentUser`, `updateProfile`, `getTransactionLabelPreset`, `updateTransactionLabelPreset` |
+| `actions/onboarding.ts` | `completeOnboarding` |
 | `actions/partner/queries.ts` | `getPartners`, `getPartnerById`, `getPartnersWithBalance`, `getPartnerBalance` |
 | `actions/partner/mutations.ts` | `createPartner`, `updatePartner`, `archivePartner`, `unarchivePartner`, `deletePartner` |
 | `actions/partner/share.ts` | `generatePartnerShareToken`, `revokePartnerShareToken`, `updatePartnerShareNote`, `getPartnerByShareToken` |
@@ -272,7 +289,7 @@ src/
    実質は2択だが名目は4通りあるため、ボタンのラベルは `Account.transactionLabelPreset` で切り替える（符号の意味は不変）
 3. **色は「見ている人」の視点で一貫**: 緑 = 見ている人の債権 / 赤 = 見ている人の債務。
    アプリ内はユーザー視点、公開URL（`/share/[token]`）は相手視点に符号を反転して表示する（`src/lib/balance-wording.ts`）
-   口座カードの符号の反転は `LedgerCard` の `viewpoint` プロパティが担当する
+   残高カード（相手ページ・公開ページで共通の `BalanceCard`）では、口座ごとの残高の符号の反転を `viewpoint` プロパティが担当する
 4. **`Transaction.ledgerId` は nullable**: 既存データの口座移行が完了するまで null を許容している
 5. **利子付与は Cloudflare Workers の Cron Triggers**: 毎日 0:00 JST に起動し、その日が発生曜日の口座だけを処理する。
    詳細は [11-cloudflare-workers.md](./11-cloudflare-workers.md) の「11.5 定期ジョブ」を参照

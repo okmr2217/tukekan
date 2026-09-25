@@ -20,6 +20,11 @@ type Props = {
   suggestions: string[];
   partners?: Partner[];
   showPartnerName?: boolean;
+  /**
+   * 先頭から何件だけ出すか（ホームの「最近の取引」用）。
+   * 取引後の残高は口座の全履歴から積み上げるので、`transactions` には絞る前の全件を渡す。
+   */
+  limit?: number;
 };
 
 export function TransactionCardList({
@@ -27,6 +32,7 @@ export function TransactionCardList({
   suggestions,
   partners = [],
   showPartnerName = false,
+  limit,
 }: Props) {
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionWithPartner | null>(null);
@@ -89,6 +95,9 @@ export function TransactionCardList({
     [transactions],
   );
 
+  const displayedTransactions =
+    limit === undefined ? transactions : transactions.slice(0, limit);
+
   if (transactions.length === 0) {
     return (
       <div className="py-8 text-center text-muted-foreground">
@@ -100,7 +109,7 @@ export function TransactionCardList({
   return (
     <>
       <div className="space-y-2">
-        {transactions.map((t) => (
+        {displayedTransactions.map((t) => (
           <TransactionCard
             key={t.id}
             transaction={t}

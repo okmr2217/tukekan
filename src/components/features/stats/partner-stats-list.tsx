@@ -51,7 +51,7 @@ export function PartnerStatsList({ rows }: { rows: PartnerStatsRow[] }) {
         return (
           <Link
             key={row.partnerId}
-            href={`/partners/${row.partnerId}/stats`}
+            href={`/partners/${row.partnerId}/statistics`}
             className="flex items-center gap-2 px-4 py-3 transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-muted/50"
           >
             <div className="min-w-0 flex-1">

@@ -33,7 +33,7 @@ import { resolveStatsPeriod, type StatsPeriod } from "@/lib/stats-period";
 import { isInterestKind } from "@/lib/transaction-kind";
 
 /*
- * 統計ページ（全体 /statistics・相手ごと /partners/[id]/stats）の集計。
+ * 統計ページ（全体 /statistics・相手ごと /partners/[id]/statistics）の集計。
  *
  * 取引をまとめて読み、名目への分解や返済の傾向は `src/lib/movement-stats.ts` で計算する。
  * アーカイブ済みの相手も含める（相手のアーカイブはホームと取引フォームの候補から

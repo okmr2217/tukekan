@@ -14,6 +14,7 @@ export function FABController({ partners, suggestions }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const isHome = pathname === "/";
   const isTransactions = pathname === "/transactions";
   // 相手ページ（/partners/[id]）。アーカイブ済みの相手の一覧は相手ページではない
   const partnerMatch =
@@ -21,7 +22,7 @@ export function FABController({ partners, suggestions }: Props) {
       ? null
       : pathname.match(/^\/partners\/([^/]+)$/);
 
-  if (!isTransactions && !partnerMatch) return null;
+  if (!isHome && !isTransactions && !partnerMatch) return null;
 
   // アーカイブ済みの相手は候補に出さないので、その相手のページでも初期選択にしない
   const defaultPartnerId = partners.some((p) => p.id === partnerMatch?.[1])

@@ -132,12 +132,12 @@ export function PartnerDetailClient({ partner }: Props) {
         </p>
         <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
           <li>
-            貸し借りの記録と残高はそのまま残り、ホームの合計・すべての取引・統計にも含まれます
+            貸し借りの記録と残高はそのまま残り、ホームの合計・取引の一覧・統計にも含まれます
           </li>
           <li>相手のページと共有リンクはそのまま使えます</li>
           <li>アーカイブ中は、利子を設定した口座でも利息が付きません</li>
           <li>
-            アーカイブ済みの相手は、ホームの一番下の「アーカイブ済みの相手」から見られます
+            アーカイブ済みの相手は、ホームの相手一覧の下の「アーカイブ済みの相手」から見られます
           </li>
         </ul>
         <LoadingButton

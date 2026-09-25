@@ -18,7 +18,7 @@ import { MonthlyMovementTable } from "@/components/features/stats/monthly-moveme
 import { RepaymentCard } from "@/components/features/stats/repayment-card";
 import {
   LedgerBreakdown,
-  LedgerFilterChips,
+  StatsLedgerChips,
 } from "@/components/features/stats/ledger-breakdown";
 import { PurposeList } from "@/components/features/stats/purpose-list";
 
@@ -85,11 +85,11 @@ export default async function PartnerStatisticsPage({
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title={`${partner.name}の統計`} backHref={detailHref} />
+      <MobileHeader title={`${partner.name}さんの統計`} backHref={detailHref} />
 
       <div className="mx-auto w-full max-w-lg space-y-6 px-4 pt-3 pb-6">
         {stats.ledgers.length > 1 && (
-          <LedgerFilterChips
+          <StatsLedgerChips
             partnerId={partner.id}
             ledgers={stats.ledgers}
             selectedLedgerId={selectedLedger?.ledgerId ?? null}
