@@ -19,6 +19,7 @@
 | [09-github-actions.md](./09-github-actions.md) | GitHub Actions ワークフロー一覧・詳細  |
 | [10-admin.md](./10-admin.md)             | 管理画面（/admin）・Cloudflare Access 認証  |
 | [11-cloudflare-workers.md](./11-cloudflare-workers.md) | ホスティング（Cloudflare Workers / OpenNext）・DB（D1）・デプロイ手順 |
+| [12-user-guide.md](./12-user-guide.md)   | ユーザー向け使い方ガイドの構成（記事一覧・配信方式・画面からの導線） |
 
 ## 用語定義
 
