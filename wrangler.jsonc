@@ -16,6 +16,10 @@
       "service": "tukekan"
     }
   ],
+  // 本番はカスタムドメイン（tukekan.paritto.dev・ダッシュボードで設定）だけで公開する。
+  // *.workers.dev とプレビューURLは Cloudflare Access を通らない入り口になるので閉じる。
+  "workers_dev": false,
+  "preview_urls": false,
   "observability": {
     "enabled": true
   }
