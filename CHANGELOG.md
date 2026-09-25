@@ -11,6 +11,10 @@
     （Workers では edge 版に解決させて WASM を読むため）
   - Workers ではリクエストごとに Prisma クライアントを作るように（`src/lib/prisma.ts`）。Hyperdrive のバインディングがあれば自動で使う
   - 手順は `docs/11-cloudflare-workers.md`
+- 週次自動利子ジョブを GitHub Actions（`weekly-interest.yml`）から Cloudflare Workers の Cron Triggers に移行
+  - `worker.ts` を Worker のエントリにして `scheduled` を追加。Worker 内部から `/api/cron/weekly-interest` を呼ぶ
+    （外から叩いても使い捨てトークンがないので 404）
+  - 自動実行の結果を監査ログ（`SCHEDULED_INTEREST_JOB`）に残し、管理画面の「ジョブ」ページに「最後の自動実行」を表示
 - 取引カードと取引詳細ダイアログのUIを刷新：用途・タイプ・金額・残高・日時を整理し、認証ページと公開ページで見た目を統一
   - **取引の情報と残高の情報を分離**：カードは区切り線の上に「名目・用途・金額・取引日時」、下に「この取引の後の残高」を置く
   - **残高は債権か債務かが読めるように**：符号ではなく「貸している残高 / 借りている残高」ということばと色（緑＝債権 / 赤＝債務）で示す

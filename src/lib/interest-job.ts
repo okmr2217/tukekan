@@ -1,11 +1,11 @@
 /**
  * 週次自動利子ジョブの本体。
  *
- * GitHub Actions から動く `scripts/weekly-interest.ts` と、管理画面の
- * 「ジョブ」ページからの手動実行の両方がこの関数を使う。
+ * Cron Triggers からの自動実行（`src/app/api/cron/weekly-interest/route.ts`）、管理画面の
+ * 「ジョブ」ページからの手動実行、手元用の `scripts/weekly-interest.ts` がすべてこの関数を使う。
  * どちらから動かしても同じ結果になるように、ロジックはここ1箇所に置く。
  *
- * ルール（docs/09-github-actions.md と同じ）:
+ * ルール（docs/11-cloudflare-workers.md と同じ）:
  *   - 対象: 年利 > 0 かつ、発生曜日が当日（JST）の口座。相手がアーカイブ済みの口座は除く
  *   - 利息額: 対象額 × 年利 ÷ 52（四捨五入）。単利なら元本、複利なら元本＋未払利息が対象額
  *   - 対象額が0以下なら発生させない

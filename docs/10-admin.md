@@ -112,14 +112,15 @@ PCで一覧を見るためのサイドバー構成（`src/app/admin/layout.tsx`�
 
 ### 口座 / ジョブ
 
-利子は週1回、口座ごとに指定した曜日に自動で発生する（[docs/09-github-actions.md](./09-github-actions.md)）。
+利子は週1回、口座ごとに指定した曜日に自動で発生する（Cron Triggers。[docs/11-cloudflare-workers.md](./11-cloudflare-workers.md) の 11.5）。
 このジョブが失敗しても、ユーザーは「利息が付かない」ことに気づきにくい。そこで:
 
 - **停止の疑い**: 利子つきで利息が発生するはずなのに、最後の発生から8日以上たっている口座に印を付ける
 - **試し打ち（dry-run）**: DBを変更せず、「いま実行したら何が起きるか」だけを計算する
-- **手動実行**: GitHub Actions が落ちているときに、管理画面から同じ処理を流す
+- **手動実行**: Cron Triggers の自動実行が失敗したときに、管理画面から同じ処理を流す
+- **最後の自動実行**: Cron Triggers からの実行結果（`AdminAuditLog` の `SCHEDULED_INTEREST_JOB`）を表示する
 
-手動実行のロジックは `scripts/weekly-interest.ts` とまったく同じ（`src/lib/interest-job.ts` を共用）。
+手動実行のロジックは自動実行とまったく同じ（`src/lib/interest-job.ts` を共用）。
 同じ日に二重で発生させない仕組み（`Ledger.lastInterestAccruedAt`）が効いているので、
 何度押しても利息が二重に付くことはない。
 
@@ -142,6 +143,7 @@ PCで一覧を見るためのサイドバー構成（`src/app/admin/layout.tsx`�
 | `REVOKE_SHARE_TOKEN` | 共有リンクの失効 | する |
 | `RUN_INTEREST_JOB` | 利子ジョブの実行 | する |
 | `DRY_RUN_INTEREST_JOB` | 利子ジョブの試し打ち | しない |
+| `SCHEDULED_INTEREST_JOB` | 利子ジョブの自動実行（管理画面の操作ではなく Cron Triggers。`actorEmail` は `cron`） | する |
 
 ---
 

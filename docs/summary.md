@@ -265,8 +265,8 @@ src/
    アプリ内はユーザー視点、公開URL（`/share/[token]`）は相手視点に符号を反転して表示する（`src/lib/balance-wording.ts`）
    口座カードの符号の反転は `LedgerCard` の `viewpoint` プロパティが担当する
 4. **`Transaction.ledgerId` は nullable**: 既存データの口座移行が完了するまで null を許容している
-5. **利子付与はGitHub Actionsの定期実行**: 毎日 0:00 JST に起動し、その日が発生曜日の口座だけを処理する。
-   詳細は [09-github-actions.md](./09-github-actions.md) を参照
+5. **利子付与は Cloudflare Workers の Cron Triggers**: 毎日 0:00 JST に起動し、その日が発生曜日の口座だけを処理する。
+   詳細は [11-cloudflare-workers.md](./11-cloudflare-workers.md) の「11.5 定期ジョブ」を参照
 6. **利息の充当は導出**: 元本／未払利息の内訳は取引を日付順に走査して都度計算する（充当結果はDBに保存しない）。
    そのため過去の取引を編集・アーカイブすると内訳も自動で計算し直される
 7. **テストなし**: 現状テストコードは存在しない（Playwrightはスクリーンショット生成用）

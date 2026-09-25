@@ -70,7 +70,7 @@ export default async function AdminLedgersPage({
             <span>
               利子つきなのに{INTEREST_STALLED_DAYS}
               日以上利息が発生していない口座が {stalled.length} 件あります。
-              週次ジョブ（GitHub Actions）が失敗していないか、
+              週次ジョブ（Cron Triggers）が失敗していないか、
               <Link
                 href="/admin/jobs"
                 className="mx-1 text-primary hover:underline"

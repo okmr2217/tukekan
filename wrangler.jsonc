@@ -2,7 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   // Cloudflare Workers へのデプロイ設定（OpenNext）。詳細は docs/11-cloudflare-workers.md
   "name": "tukekan",
-  "main": ".open-next/worker.js",
+  // OpenNext の生成物（.open-next/worker.js）を包み、Cron Triggers 用の scheduled を足したエントリ
+  "main": "worker.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
@@ -20,6 +21,11 @@
   // *.workers.dev とプレビューURLは Cloudflare Access を通らない入り口になるので閉じる。
   "workers_dev": false,
   "preview_urls": false,
+  // Cron Triggers（UTC）。worker.ts の SCHEDULED_ROUTES と一致させる
+  "triggers": {
+    // 毎日 00:00 JST: 週次自動利子ジョブ
+    "crons": ["0 15 * * *"]
+  },
   "observability": {
     "enabled": true
   }

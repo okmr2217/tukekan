@@ -43,6 +43,7 @@
 
 - Prisma クライアントは **`@prisma/client` から import する**（生成先は `node_modules/.prisma/client`）。独自の出力先に戻すと Workers 上で WASM が読めなくなる
 - アプリ内の DB アクセスは `src/lib/prisma.ts` の `prisma` を使う（Workers ではリクエストごとにクライアントを作るため、自前でグローバルな `PrismaClient` を作らない）
+- 定期ジョブ（週次自動利子ジョブ）は GitHub Actions ではなく **Cron Triggers** で動く。`wrangler.jsonc` の `triggers.crons` と `worker.ts` の `SCHEDULED_ROUTES` は必ずそろえる
 
 ## 開発時の参照ガイド
 
