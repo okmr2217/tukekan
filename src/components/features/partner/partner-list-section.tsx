@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { UserPlus } from "lucide-react";
+import Link from "next/link";
+import { Archive, ChevronRight, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import type { PartnerWithBalance } from "@/actions/partner";
 import { PartnerCard } from "./partner-card";
 import { AddPartnerDialog } from "./add-partner-dialog";
@@ -12,14 +12,17 @@ type Props = {
   partners: PartnerWithBalance[];
 };
 
-/** ホームの相手の一覧。相手ごとの合計残高と、直近の取引を出す */
+/**
+ * ホームの相手の一覧。相手ごとの合計残高と、直近の取引を出す。
+ *
+ * アーカイブ済みの相手は一覧に出さず、末尾の小さなリンクから専用ページ
+ * （/partners/archived）で見る。
+ */
 export function PartnerListSection({ partners }: Props) {
-  const [showArchived, setShowArchived] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   const activePartners = partners.filter((p) => !p.isArchived);
-  const archivedPartners = partners.filter((p) => p.isArchived);
-  const displayedPartners = showArchived ? partners : activePartners;
+  const archivedCount = partners.length - activePartners.length;
 
   return (
     <section>
@@ -36,10 +39,12 @@ export function PartnerListSection({ partners }: Props) {
         </Button>
       </div>
 
-      {displayedPartners.length === 0 ? (
+      {activePartners.length === 0 ? (
         <div className="py-16 text-center space-y-3">
           <p className="text-muted-foreground text-sm">
-            {showArchived ? "相手がいません" : "相手がまだ登録されていません"}
+            {archivedCount > 0
+              ? "アーカイブしていない相手はいません"
+              : "相手がまだ登録されていません"}
           </p>
           <button
             onClick={() => setIsAddOpen(true)}
@@ -51,28 +56,21 @@ export function PartnerListSection({ partners }: Props) {
         </div>
       ) : (
         <div className="space-y-2">
-          {displayedPartners.map((partner) => (
+          {activePartners.map((partner) => (
             <PartnerCard key={partner.id} partner={partner} />
           ))}
         </div>
       )}
 
-      {archivedPartners.length > 0 && (
-        <div className="flex items-center gap-2 py-3 mt-2">
-          <input
-            id="show-archived"
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            className="size-4 rounded accent-primary cursor-pointer"
-          />
-          <Label
-            htmlFor="show-archived"
-            className="text-sm text-muted-foreground cursor-pointer"
-          >
-            アーカイブ済みを表示（{archivedPartners.length}件）
-          </Label>
-        </div>
+      {archivedCount > 0 && (
+        <Link
+          href="/partners/archived"
+          className="mt-3 flex items-center justify-center gap-1 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Archive className="size-3.5" />
+          アーカイブ済みの相手（{archivedCount}人）
+          <ChevronRight className="size-3.5" />
+        </Link>
       )}
 
       <AddPartnerDialog open={isAddOpen} onOpenChange={setIsAddOpen} />

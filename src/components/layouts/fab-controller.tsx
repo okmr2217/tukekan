@@ -16,11 +16,18 @@ export function FABController({ partners, suggestions }: Props) {
 
   const isHome = pathname === "/";
   const isTransactions = pathname === "/transactions";
-  const partnerMatch = pathname.match(/^\/partners\/([^/]+)$/);
+  // 相手ページ（/partners/[id]）。アーカイブ済みの相手の一覧は相手ページではない
+  const partnerMatch =
+    pathname === "/partners/archived"
+      ? null
+      : pathname.match(/^\/partners\/([^/]+)$/);
 
   if (!isHome && !isTransactions && !partnerMatch) return null;
 
-  const defaultPartnerId = partnerMatch?.[1];
+  // アーカイブ済みの相手は候補に出さないので、その相手のページでも初期選択にしない
+  const defaultPartnerId = partners.some((p) => p.id === partnerMatch?.[1])
+    ? partnerMatch?.[1]
+    : undefined;
   // 相手ページで口座を絞り込んでいるときは、その口座を初期値にする
   const defaultLedgerId = defaultPartnerId
     ? (searchParams.get("ledger") ?? undefined)

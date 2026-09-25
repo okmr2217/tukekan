@@ -17,12 +17,11 @@ export default async function HomePage() {
   const [partnersWithBalance, transactions, suggestions, partners] =
     await Promise.all([
       getPartnersWithBalance(),
-      getTransactions(),
+      // アーカイブ済みの相手の取引も出す（相手のアーカイブは一覧と候補から外すだけ）
+      getTransactions({ showArchivedPartners: true }),
       getPurposeSuggestions(),
       getPartners(),
     ]);
-
-  const activePartners = partnersWithBalance.filter((p) => !p.isArchived);
 
   return (
     <div className="flex flex-col">
@@ -30,8 +29,8 @@ export default async function HomePage() {
 
       {/* 下端の余白は、最後のカードが FAB に隠れないようにするため */}
       <div className="max-w-lg mx-auto w-full px-4 pt-3 pb-20 space-y-6">
-        {activePartners.length > 0 && (
-          <BalanceSummaryCard partners={activePartners} />
+        {partnersWithBalance.length > 0 && (
+          <BalanceSummaryCard partners={partnersWithBalance} />
         )}
         <PartnerListSection partners={partnersWithBalance} />
         <RecentTransactionsSection

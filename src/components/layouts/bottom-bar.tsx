@@ -13,7 +13,6 @@ const NAV_ITEMS = [
 ] as const;
 
 const MENU_TAB_PATHS = ["/menu", "/settings", "/help"];
-const MENU_TAB_PREFIXES = ["/statistics/accounts"];
 /** ホームタブから降りていく画面（相手の詳細・設定、口座の設定） */
 const HOME_TAB_PREFIXES = ["/partners", "/ledgers"];
 
@@ -27,10 +26,7 @@ export function BottomBar() {
       );
     }
     if (href === "/menu") {
-      return (
-        MENU_TAB_PATHS.includes(pathname) ||
-        MENU_TAB_PREFIXES.some((p) => pathname.startsWith(p))
-      );
+      return MENU_TAB_PATHS.includes(pathname);
     }
     return pathname === href;
   };

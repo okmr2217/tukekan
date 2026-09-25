@@ -4,7 +4,7 @@ import { formatYen } from "@/lib/transaction-wording";
 import { TONE_TEXT } from "@/components/features/transaction/transaction-tone";
 
 type Props = {
-  /** アーカイブしていない相手。アーカイブ済みの相手は統計と同じく数に入れない */
+  /** すべての相手。アーカイブしても貸し借りは残るので、統計と同じく数に入れる */
   partners: PartnerWithBalance[];
 };
 
