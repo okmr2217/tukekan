@@ -11,6 +11,7 @@
 | ORM       | Drizzle ORM              | 型安全なDB操作。Workers で軽く、D1 の batch をそのまま使える |
 | Auth      | 自前実装（bcrypt + JWT） | シンプルな要件に適合、依存を減らす         |
 | Hosting   | Cloudflare Workers（OpenNext） | Cloudflare Access と一体で運用できる（[11-cloudflare-workers.md](./11-cloudflare-workers.md)） |
+| Markdown  | @next/mdx（remark-gfm ほか） | 使い方ガイドの原稿（`docs/user-guide/*.md`）をビルド時にコンポーネントにする。Workers では実行時にファイルを読めないため（[12-user-guide.md](./12-user-guide.md)） |
 
 ---
 
@@ -35,6 +36,9 @@ src/
 │   │   │       └── page.tsx      # 取引履歴
 │   │   └── settings/
 │   │       └── page.tsx          # 設定
+│   ├── help/                     # 使い方ガイド（ログイン前でも読める・docs/12-user-guide.md）
+│   │   ├── page.tsx              # 目次
+│   │   └── [slug]/page.tsx       # 記事（原稿は docs/user-guide/）
 │   ├── admin/                    # 管理画面（Cloudflare Access で認証・docs/10-admin.md）
 │   │   ├── layout.tsx            # サイドバー構成のPC向けレイアウト
 │   │   ├── page.tsx              # ダッシュボード

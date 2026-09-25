@@ -8,13 +8,16 @@ import {
   Copy,
   Eye,
   MoreHorizontal,
+  CircleHelp,
 } from "lucide-react";
 import {
   generatePartnerShareToken,
   revokePartnerShareToken,
   type PartnerById,
 } from "@/actions/partner";
+import Link from "next/link";
 import { PartnerShareNoteDialog } from "./partner-share-note-dialog";
+import { userGuideHref } from "@/lib/user-guide-links";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -115,9 +118,18 @@ export function PartnerShareCard({ partner }: Props) {
 
   return (
     <div>
-      <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-2">
-        共有
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+          共有
+        </p>
+        <Link
+          href={userGuideHref("share")}
+          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <CircleHelp className="size-3.5" />
+          共有リンクの使い方
+        </Link>
+      </div>
 
       <div className="rounded-2xl border bg-card p-4">
         {hasActiveToken && shareUrl ? (

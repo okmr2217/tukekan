@@ -4,6 +4,7 @@ import { getPartnersWithBalance } from "@/actions/partner";
 import { getPurposeSuggestions, getTransactions, type SortOrder } from "@/actions/transaction";
 import { TransactionCardList } from "@/components/features/transaction/transaction-card-list";
 import { MobileHeader } from "@/components/layouts/mobile-header";
+import { GuideHeaderLink } from "@/components/features/help/guide-header-link";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -48,7 +49,7 @@ export default async function TransactionsPage({
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title="すべての取引" />
+      <MobileHeader title="すべての取引" action={<div className="-mr-1.5"><GuideHeaderLink slug="transactions" /></div>} />
 
       <div className="px-4 pt-3 pb-4 space-y-3 max-w-lg mx-auto w-full">
         <p className="text-xs text-muted-foreground mb-3">全相手の取引一覧</p>

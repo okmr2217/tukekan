@@ -30,6 +30,7 @@
 | トースト | sonner |
 | テーマ | next-themes (ダーク/ライト) |
 | スクリーンショット | Playwright + shot-kit |
+| 使い方ガイド | @next/mdx（`docs/user-guide/*.md` をビルド時に取り込む） |
 
 ---
 
@@ -146,7 +147,9 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
   /ledgers/[id]/settings      口座の設定（口座名・年利・利息の発生曜日・単利/複利・削除）
   /menu                       メニュー
   /settings                   設定（プロフィール・取引ボタン表示・外観）
-  /help                       ヘルプ
+
+/help                         使い方ガイドの目次（ログイン前・オンボーディング中でも読める。BottomBar / FAB なし）
+  /[slug]                     記事（原稿は docs/user-guide/*.md。docs/12-user-guide.md）
 
 /admin                        管理画面（Cloudflare Access で認証・サイドバー構成のPC向け）
   /                           ダッシュボード（全体サマリーと異常の一覧）
@@ -168,7 +171,7 @@ BottomBar（固定フッター）に4タブ:
 1. **ホーム** (`/`) — 全体の残高・相手ごとの残高・相手の追加・最近の取引
 2. **すべての取引** (`/transactions`) — 全取引の一覧・絞り込み
 3. **統計** (`/statistics`) — 貸し借りの流れ・推移・返済の傾向
-4. **メニュー** (`/menu`) — 設定・ヘルプ
+4. **メニュー** (`/menu`) — 設定・使い方ガイド
 
 ---
 

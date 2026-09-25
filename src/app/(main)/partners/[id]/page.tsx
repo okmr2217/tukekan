@@ -11,6 +11,7 @@ import { getLedgersByPartner } from "@/actions/ledger";
 import { getPurposeSuggestions, getTransactions } from "@/actions/transaction";
 import { PartnerDetailView } from "@/components/features/partner/partner-detail-view";
 import { MobileHeader } from "@/components/layouts/mobile-header";
+import { GuideHeaderLink } from "@/components/features/help/guide-header-link";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -74,6 +75,7 @@ export default async function PartnerDetailPage({
             >
               <Settings className="h-5 w-5" />
             </Link>
+            <GuideHeaderLink slug="partners" />
           </div>
         }
       />

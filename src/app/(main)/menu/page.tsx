@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import Link from "next/link";
-import { Settings, HelpCircle, ChevronRight } from "lucide-react";
+import { Settings, BookOpen, ChevronRight } from "lucide-react";
 import { MobileHeader } from "@/components/layouts/mobile-header";
 
 const MENU_ITEMS = [
@@ -13,9 +13,9 @@ const MENU_ITEMS = [
   },
   {
     href: "/help",
-    label: "ヘルプ",
-    description: "使い方の説明",
-    icon: HelpCircle,
+    label: "使い方ガイド",
+    description: "機能ごとの使い方",
+    icon: BookOpen,
   },
 ] as const;
 

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getOverallStatistics } from "@/actions/stats";
 import { MobileHeader } from "@/components/layouts/mobile-header";
+import { GuideHeaderLink } from "@/components/features/help/guide-header-link";
 import { STATS_PERIOD_LABELS, toStatsPeriod } from "@/lib/stats-period";
 import { formatYen } from "@/lib/transaction-wording";
 import { hasRepaymentData } from "@/lib/movement-stats";
@@ -66,7 +67,7 @@ export default async function StatisticsPage({
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title="統計" />
+      <MobileHeader title="統計" action={<div className="-mr-1.5"><GuideHeaderLink slug="statistics" /></div>} />
 
       <div className="mx-auto w-full max-w-lg space-y-6 px-4 pt-3 pb-6">
         <div className="space-y-3">

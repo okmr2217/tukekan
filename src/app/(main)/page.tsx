@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { getPartners, getPartnersWithBalance } from "@/actions/partner";
 import { getPurposeSuggestions, getTransactions } from "@/actions/transaction";
 import { MobileHeader } from "@/components/layouts/mobile-header";
+import { GuideHeaderLink } from "@/components/features/help/guide-header-link";
 import { RecentTransactionsSection } from "@/components/features/home/recent-transactions-section";
 import { BalanceSummaryCard } from "@/components/features/home/balance-summary-card";
 import { PartnerListSection } from "@/components/features/partner/partner-list-section";
@@ -25,7 +26,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title="ホーム" />
+      <MobileHeader title="ホーム" action={<div className="-mr-1.5"><GuideHeaderLink slug="transactions" /></div>} />
 
       {/* 下端の余白は、最後のカードが FAB に隠れないようにするため */}
       <div className="max-w-lg mx-auto w-full px-4 pt-3 pb-20 space-y-6">

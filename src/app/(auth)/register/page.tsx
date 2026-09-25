@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { RegisterForm } from "./register-form";
 import Image from "next/image";
+import Link from "next/link";
 
 export default async function RegisterPage() {
   const session = await getSession();
@@ -19,6 +20,14 @@ export default async function RegisterPage() {
           </h1>
         </div>
         <RegisterForm />
+        <p className="mt-6 text-center">
+          <Link
+            href="/help"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            ツケカンの使い方を見る
+          </Link>
+        </p>
       </div>
     </div>
   );

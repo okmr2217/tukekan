@@ -1,6 +1,6 @@
 # 12. ユーザー向けドキュメント（使い方ガイド）
 
-> ステータス：原稿あり（`docs/user-guide/` の6本）・画面は未着手
+> ステータス：実装済み（原稿は `docs/user-guide/` の6本、画面は `src/app/help/`）
 > 参考：Clipnote の `docs/design-user-guide.md` ・ `docs/user-guide/`
 
 ---
@@ -107,15 +107,32 @@
   オンボーディング未完了なら `/onboarding` へ送るため、その中にあるとログイン前やオンボーディング中に読めない
 - ヘッダーの戻る先はログイン状態で変える（ログイン中 → `/menu`、未ログイン → `/login`）。
   ボトムバーと＋ボタンは出さない（未ログインでも同じ見た目にするため）
-- 記事の本文はビルド時にバンドルへ取り込む（Workers では実行時にファイルを読めない）。
-  Markdown の描画方法は実装時に `node_modules/next/dist/docs/` の MDX の案内を確認して決める
+- 記事ページ（`/help/[slug]`）はリクエストごとに描画する（原稿はバンドル済みなので軽い）。`generateStaticParams` で静的に書き出すと、
+  インクリメンタルキャッシュを持たない構成（`open-next.config.ts`）では Workers 上で 404 になるため使わない。存在しない slug は 404
 - 記事ごとに `title` をページタイトルにする。ログイン前に読めるので検索エンジンからも辿れる
+
+### 原稿の取り込み
+
+Workers では実行時にファイルを読めないため、原稿はビルド時にバンドルへ取り込む。
+
+| ファイル | 役割 |
+| --- | --- |
+| `next.config.ts` | `@next/mdx` で `.md` をコンポーネントに変換する。プラグインは `remark-frontmatter`・`remark-mdx-frontmatter`（`title` を `frontmatter` として書き出す）・`remark-gfm`（表）。Turbopack には名前（文字列）で渡す |
+| `src/mdx-components.tsx` | `@next/mdx` が必須とするファイル。中身は空（見た目は記事側で渡す） |
+| `src/lib/user-guide.ts` | 原稿を import して slug・タイトル・目次の説明文と結びつける。並び順はこの配列の順 |
+| `src/lib/user-guide-links.ts` | slug の一覧と `userGuideHref()`。クライアントコンポーネントからはこちらを使う（`user-guide.ts` を読むと原稿がブラウザ向けのバンドルに入るため） |
+| `src/components/features/help/guide-article.tsx` | 見出し・表・引用などの見た目。表は横にスクロールできる。引用（`>`）の中の改行はそのまま改行にする |
+| `src/components/features/help/guide-header-link.tsx` | 各画面のヘッダー右端に置く「？」アイコン |
+
+**記事を足すとき**：`docs/user-guide/{NN}-{slug}.md` を書き、`user-guide-links.ts` の `USER_GUIDE_SLUGS` と
+`user-guide.ts` の `USER_GUIDE_ARTICLES` に足し、目次のアイコン（`src/app/help/page.tsx` の `ARTICLE_ICONS`）を決める。
 
 ---
 
 ## 12.5 画面からの導線
 
-各画面の見出しまわりから該当記事へ1タップで行けるようにする。ガイドは同じアプリ内なので、別タブでは開かない。
+各画面のヘッダー右端の「？」アイコン（相手ページは統計・設定のアイコンの右）から該当記事へ1タップで行けるようにする。
+ガイドは同じアプリ内なので、別タブでは開かない。
 
 | 画面 | リンク先 |
 | --- | --- |
@@ -124,7 +141,7 @@
 | ホーム | `/help/transactions`（残高と色の見かた） |
 | すべての取引 | `/help/transactions`（探す） |
 | 相手ページ・相手の設定 | `/help/partners` |
-| 相手ページの共有カード | `/help/share` |
+| 相手ページの共有カード | `/help/share`（「共有」の見出しの右に「共有リンクの使い方」） |
 | 口座の設定 | `/help/interest` |
 | 統計・相手ごとの統計 | `/help/statistics` |
 | 設定 | `/help/getting-started`（設定でできること） |
@@ -139,6 +156,6 @@
 ## 12.6 作業の順序
 
 1. ~~原稿6本を書く（`docs/user-guide/`）~~ 済み
-2. `/help`・`/help/[slug]` を `src/app/help/` に作り、`src/app/(main)/help/` を消す
-3. 12.5 の導線を足す
-4. `docs/summary.md`・`docs/04-screens.md` の画面一覧を更新する
+2. ~~`/help`・`/help/[slug]` を `src/app/help/` に作り、`src/app/(main)/help/` を消す~~ 済み
+3. ~~12.5 の導線を足す~~ 済み
+4. ~~`docs/summary.md`・`docs/04-screens.md` の画面一覧を更新する~~ 済み
