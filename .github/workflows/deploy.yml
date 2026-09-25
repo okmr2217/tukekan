@@ -1,0 +1,44 @@
+name: Deploy to Cloudflare Workers
+
+# main への push で本番（Cloudflare Workers）にデプロイする。詳細は docs/11-cloudflare-workers.md。
+# Worker の実行時シークレット（DATABASE_URL / JWT_SECRET / CF_ACCESS_* など）は
+# Cloudflare 側（wrangler secret put / ダッシュボード）に置いてあり、ここでは扱わない。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# デプロイ同士が並行しないように順番に実行する
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      # postinstall の `prisma generate` が prisma.config.ts 経由で DATABASE_URL を要求するためのダミー。
+      # 生成にはスキーマしか使わず、ビルド中に DB へはつながない。
+      DATABASE_URL: postgresql://build:build@localhost:5432/build
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (OpenNext)
+        run: npx opennextjs-cloudflare build
+
+      - name: Deploy
+        run: npx opennextjs-cloudflare deploy

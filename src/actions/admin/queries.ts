@@ -8,7 +8,7 @@
  * 先頭で requireAdmin() を呼んで管理者であることを確かめる。
  */
 
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import {

@@ -106,7 +106,7 @@ const transactionSchema = z.object({
 | レスポンス   | 画面表示 2秒以内                       |
 | 対応デバイス | スマートフォン（iOS/Android）、PC      |
 | ブラウザ     | Chrome, Safari, Edge (最新2バージョン) |
-| 可用性       | Vercel/Supabaseの標準SLA               |
+| 可用性       | Cloudflare Workers/Supabaseの標準SLA               |
 
 ---
 

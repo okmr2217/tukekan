@@ -92,7 +92,7 @@ jobs:
             echo "### Sample rows"
             echo '```'
             npx tsx -e "
-              import { PrismaClient } from './src/generated/prisma/client';
+              import { PrismaClient } from '@prisma/client';
               import { PrismaPg } from '@prisma/adapter-pg';
               const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
               const prisma = new PrismaClient({ adapter });

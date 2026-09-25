@@ -10,7 +10,7 @@
  * 注意: このスクリプトはスキーママイグレーション（20260820010000_add_ledger）後に一度だけ実行してください
  */
 
-import { PrismaClient } from "../../src/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
 

@@ -6,7 +6,7 @@
 各ユーザーが「自分視点」で取引を記録し、相手（Partner）ごと・口座（Ledger）ごとの残高を追跡する。
 
 - **バージョン**: 2.1.0
-- **ホスティング**: Supabase (PostgreSQL) + Vercel想定
+- **ホスティング**: Cloudflare Workers（OpenNext）+ Supabase (PostgreSQL)。詳細は `docs/11-cloudflare-workers.md`
 - **対象デバイス**: スマートフォン中心
 
 ---
@@ -19,6 +19,7 @@
 | 言語 | TypeScript 5 |
 | DB ORM | Prisma 7.8 |
 | DB | PostgreSQL (via `@prisma/adapter-pg`) |
+| ホスティング | Cloudflare Workers（`@opennextjs/cloudflare`） |
 | 認証 | JWT (jose) + HttpOnly Cookie |
 | UI | Radix UI + Tailwind CSS v4 |
 | フォーム | react-hook-form |
@@ -250,8 +251,7 @@ src/
 │   ├── date-utils.ts / date-picker-utils.ts
 │   ├── revalidate.ts
 │   └── utils.ts            cn()
-├── types/
-└── generated/prisma  Prismaクライアント自動生成
+└── types/
 ```
 
 ---

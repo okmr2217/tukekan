@@ -10,7 +10,7 @@
 | Database  | Supabase (PostgreSQL)    | マネージドDB、スケーラビリティ             |
 | ORM       | Prisma 7                 | 型安全なDB操作                             |
 | Auth      | 自前実装（bcrypt + JWT） | シンプルな要件に適合、依存を減らす         |
-| Hosting   | Vercel                   | Next.jsとの親和性                          |
+| Hosting   | Cloudflare Workers（OpenNext） | Cloudflare Access と一体で運用できる（[11-cloudflare-workers.md](./11-cloudflare-workers.md)） |
 
 ---
 

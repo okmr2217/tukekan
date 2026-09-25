@@ -6,6 +6,7 @@
 
 | ファイル | 名前 | トリガー | 目的 |
 | --- | --- | --- | --- |
+| [`deploy.yml`](../.github/workflows/deploy.yml) | Deploy to Cloudflare Workers | `main` への push + 手動 | OpenNext でビルドし、本番の Worker「tukekan」にデプロイする（[11-cloudflare-workers.md](./11-cloudflare-workers.md)） |
 | [`keep-supabase-alive.yml`](../.github/workflows/keep-supabase-alive.yml) | Ping Supabase to Prevent Pausing | 定期実行 (`0 0 * * 0,3`) + 手動 | Supabase の無料枠プロジェクトが一定期間アクセスなしで自動一時停止されるのを防ぐため、DBに軽いクエリを打つ |
 | [`weekly-interest.yml`](../.github/workflows/weekly-interest.yml) | Weekly Interest Job | 定期実行 (`10 15 * * *`, 毎日 00:10 JST) + 手動 | `scripts/weekly-interest.ts` を実行し、その日が発生曜日にあたる口座だけ利息を計算する（各口座につき週1回） |
 | [`migrate-to-ledgers.yml`](../.github/workflows/migrate-to-ledgers.yml) | Migrate to Ledgers (one-shot) | 手動のみ | 本番DBに対する「バックアップ → マイグレーション適用 → Ledger移行スクリプト」のワンショット移行作業。定期実行はしない |
@@ -18,6 +19,15 @@
 | [`migrate-partner-share-note.yml`](../.github/workflows/migrate-partner-share-note.yml) | Migrate Partner Share Note (one-shot) | 手動のみ | メモ機能（`LedgerNote`）の廃止と、公開ページ用メモ `Partner.shareNote` への作り直しのワンショット移行作業。**不可逆なデータ変換を含む**（相手ごとに最新1件だけを引き継ぎ、テーブルは削除） |
 
 ---
+
+## deploy.yml
+
+- **トリガー**: `main` への push と `workflow_dispatch`。`concurrency` でデプロイ同士が並行しないようにしている
+- `npm ci` → `npx opennextjs-cloudflare build` → `npx opennextjs-cloudflare deploy`
+- 必要な Secrets:
+  - `CLOUDFLARE_ACCOUNT_ID`
+  - `CLOUDFLARE_API_TOKEN`
+- ビルド時の `DATABASE_URL` はダミー（`prisma generate` 用）。Worker の実行時シークレットは Cloudflare 側にあり、このワークフローでは扱わない
 
 ## keep-supabase-alive.yml
 

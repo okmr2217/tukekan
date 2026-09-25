@@ -14,7 +14,7 @@
  * dryRun: true なら「何が起きるか」だけを計算し、DBは一切変更しない。
  */
 
-import type { PrismaClient } from "@/generated/prisma/client";
+import type { PrismaClient } from "@prisma/client";
 import { calcLedgerBreakdown } from "@/lib/ledger-balance";
 import { formatDateToJST, toJST } from "@/lib/date-utils";
 import {

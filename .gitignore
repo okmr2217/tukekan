@@ -40,7 +40,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/generated/prisma
+
 
 # Screenshot output
 output/
+
+# Cloudflare Workers (OpenNext / wrangler)
+/.open-next/
+/.wrangler/
+.dev.vars*
+!.dev.vars.example

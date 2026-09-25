@@ -9,7 +9,7 @@
  * - 試し打ち(dry-run): npx tsx scripts/weekly-interest.ts --dry-run
  */
 
-import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
   describeJobResult,

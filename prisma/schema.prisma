@@ -3,7 +3,9 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  // @prisma/client から読み込む既定の場所に生成する。Cloudflare Workers では
+  // パッケージの "workerd" 条件で WASM を事前コンパイル済みモジュールとして読む edge 版に解決させるため。
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
