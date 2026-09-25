@@ -32,18 +32,6 @@ export function RegisterForm() {
             </div>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="name">表示名</Label>
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              placeholder="山田 太郎"
-              autoComplete="name"
-              required
-              maxLength={20}
-            />
-          </div>
-          <div className="space-y-1.5">
             <Label htmlFor="email">メールアドレス</Label>
             <Input
               id="email"

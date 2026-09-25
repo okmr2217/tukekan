@@ -30,10 +30,6 @@ export type LoginState = {
 };
 
 const registerSchema = z.object({
-  name: z
-    .string()
-    .min(1, "表示名を入力してください")
-    .max(20, "表示名は20文字以内で入力してください"),
   email: z.string().email("メールアドレスの形式が正しくありません"),
   password: z.string().min(8, "パスワードは8文字以上で入力してください"),
 });
@@ -85,7 +81,6 @@ export async function register(
   formData: FormData,
 ): Promise<RegisterState> {
   const result = registerSchema.safeParse({
-    name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -94,7 +89,7 @@ export async function register(
     return { error: result.error.issues[0].message };
   }
 
-  const { name, email, password } = result.data;
+  const { email, password } = result.data;
 
   const existing = await db.query.account.findFirst({
     where: eq(accountTable.email, email),
@@ -103,6 +98,10 @@ export async function register(
   if (existing) {
     return { error: "このメールアドレスはすでに登録されています" };
   }
+
+  // 表示名はオンボーディングの最初のステップで決めてもらう。
+  // それまでの仮の名前としてメールアドレスの @ より前を入れておく（入力欄の初期値にもなる）
+  const name = email.split("@")[0].slice(0, 20);
 
   const passwordHash = await hashPassword(password);
   const [account] = await db
@@ -117,7 +116,7 @@ export async function register(
   });
 
   await setSessionCookie(token);
-  redirect("/");
+  redirect("/onboarding");
 }
 
 export async function logout(): Promise<void> {
@@ -138,6 +137,7 @@ export async function getCurrentUser() {
       name: true,
       createdAt: true,
       transactionLabelPreset: true,
+      onboardingCompletedAt: true,
     },
   });
 

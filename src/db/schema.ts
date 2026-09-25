@@ -46,6 +46,12 @@ export const account = sqliteTable("Account", {
   transactionLabelPreset: text("transactionLabelPreset")
     .notNull()
     .default("BOTH"),
+
+  // オンボーディング（/onboarding）を終えた日時。null の間は (main) に入るとオンボーディングへ送る。
+  // 導入前からあるアカウントはマイグレーションで createdAt を入れて完了扱いにしてある
+  onboardingCompletedAt: integer("onboardingCompletedAt", {
+    mode: "timestamp_ms",
+  }),
 });
 
 export const partner = sqliteTable(
