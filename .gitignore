@@ -50,6 +50,3 @@ output/
 /.wrangler/
 .dev.vars*
 !.dev.vars.example
-
-# Supabase → D1 のデータ移行で生成する SQL（個人データを含むのでコミットしない）
-.d1-import.sql

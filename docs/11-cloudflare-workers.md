@@ -82,7 +82,6 @@ Worker の「設定 → 変数とシークレット」、または `npx wrangler
 | `ADMIN_EMAILS` | | 管理者の許可リスト（任意） |
 
 DB の接続情報はない（D1 は `wrangler.jsonc` の `d1_databases` のバインディングでつながる）。
-Supabase 時代の `DATABASE_URL` は Worker のシークレットから削除してよい。
 
 ローカルで開発・プレビューするときは、リポジトリ直下に `.dev.vars`（git 管理外）を作って同じ名前で書く。
 
@@ -163,27 +162,17 @@ Cron Triggers（毎日 15:00 UTC = 00:00 JST）
 
 ---
 
-## 11.7 Supabase から D1 へのデータ移行
+## 11.7 Supabase から D1 へのデータ移行（2026-09-25 完了）
 
-一度だけ行う作業。移行中に旧環境（Supabase を向いた Worker）で書かれたデータは D1 に入らないので、
-使われていない時間帯に、`main` へのマージ（= D1 を向いたコードのデプロイ）の直前に行う。
+一度だけ行った作業の記録。移行用のスクリプト（`scripts/migrate-supabase-to-d1.ts`）は完了後に削除した（git の履歴に残っている）。
 
-1. **D1 を作る**: `npx wrangler d1 create tukekan-db` を実行し、出力された `database_id` を
-   `wrangler.jsonc` の `d1_databases` に書く（済。リージョンは APAC）
-2. **テーブルを作る**: `npm run db:migrate:remote`（済）
-3. **バックアップ**: 念のため Supabase のダッシュボードか `pg_dump` で移行元を保存しておく
-4. **書き出す**: `DATABASE_URL="<Supabase の接続文字列（Session モード / 直接接続）>" npx tsx scripts/migrate-supabase-to-d1.ts`
-   - 全テーブルを `.d1-import.sql`（git 管理外。パスワードハッシュを含むので扱いに注意）に書き出す
-   - 日時は UTC のミリ秒、真偽値は 0/1、年利は % からベーシスポイントに変換する
-   - 最後に移行元の件数・金額合計などの検算値と、D1 側で同じ値を出すコマンドを表示する
-5. **流し込む**: `npx wrangler d1 execute tukekan-db --remote --file=.d1-import.sql`
-   （SQL は先頭で D1 側の全行を消してから入れ直すので、やり直しても同じ結果になる）
-6. **検算**: 手順4で表示されたコマンドを実行し、件数・合計が一致することを確かめる
-   （済: 取引 516 件・金額合計 168,060・口座 30・年利合計 52000bp・アカウント 8・相手 33 が一致。
-   旧スキーマの残骸 `PartnerNote`（2行・アプリからは未使用）は移していない。Supabase 側には残っている）
-7. **切り替え**: `main` にマージしてデプロイする。本番でログイン・残高・利子つき口座の年利・共有リンク・`/admin` を確認する
-8. **片付け**:
-   - `.d1-import.sql` を削除する
-   - Worker のシークレット `DATABASE_URL`、GitHub の Secrets `DATABASE_URL` / `DIRECT_URL` / `SUPABASE_URL` / `SUPABASE_ANON_KEY` を削除する
-   - しばらく様子を見てから Supabase のプロジェクトを削除する（ping のワークフローは消したので、放っておくと1週間ほどで一時停止する）
-   - `scripts/migrate-supabase-to-d1.ts` と devDependencies の `pg` / `@types/pg` を削除する
+1. `npx wrangler d1 create tukekan-db --location apac` で D1 を作り、`database_id` を `wrangler.jsonc` に書いた
+2. `npm run db:migrate:remote` でテーブルを作った
+3. Supabase の全テーブルを SQL に書き出し（日時は UTC のミリ秒、真偽値は 0/1、年利は % → ベーシスポイント）、
+   `npx wrangler d1 execute tukekan-db --remote --file=...` で流し込んだ
+4. 検算: 取引 516 件・金額合計 168,060・口座 30・年利合計 52000bp・アカウント 8・相手 33・共有リンク 8 が一致
+5. `main` にマージしてデプロイし、本番で共有ページ・ログイン後の残高・統計が D1 のデータで出ることを確認した
+6. Worker のシークレット `DATABASE_URL`、GitHub の Secrets `DATABASE_URL` / `DIRECT_URL` / `SUPABASE_URL` / `SUPABASE_ANON_KEY` を削除し、
+   Supabase のプロジェクトを停止した
+
+旧スキーマの残骸 `PartnerNote`（2行・アプリからは未使用）は移していない。

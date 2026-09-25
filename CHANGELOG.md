@@ -13,7 +13,7 @@
     （Prisma の D1 アダプタは `$transaction` を無視して別々に実行するため、Drizzle に移した）。相手と最初の口座の作成も同様
   - 管理画面の検索の `mode: "insensitive"` を、`%` `_` をエスケープした `LIKE`（`src/db/sql.ts` の `contains()`）に置き換え
   - 統計の相手ごとの集計を、相手1人につき4クエリから `GROUP BY` の1クエリに
-  - Supabase のデータを D1 に移す `scripts/migrate-supabase-to-d1.ts` を追加（手順は `docs/11-cloudflare-workers.md` の 11.7）
+  - Supabase のデータを D1 に移した（記録は `docs/11-cloudflare-workers.md` の 11.7。移行用スクリプトは完了後に削除）
   - `keep-supabase-alive.yml`、本番 DB へのワンショット移行ワークフロー（`migrate-*.yml`）、`prisma/`（スキーマ・移行履歴・
     `seed.ts`・`import-csv.ts`）、`supabase/` を削除
 - ホスティングを Vercel から Cloudflare Workers に移行（OpenNext / `@opennextjs/cloudflare`）。DB は Supabase のまま

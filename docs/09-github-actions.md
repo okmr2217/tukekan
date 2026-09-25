@@ -33,5 +33,4 @@
 ## 運用上の注意
 
 - Secrets はすべてリポジトリの GitHub Actions Secrets に設定されている前提。ローカルの `.env` / `.dev.vars` とは別管理
-- Supabase 時代の Secrets（`DATABASE_URL` / `DIRECT_URL` / `SUPABASE_URL` / `SUPABASE_ANON_KEY`）はどのワークフローも使っていない。
-  データ移行が終わったら削除する（[11-cloudflare-workers.md](./11-cloudflare-workers.md) の 11.7）
+- Supabase 時代の Secrets（`DATABASE_URL` / `DIRECT_URL` / `SUPABASE_URL` / `SUPABASE_ANON_KEY`）は D1 への移行後に削除した
