@@ -4,6 +4,10 @@
 
 ### 追加
 
+- 外形監視用のヘルスチェック `GET /api/health`（`HEAD` も可）を追加
+  - D1 に届くこと（`SELECT 1`、3秒でタイムアウト）と、本番で `JWT_SECRET` が設定されていることを確認し、
+    全部OKなら 200、ひとつでも失敗なら 503。本文は各チェックの ok / fail だけで、エラーの詳細は返さない
+  - 詳細は [docs/11-cloudflare-workers.md](./docs/11-cloudflare-workers.md) の 11.8
 - 使い方ガイドを追加し、これまでのヘルプ（1ページ）を置き換え
   - 記事は6本（はじめる・取引と残高・相手と口座・利子・共有リンク・統計）。原稿は `docs/user-guide/*.md` で、
     `@next/mdx` がビルド時にコンポーネントにする。構成と方針は [docs/12-user-guide.md](./docs/12-user-guide.md)

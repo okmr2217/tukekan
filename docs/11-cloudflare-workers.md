@@ -176,3 +176,26 @@ Cron Triggers（毎日 15:00 UTC = 00:00 JST）
    Supabase のプロジェクトを停止した
 
 旧スキーマの残骸 `PartnerNote`（2行・アプリからは未使用）は移していない。
+
+---
+
+## 11.8 ヘルスチェック（外形監視）
+
+UptimeRobot などから 5 分ごとに `GET https://tukekan.paritto.dev/api/health`（`HEAD` も可）を叩いて、アプリが使える状態かを見る。
+実装は `src/app/api/health/route.ts`。認証なしで公開しており（Cloudflare Access は `/admin` だけ）、返すのは各チェックの ok / fail だけ。
+
+| チェック | 内容 | 見つけたい障害 |
+| --- | --- | --- |
+| （応答すること自体） | ルートが 200 / 503 を返せる | デプロイ失敗、Worker の例外 |
+| `db` | `SELECT 1` を D1 に投げる（3秒でタイムアウト） | D1 の障害、バインディングの設定ミス |
+| `jwtSecret` | 本番で `JWT_SECRET` が設定されている（値は見ない） | シークレットの設定漏れ。`src/lib/auth.ts` は未設定だと開発用の既定値で署名してしまう |
+
+```json
+{ "status": "ok", "checks": { "db": "ok", "jwtSecret": "ok" } }
+```
+
+- 全部 ok なら **200**、ひとつでも fail なら **503**（`status` は `error`）。監視側は HTTP ステータスだけで判定できる
+- `Cache-Control: no-store` を付けている。エラーの詳細は Workers Logs（`health: db check failed`）にだけ残す
+- 週次利子ジョブが動いたかは見ない。止まっても画面は使えるので、管理画面の「ジョブ」ページ（11.5）で確認する
+- `CF_ACCESS_*` も見ない（影響は `/admin` だけで、公開エンドポイントで見るものではない）
+- 書き込みや重いクエリは足さない（5分ごとに叩かれる）
