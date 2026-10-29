@@ -19,6 +19,7 @@
 
 Server Components と Server Actions のみで実装。API Routesは使用しない。
 例外は Cron Triggers から Worker 内部で呼ぶ `src/app/api/cron/`（外からは 404。[11-cloudflare-workers.md](./11-cloudflare-workers.md) の 11.5）。
+もうひとつの例外は外形監視用の `src/app/api/health/`（認証なしで公開。[11-cloudflare-workers.md](./11-cloudflare-workers.md) の 11.8）。
 
 ```
 src/
