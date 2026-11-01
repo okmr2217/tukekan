@@ -68,14 +68,12 @@ export default async function SharePage({ params }: Props) {
           >
             ツケカンに無料登録する
           </Link>
-          <a
-            href="https://paritto-dev-diary.vercel.app/products/tukekan"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/"
             className="block text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
           >
             ツケカンについて詳しく見る
-          </a>
+          </Link>
         </div>
 
         {/* Footer note */}

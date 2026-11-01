@@ -123,6 +123,7 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
 ## 画面構成・ルーティング
 
 ```
+/                             LP（ログインの有無にかかわらず表示。ログイン中は「アプリを開く」で /home へ）
 /login                        ログイン画面
 /register                     新規登録（メールアドレス・パスワード）
 
@@ -135,7 +136,7 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
 /share/[token]                共有リンク（未認証・読み取り専用）
 
 /(main)                       認証済みレイアウト（Header + BottomBar + FAB）
-  /                           ホーム（全体の残高・相手ごとの残高・最近の取引5件）
+  /home                       ホーム（全体の残高・相手ごとの残高・最近の取引5件）
   /transactions               すべての取引
   /statistics                 全体の統計（?period= で期間を切り替え）
   /statistics/accounts        `/statistics` へのリダイレクト（旧URL互換）
@@ -143,7 +144,7 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
   /partners/[id]/statistics   相手ごとの統計（?ledger= で口座を絞り込み）
   /partners/[id]/edit         相手の編集（名前・アーカイブ・削除）
   /partners/archived          アーカイブ済みの相手の一覧
-  /partners                   `/` へのリダイレクト（旧URL互換）
+  /partners                   `/home` へのリダイレクト（旧URL互換）
   /ledgers/[id]/settings      口座の設定（口座名・年利・利息の発生曜日・単利/複利・削除）
   /menu                       メニュー
   /settings                   設定（プロフィール・取引ボタン表示・外観）
@@ -168,7 +169,7 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
 
 BottomBar（固定フッター）に4タブ:
 
-1. **ホーム** (`/`) — 全体の残高・相手ごとの残高・相手の追加・最近の取引
+1. **ホーム** (`/home`) — 全体の残高・相手ごとの残高・相手の追加・最近の取引
 2. **すべての取引** (`/transactions`) — 全取引の一覧・絞り込み
 3. **統計** (`/statistics`) — 貸し借りの流れ・推移・返済の傾向
 4. **メニュー** (`/menu`) — 設定・使い方ガイド
