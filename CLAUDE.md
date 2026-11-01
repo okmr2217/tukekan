@@ -24,6 +24,8 @@
 | [docs/10-admin.md](./docs/10-admin.md) | 管理画面（/admin）・Cloudflare Access 認証 |
 | [docs/11-cloudflare-workers.md](./docs/11-cloudflare-workers.md) | ホスティング（Cloudflare Workers / OpenNext）・DB（D1）・デプロイ手順 |
 | [docs/12-user-guide.md](./docs/12-user-guide.md) | ユーザー向け使い方ガイドの構成（記事一覧・配信方式・画面からの導線） |
+| [docs/13-lp-draft.md](./docs/13-lp-draft.md) | LP（ランディングページ）の構成とコピー |
+| [docs/14-lp-visual-assets.md](./docs/14-lp-visual-assets.md) | LPのビジュアル素材（モックアップの方針・ダミーデータ・ライブデモ） |
 | [docs/summary.md](./docs/summary.md) | アプリ全体のサマリー（技術スタック・データモデル・画面構成など） |
 
 ## GitHub Actions
