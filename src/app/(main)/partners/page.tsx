@@ -5,5 +5,5 @@ import { redirect } from "next/navigation";
  * 古いブックマークやリンクのためにリダイレクトだけ残している。
  */
 export default function PartnersPage() {
-  redirect("/");
+  redirect("/home");
 }

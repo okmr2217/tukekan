@@ -21,5 +21,5 @@ export async function completeOnboarding(): Promise<void> {
     .where(eq(accountTable.id, session.userId));
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/home");
 }

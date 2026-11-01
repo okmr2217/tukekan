@@ -19,7 +19,7 @@ export default function NotFound() {
               </p>
             </div>
             <Button className="w-full" asChild>
-              <Link href="/">
+              <Link href="/home">
                 <Home className="h-4 w-4 mr-2" />
                 ホームに戻る
               </Link>

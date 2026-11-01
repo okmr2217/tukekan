@@ -36,7 +36,7 @@ export default function Error({ error, reset }: Props) {
                 再試行
               </Button>
               <Button className="flex-1" asChild>
-                <Link href="/">
+                <Link href="/home">
                   <Home className="h-4 w-4 mr-2" />
                   ホーム
                 </Link>

@@ -14,7 +14,7 @@ export default async function OnboardingLayout({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.onboardingCompletedAt) redirect("/");
+  if (user.onboardingCompletedAt) redirect("/home");
 
   return (
     <div className="min-h-screen flex flex-col">

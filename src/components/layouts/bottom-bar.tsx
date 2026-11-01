@@ -6,7 +6,7 @@ import { Home, List, BarChart2, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/", label: "ホーム", icon: Home },
+  { href: "/home", label: "ホーム", icon: Home },
   { href: "/transactions", label: "すべての取引", icon: List },
   { href: "/statistics", label: "統計", icon: BarChart2 },
   { href: "/menu", label: "メニュー", icon: Menu },
@@ -20,9 +20,9 @@ export function BottomBar() {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
-    if (href === "/") {
+    if (href === "/home") {
       return (
-        pathname === "/" || HOME_TAB_PREFIXES.some((p) => pathname.startsWith(p))
+        pathname === "/home" || HOME_TAB_PREFIXES.some((p) => pathname.startsWith(p))
       );
     }
     if (href === "/menu") {
