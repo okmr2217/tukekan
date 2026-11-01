@@ -149,6 +149,9 @@ AdminAuditLog（管理画面の操作記録・他テーブルとリレーショ�
   /menu                       メニュー
   /settings                   設定（プロフィール・取引ボタン表示・外観）
 
+/terms                        利用規約（ログイン前でも読める）
+/privacy                      プライバシーポリシー（ログイン前でも読める）
+
 /help                         使い方ガイドの目次（ログイン前・オンボーディング中でも読める。BottomBar / FAB なし）
   /[slug]                     記事（原稿は docs/user-guide/*.md。docs/12-user-guide.md）
 

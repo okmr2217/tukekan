@@ -77,9 +77,17 @@ export default async function SharePage({ params }: Props) {
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-xs text-muted-foreground pb-4">
-          ツケカン — 友人間の貸し借り管理アプリ
-        </p>
+        <div className="space-y-2 pb-4 text-center text-xs text-muted-foreground">
+          <p>ツケカン — 友人間の貸し借り管理アプリ</p>
+          <p className="flex justify-center gap-4">
+            <Link href="/terms" className="underline-offset-4 hover:text-foreground hover:underline">
+              利用規約
+            </Link>
+            <Link href="/privacy" className="underline-offset-4 hover:text-foreground hover:underline">
+              プライバシーポリシー
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

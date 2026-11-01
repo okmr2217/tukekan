@@ -38,6 +38,7 @@
 
 - 管理画面のページとServer Actionは、**必ず先頭で `requireAdmin()`（`src/lib/admin-auth.ts`）を呼ぶ**。`src/proxy.ts` のゲートがあっても省かない
 - 管理画面からの書き込みは「共有リンクの失効」「利子ジョブの手動実行」の2つだけ。**書き込みを足すときは必ず `AdminAuditLog` に記録する**
+- 管理画面で見られる項目や検索の対象は、プライバシーポリシー（`src/app/privacy/page.tsx` の4章）に書いてある。**増やすときはポリシーも改定する**（[docs/06-security.md](./docs/06-security.md) の 6.4）
 - `src/lib/cf-access.ts` は Edge ランタイム（proxy）からも読むので、`next/headers` や DB クライアント（`src/lib/db.ts`）を import しない
 
 ## ホスティング（Cloudflare Workers）・DB（Cloudflare D1）

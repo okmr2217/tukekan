@@ -24,7 +24,7 @@ export function LpFinalCta({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 }
 
-/** フッター。利用規約・プライバシーポリシーはまだないので載せない */
+/** フッター */
 export function LpFooter() {
   return (
     <footer className="border-t border-border">
@@ -45,6 +45,18 @@ export function LpFooter() {
             className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             ログイン
+          </Link>
+          <Link
+            href="/terms"
+            className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            利用規約
+          </Link>
+          <Link
+            href="/privacy"
+            className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            プライバシーポリシー
           </Link>
         </nav>
       </div>
