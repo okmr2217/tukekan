@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 /*
  * LP のモックアップに使うスマホ枠と、その中に置くアプリの部品（docs/14-lp-visual-assets.md 1-3）。
  *
- * 枠は角丸の太いベゼルだけ。特定の機種のノッチやステータスバーは真似せず、アプリのヘッダーから始める。
+ * 枠は角丸の太いベゼルで、画面の上端にはステータスバーとダイナミックアイランド風のカメラを置く。
+ * ステータスバーは中のスクロールに巻き込まれないよう、スクロール領域の外に出す。
  * 中身はアプリと同じコンポーネントで描き、押しても動かないよう inert にする（中のスクロールだけは効く）。
  * アプリの BottomBar・FAB は画面に fixed で置かれるので、ここでは枠の中に収まる見た目だけを再現する。
  *
@@ -50,29 +51,87 @@ export function PhoneFrame({
         className,
       )}
     >
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-[2.1rem] bg-background",
-          screenClassName,
-        )}
-      >
-        <div
-          role={scrollable ? "region" : undefined}
-          aria-label={scrollable ? label : undefined}
-          tabIndex={scrollable ? 0 : undefined}
-          className={cn(
-            "h-full",
-            scrollable
-              ? "overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              : "overflow-hidden",
-            bottomBar && "pb-16",
-          )}
-        >
-          <div inert>{children}</div>
+      <div className="overflow-hidden rounded-[2.1rem] bg-background">
+        <MockStatusBar />
+        <div className={cn("relative", screenClassName)}>
+          <div
+            role={scrollable ? "region" : undefined}
+            aria-label={scrollable ? label : undefined}
+            tabIndex={scrollable ? 0 : undefined}
+            className={cn(
+              "h-full",
+              scrollable
+                ? "overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                : "overflow-hidden",
+              bottomBar && "pb-16",
+            )}
+          >
+            <div inert>{children}</div>
+          </div>
+          {fab && <MockFab />}
+          {bottomBar && <MockBottomBar active={bottomBar} />}
         </div>
-        {fab && <MockFab />}
-        {bottomBar && <MockBottomBar active={bottomBar} />}
       </div>
+    </div>
+  );
+}
+
+/** 画面上端のステータスバー。中央にダイナミックアイランド風のカメラを置く */
+function MockStatusBar() {
+  return (
+    <div
+      aria-hidden
+      className="relative flex h-[50px] items-center justify-between px-8 pt-1 text-foreground"
+    >
+      <span className="w-14 text-center text-[15px] font-semibold tracking-tight">
+        9:41
+      </span>
+      <span className="absolute top-[11px] left-1/2 h-[30px] w-[108px] -translate-x-1/2 rounded-full bg-black" />
+      <span className="flex w-14 items-center justify-end gap-1.5">
+        <svg viewBox="0 0 18 12" className="h-[11px] w-[17px] fill-current">
+          <rect x="0" y="8" width="3" height="4" rx="0.8" />
+          <rect x="5" y="5.5" width="3" height="6.5" rx="0.8" />
+          <rect x="10" y="3" width="3" height="9" rx="0.8" />
+          <rect x="15" y="0" width="3" height="12" rx="0.8" />
+        </svg>
+        <svg
+          viewBox="0 0 16 12"
+          className="h-[11px] w-[15px] fill-none stroke-current"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+        >
+          <path d="M1.5 4.6a9.2 9.2 0 0 1 13 0" />
+          <path d="M4.2 7.3a5.4 5.4 0 0 1 7.6 0" />
+          <circle
+            cx="8"
+            cy="10.2"
+            r="1.2"
+            className="fill-current stroke-none"
+          />
+        </svg>
+        <svg viewBox="0 0 27 13" className="h-[12px] w-[25px]">
+          <rect
+            x="0.5"
+            y="0.5"
+            width="23"
+            height="12"
+            rx="3.5"
+            className="fill-none stroke-current opacity-40"
+          />
+          <rect
+            x="2"
+            y="2"
+            width="20"
+            height="9"
+            rx="2"
+            className="fill-current"
+          />
+          <path
+            d="M25 4.5v4a2 2 0 0 0 0-4Z"
+            className="fill-current opacity-40"
+          />
+        </svg>
+      </span>
     </div>
   );
 }
