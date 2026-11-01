@@ -18,7 +18,7 @@ export default async function ArchivedPartnersPage() {
 
   return (
     <div className="flex flex-col">
-      <MobileHeader title="アーカイブ済みの相手" backHref="/" />
+      <MobileHeader title="アーカイブ済みの相手" backHref="/home" />
 
       <div className="max-w-lg mx-auto w-full px-4 pt-3 pb-4">
         <p className="text-xs text-muted-foreground mb-3">

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { LogOut, BookOpen, ChevronRight } from "lucide-react";
+import { LogOut, BookOpen, ChevronRight, FileText, ShieldCheck } from "lucide-react";
 import { logout } from "@/actions/auth";
 
 export function OtherSection() {
@@ -25,6 +25,26 @@ export function OtherSection() {
           <div className="flex items-center gap-3">
             <BookOpen className="h-5 w-5 text-muted-foreground" />
             <span className="text-sm font-medium">使い方ガイド</span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
+        <Link
+          href="/terms"
+          className="w-full flex items-center justify-between gap-3 p-4 hover:bg-accent transition-colors border-t border-border"
+        >
+          <div className="flex items-center gap-3">
+            <FileText className="h-5 w-5 text-muted-foreground" />
+            <span className="text-sm font-medium">利用規約</span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
+        <Link
+          href="/privacy"
+          className="w-full flex items-center justify-between gap-3 p-4 hover:bg-accent transition-colors border-t border-border"
+        >
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+            <span className="text-sm font-medium">プライバシーポリシー</span>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>

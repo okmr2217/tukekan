@@ -32,7 +32,7 @@ export function TransactionLabelOptionButton({
       )}
     >
       <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-sm font-medium">{option.title}</span>
+        <span className="shrink-0 text-sm font-medium">{option.title}</span>
         {selected && <Check className="h-4 w-4 text-primary shrink-0" />}
         <span className="text-xs text-muted-foreground truncate">
           {option.hint}

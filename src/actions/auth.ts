@@ -73,7 +73,7 @@ export async function login(
   });
 
   await setSessionCookie(token);
-  redirect("/");
+  redirect("/home");
 }
 
 export async function register(

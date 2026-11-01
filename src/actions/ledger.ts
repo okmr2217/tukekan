@@ -217,7 +217,7 @@ export async function createLedger(
   await db.insert(ledgerTable).values({ partnerId, ...toLedgerValues(result.data) });
 
   revalidatePath(`/partners/${partnerId}`);
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/statistics/accounts");
   return { success: true };
 }
@@ -247,7 +247,7 @@ export async function updateLedger(
 
   revalidatePath(`/partners/${ledger.partnerId}`);
   revalidatePath(`/ledgers/${ledgerId}/settings`);
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/statistics/accounts");
   return { success: true };
 }
@@ -281,7 +281,7 @@ export async function deleteLedger(ledgerId: string): Promise<LedgerFormState> {
   await db.delete(ledgerTable).where(eq(ledgerTable.id, ledgerId));
 
   revalidatePath(`/partners/${ledger.partnerId}`);
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/statistics/accounts");
   return { success: true };
 }

@@ -14,7 +14,7 @@ export function FABController({ partners, suggestions }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const isHome = pathname === "/";
+  const isHome = pathname === "/home";
   const isTransactions = pathname === "/transactions";
   // 相手ページ（/partners/[id]）。アーカイブ済みの相手の一覧は相手ページではない
   const partnerMatch =

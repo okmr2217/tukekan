@@ -8,6 +8,9 @@ import { TONE_TEXT } from "@/components/features/transaction/transaction-tone";
 
 type Props = {
   partner: PartnerWithBalance;
+  /** false ならリンクにしない（LP のモックアップのように、押しても移動させたくないとき） */
+  linked?: boolean;
+  className?: string;
 };
 
 /**
@@ -18,15 +21,16 @@ type Props = {
  * 色だけに頼らないよう、残高の上に「貸している／借りている」を添える。
  * 直近の取引の金額は残高と紛らわしいので出さない。
  */
-export function PartnerCard({ partner }: Props) {
+export function PartnerCard({ partner, linked = true, className }: Props) {
   const { lastTransaction, breakdown } = partner;
   const balanceRole = describeBalanceRole(partner.balance);
+  const cardClassName = cn(
+    "flex items-center gap-2 rounded-xl border bg-card px-4 py-3 shadow-sm",
+    className,
+  );
 
-  return (
-    <Link
-      href={`/partners/${partner.id}`}
-      className="flex items-center gap-2 rounded-xl border bg-card px-4 py-3 shadow-sm hover:bg-muted/50 transition-colors active:scale-[0.99]"
-    >
+  const content = (
+    <>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-base flex items-center gap-1.5">
           <span className="truncate">{partner.name}</span>
@@ -69,6 +73,20 @@ export function PartnerCard({ partner }: Props) {
         )}
       </div>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </>
+  );
+
+  if (!linked) return <div className={cardClassName}>{content}</div>;
+
+  return (
+    <Link
+      href={`/partners/${partner.id}`}
+      className={cn(
+        cardClassName,
+        "hover:bg-muted/50 transition-colors active:scale-[0.99]",
+      )}
+    >
+      {content}
     </Link>
   );
 }

@@ -54,9 +54,30 @@ export function RegisterForm() {
               minLength={8}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "登録中..." : "アカウントを作成"}
-          </Button>
+          <div className="space-y-3">
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? "登録中..." : "アカウントを作成"}
+            </Button>
+            <p className="text-center text-xs leading-relaxed text-muted-foreground">
+              アカウントを作成すると、
+              <Link
+                href="/terms"
+                target="_blank"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                利用規約
+              </Link>
+              と
+              <Link
+                href="/privacy"
+                target="_blank"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                プライバシーポリシー
+              </Link>
+              に同意したものとみなします。
+            </p>
+          </div>
         </form>
       </CardContent>
       <CardFooter className="justify-center">

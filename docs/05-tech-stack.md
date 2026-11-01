@@ -31,7 +31,8 @@ src/
 │   │       └── page.tsx
 │   ├── (main)/                   # メイン機能ルートグループ（ログイン必須）
 │   │   ├── layout.tsx            # 共通レイアウト（ヘッダー、ボトムバー、FAB）
-│   │   ├── page.tsx              # ホーム（全体の残高・相手一覧・最近の取引）
+│   │   ├── home/
+│   │   │   └── page.tsx          # ホーム（全体の残高・相手一覧・最近の取引）
 │   │   ├── partners/
 │   │   │   └── [id]/
 │   │   │       └── page.tsx      # 取引履歴
@@ -49,6 +50,9 @@ src/
 │   │   ├── share-links/
 │   │   ├── jobs/
 │   │   └── audit/
+│   ├── page.tsx                  # LP（docs/13-lp-draft.md・docs/14-lp-visual-assets.md）
+│   ├── terms/page.tsx            # 利用規約
+│   ├── privacy/page.tsx          # プライバシーポリシー
 │   └── layout.tsx                # ルートレイアウト
 ├── proxy.ts                      # /admin の入り口のゲート（Next.js 16 で middleware.ts から改称）
 ├── actions/                      # Server Actions
@@ -71,6 +75,8 @@ src/
 │   │   └── partner/
 │   │       ├── partner-select.tsx        # 相手選択コンボボックス
 │   │       └── partner-balance-list.tsx  # 残高一覧
+│   │   ├── lp/                           # LPのセクションとモックアップ（ダミーデータ・スマホ枠・ライブデモ）
+│   │   ├── legal/                        # 利用規約・プライバシーポリシーの本文の組み方と、運営者の表記・窓口
 │   │   └── admin/                        # 管理画面のサイドバー・テーブル・操作ボタン
 │   └── layouts/
 │       ├── header.tsx

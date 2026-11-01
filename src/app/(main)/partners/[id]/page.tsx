@@ -58,7 +58,7 @@ export default async function PartnerDetailPage({
     <div className="flex flex-col">
       <MobileHeader
         title={partner.name}
-        backHref={partner.isArchived ? "/partners/archived" : "/"}
+        backHref={partner.isArchived ? "/partners/archived" : "/home"}
         action={
           <div className="flex items-center gap-0.5 -mr-1.5 shrink-0">
             <Link

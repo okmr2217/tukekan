@@ -7,7 +7,7 @@ import Link from "next/link";
 export default async function RegisterPage() {
   const session = await getSession();
   if (session) {
-    redirect("/");
+    redirect("/home");
   }
 
   return (

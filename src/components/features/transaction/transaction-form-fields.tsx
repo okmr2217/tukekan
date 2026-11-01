@@ -13,6 +13,7 @@ import {
 } from "@/lib/date-picker-utils";
 import { cn } from "@/lib/utils";
 import { useTransactionLabels } from "./transaction-label-preset-context";
+import { AMOUNT_SIDE_BASE, AMOUNT_SIDE_CLASSES } from "./transaction-tone";
 import {
   MAX_AMOUNT,
   MAX_PURPOSE_LENGTH,
@@ -29,29 +30,6 @@ type Props = {
    */
   showDateModeToggle?: boolean;
 };
-
-/**
- * 金額ボタンの色はアプリ共通の債権軸に揃える。
- *   + （自分の債権が増える / 貸した・返済した）= 緑
- *   - （自分の債務が増える / 借りた・返済された）= 赤
- * 取引カードや残高表示と同じ意味になるので、登録時と一覧で色が反転しない。
- */
-const AMOUNT_SIDE_CLASSES = {
-  lending: {
-    selected:
-      "bg-emerald-600 text-white border-emerald-600 dark:bg-emerald-600 dark:border-emerald-600",
-    unselected:
-      "bg-transparent border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950",
-  },
-  borrowing: {
-    selected: "bg-red-600 text-white border-red-600 dark:bg-red-700 dark:border-red-700",
-    unselected:
-      "bg-transparent border-red-300 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950",
-  },
-} as const;
-
-const AMOUNT_SIDE_BASE =
-  "flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors active:scale-95 disabled:pointer-events-none disabled:opacity-50";
 
 export function TransactionFormFields({
   suggestions,
