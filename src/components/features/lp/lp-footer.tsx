@@ -16,7 +16,7 @@ export function LpFinalCta({ isLoggedIn }: { isLoggedIn: boolean }) {
         </div>
         {!isLoggedIn && (
           <p className="mt-5 text-[13px] leading-relaxed text-muted-foreground">
-            登録はメールアドレスとパスワードだけ。最初の設定は4ステップで案内します。
+            登録はメールアドレスとパスワードだけ。最初の設定は5ステップで案内します。
           </p>
         )}
       </div>
@@ -39,6 +39,12 @@ export function LpFooter() {
             className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             使い方ガイド
+          </Link>
+          <Link
+            href="/app"
+            className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            アプリ
           </Link>
           <Link
             href="/login"

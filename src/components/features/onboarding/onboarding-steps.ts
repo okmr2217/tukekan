@@ -3,6 +3,7 @@
  * 1ステップ = 1ページにしてあるので、途中でリロード・中断してもそのステップから続けられる。
  */
 export const ONBOARDING_STEPS = [
+  { path: "/onboarding/app", label: "アプリ" },
   { path: "/onboarding/profile", label: "表示名" },
   { path: "/onboarding/labels", label: "ボタン表示" },
   { path: "/onboarding/partner", label: "相手" },
@@ -10,8 +11,9 @@ export const ONBOARDING_STEPS = [
 ] as const;
 
 export const ONBOARDING_PATHS = {
-  profile: ONBOARDING_STEPS[0].path,
-  labels: ONBOARDING_STEPS[1].path,
-  partner: ONBOARDING_STEPS[2].path,
-  transaction: ONBOARDING_STEPS[3].path,
+  app: ONBOARDING_STEPS[0].path,
+  profile: ONBOARDING_STEPS[1].path,
+  labels: ONBOARDING_STEPS[2].path,
+  partner: ONBOARDING_STEPS[3].path,
+  transaction: ONBOARDING_STEPS[4].path,
 } as const;
