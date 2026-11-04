@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import Link from "next/link";
-import { Settings, BookOpen, ChevronRight } from "lucide-react";
+import { Settings, BookOpen, ChevronRight, Smartphone } from "lucide-react";
 import { MobileHeader } from "@/components/layouts/mobile-header";
 
 const MENU_ITEMS = [
@@ -16,6 +16,12 @@ const MENU_ITEMS = [
     label: "使い方ガイド",
     description: "機能ごとの使い方",
     icon: BookOpen,
+  },
+  {
+    href: "/app",
+    label: "アプリとして使う",
+    description: "ホーム画面に追加する手順",
+    icon: Smartphone,
   },
 ] as const;
 

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/actions/auth";
 import { OnboardingStep } from "@/components/features/onboarding/onboarding-step";
+import { ONBOARDING_PATHS } from "@/components/features/onboarding/onboarding-steps";
 import { ProfileStepForm } from "./profile-step-form";
 
 export default async function OnboardingProfilePage() {
@@ -11,6 +12,7 @@ export default async function OnboardingProfilePage() {
     <OnboardingStep
       title="表示名を決めましょう"
       description="共有リンクを送った相手に表示される名前です。あとから設定で変えられます。"
+      backHref={ONBOARDING_PATHS.app}
     >
       <ProfileStepForm defaultName={user.name} />
     </OnboardingStep>
