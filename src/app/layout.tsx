@@ -19,6 +19,7 @@ const zenMaruGothic = Zen_Maru_Gothic({
 export const metadata: Metadata = {
   title: "ツケカン - 友人間の貸し借り管理アプリ",
   description: "友人間の貸し借りを簡単に管理するアプリ",
+  applicationName: "ツケカン",
   icons: {
     icon: [
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
