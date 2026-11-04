@@ -29,6 +29,16 @@ export const metadata: Metadata = {
     ],
     shortcut: "/favicon.ico",
   },
+  // iOS は manifest の display: standalone だけではホーム画面から全画面で開かないため併記する
+  appleWebApp: {
+    capable: true,
+    title: "ツケカン",
+    statusBarStyle: "default",
+  },
+  other: {
+    // Next は mobile-web-app-capable しか出力しない。古い iOS は apple- 付きの名前しか見ない
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
